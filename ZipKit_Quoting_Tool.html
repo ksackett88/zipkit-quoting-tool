@@ -218,15 +218,15 @@
         <label for="g-units">Number of units</label>
         <input type="number" id="g-units" min="1" max="50" step="1" value="1">
 
-        <label for="g-design">Design &amp; engineering</label>
+        <label for="g-design">Standalone or bundled with a home?</label>
         <select id="g-design">
-          <option value="1125">Standalone garage — $1,125</option>
-          <option value="562">Bundled with a Zip Kit home — $562</option>
+          <option value="1125">Standalone garage — design $1,125 · ships $14/mi ($16 over 600 mi)</option>
+          <option value="562">Bundled with a Zip Kit home — design $562 · ships $6/mi</option>
         </select>
 
         <label for="g-miles">Shipping distance from Cedar City, UT (miles)</label>
         <input type="number" id="g-miles" min="0" max="2000" step="10" value="0">
-        <p class="note" id="g-ship-note">Enter the miles to the job site. Garages ship $6–$16/mi; this uses $16 to be safe.</p>
+        <p class="note" id="g-ship-note">Enter the miles to the job site. The rate depends on standalone vs. bundled above.</p>
 
         <div class="flag">A few things to tell the customer: snow load can add engineering and material cost (not figured here), and windows and doors aren't included in the garage shell price. Sales tax is added at invoice.</div>
       </div>
@@ -263,7 +263,7 @@
     </div>
   </div>
 
-  <footer>ZipKit Homes &amp; Mountain Valley Prefab · Sales Team Tool · 2026 · When a shipping range shows, this quote uses the high end to be safe — always confirm the real rate with the office before you send a quote.<br><span style="opacity:0.7;">Version 2.1 · updated May 25, 2026</span></footer>
+  <footer>ZipKit Homes &amp; Mountain Valley Prefab · Sales Team Tool · 2026 · When a shipping range shows, this quote uses the high end to be safe — always confirm the real rate with the office before you send a quote.<br><span style="opacity:0.7;">Version 2.2 · updated May 25, 2026</span></footer>
 </div>
 
 <div id="invoice-print" style="display:none;"></div>
@@ -277,6 +277,17 @@ var QUOTE = null;
 function invoiceStages(q){
   // Returns the ordered list of billing stages for the current quote.
   var stages = [];
+  if(q.kind==='Modular'){
+    // Modular units: 30 / 30 / 30 / 10 of the total (design, engineering & windows already included)
+    var p1=Math.round(q.total*0.30), p2=Math.round(q.total*0.30), p3=Math.round(q.total*0.30);
+    var p4=q.total-p1-p2-p3; // final absorbs rounding
+    stages.push({key:'pay1', name:'Payment 1 (30%)', desc:'30% · design & engineering, secures production', amount:p1});
+    stages.push({key:'pay2', name:'Payment 2 (30%)', desc:'30% · materials & production', amount:p2});
+    stages.push({key:'pay3', name:'Payment 3 (30%)', desc:'30% · factory completion, before transport', amount:p3});
+    stages.push({key:'final', name:'Final Payment (10%)', desc:'10% · after set & completion on site', amount:p4});
+    return stages;
+  }
+  // Shell kits & garages: design separate, engineering first, then 45/45/10 of the remainder
   if(q.design>0) stages.push({key:'design', name:'Design', desc:'Architectural design fee · due at project start', amount:q.design});
   if(q.engineering>0) stages.push({key:'engineering', name:'Engineering', desc:'Full submittal engineering · due after contract signing', amount:q.engineering});
   stages.push({key:'materials', name:'Materials (45%)', desc:'45% of contract · due after engineering', amount:Math.round(q.contract*0.45)});
@@ -637,18 +648,22 @@ function calcGarage(){
   var miles=Math.max(0,parseFloat(document.getElementById('g-miles').value)||0);
   document.getElementById('g-meta').textContent=g[0]+' garage · '+g[1]+' · shell kit '+fmt(g[2]);
 
-  var GHIGH=16;
-  var shipPer=miles*GHIGH;
+  var bundled = (design===562);
+  var grate, rateDesc;
+  if(bundled){ grate=6; rateDesc='$6/mi (bundled with a home)'; }
+  else if(miles>600){ grate=16; rateDesc='$16/mi (standalone, over 600 mi)'; }
+  else { grate=14; rateDesc='$14/mi (standalone, up to 600 mi)'; }
+  var shipPer=miles*grate;
   document.getElementById('g-ship-note').textContent = miles>0
-    ? miles.toLocaleString('en-US')+' mi × $16/mi = '+fmt(shipPer)+' per unit (using the high end to be safe).'
-    : 'Enter the miles to the job site. Ships $6–$16/mi; this uses $16.';
+    ? miles.toLocaleString('en-US')+' mi × $'+grate+'/mi = '+fmt(shipPer)+' per unit · '+rateDesc+'.'
+    : (bundled ? 'Bundled with a home: $6/mi. Enter the miles to the job site.' : 'Standalone: $14/mi up to 600 mi, $16/mi over 600. Enter the miles to the job site.');
 
   function rowG(l,a,o){o=o||{};var s=o.sub?'<div class="sub">'+o.sub+'</div>':'';return '<tr><td class="label">'+l+s+'</td><td class="amt">'+fmt(a)+'</td></tr>';}
   var rows='';
   rows+=rowG('Garage shell kit', g[2]*units, {sub:units>1?fmt(g[2])+' × '+units+' units':'pre-framed 2×6 panel shell · structural dry-in'});
-  rows+=rowG('Design & engineering', design, {sub:design===562?'bundled rate':'standalone'});
-  if(shipPer>0) rows+=rowG('Shipping', shipPer*units, {sub:units>1?fmt(shipPer)+' × '+units:'high end of range'});
-  else rows+=rowRate('Shipping', '$6–$16/mi', {sub:'enter distance · uses high end'});
+  rows+=rowG('Design & engineering', design, {sub:design===562?'bundled with a home':'standalone'});
+  if(shipPer>0) rows+=rowG('Shipping', shipPer*units, {sub:units>1?fmt(shipPer)+' × '+units:rateDesc});
+  else rows+=rowRate('Shipping', '$'+grate+'/mi', {sub:bundled?'bundled with a home':'standalone · enter distance'});
   document.getElementById('g-lines').innerHTML=rows;
 
   var total=g[2]*units + design + shipPer*units;
