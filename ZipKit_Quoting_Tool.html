@@ -404,7 +404,7 @@ var SHELL = [
   ["Koda","1,864",131475,11670,12750,25965,16,[7670,11800,14075,21535]],
   ["Hayden","1,959",127435,11645,12215,24428,16,[12300,17835,21075,31978]],
   ["Cedar","1,989",152157,13175,15215,29965,16,[9225,14375,16400,23985]],
-  ["Apache","2,170",108475,6850,9765,18650,16,[4420,6945,9595,13465],"barndo-7state"],
+  ["Apache","2,170",108475,6850,9765,18650,16,[4420,6945,9595,13465],"barndo"],
   ["Juniper","2,120",235850,14850,13765,23650,23,[12855,17930,20475,29925],"barndo"],
   ["Zion","2,226",115225,9475,13650,24875,16,[13954,15117,16600,23257]],
   ["Columbia","2,276",163540,12415,14275,21650,18,[12800,19750,23450,35750]],
@@ -458,7 +458,7 @@ function setBrand(which){
 (function initShell(){
   var sel = document.getElementById('s-model');
   SHELL.forEach(function(m,i){
-    var tag = m[8]==='barndo'||m[8]==='barndo-7state' ? ' (Barndominium)' : '';
+    var tag = m[8]==='barndo' ? ' (Barndominium)' : '';
     var o=document.createElement('option'); o.value=i; o.textContent=m[0]+tag+' · '+m[1]+' sqft'; sel.appendChild(o);
   });
   sel.value = SHELL.findIndex(function(m){return m[0]==='Alpine';});
@@ -487,7 +487,6 @@ function calcShell(){
   var flag=document.getElementById('s-flag');
   var flags=[];
   if(tag==='ship-range') flags.push('Summit shipping is a $16–$25/mi range; this tool uses $25 (high end). Verify the exact rate for the job.');
-  if(tag==='barndo-7state') flags.push('Apache ships to 7 states only (UT·ID·CO·WY·MT·AZ·NV) — no OR/WA.');
   if(flags.length){ flag.style.display='block'; flag.innerHTML=flags.join('<br>'); } else flag.style.display='none';
 
   var snow = snowSel===1?snow1 : snowSel===2?snow2 : 0;
