@@ -127,7 +127,7 @@
 
         <label for="s-miles">Shipping distance from Cedar City, UT (miles)</label>
         <input type="number" id="s-miles" min="0" max="2000" step="10" value="0">
-        <p class="note" id="s-ship-note">Enter distance · per-mile rate varies by model.</p>
+        <p class="note" id="s-ship-note">Enter the miles to the job site — the per-mile rate is set by the model.</p>
 
         <label for="s-disc">Multi-unit discount (% off shell kits)</label>
         <div class="slider-row">
@@ -136,7 +136,7 @@
         </div>
 
         <div class="disclaimer">
-          Design ($2,500) and engineering are quoted per project. Foundation, MEP, and interior finishing are not included in the shell kit. Pricing subject to change and correction.
+          Heads up: the $2,500 design fee and engineering are quoted per project. The shell kit does not include foundation, mechanical/electrical/plumbing, or interior finishing — make sure the customer knows that. Prices can change, so confirm before you commit anything in writing.
         </div>
       </div>
 
@@ -226,9 +226,9 @@
 
         <label for="g-miles">Shipping distance from Cedar City, UT (miles)</label>
         <input type="number" id="g-miles" min="0" max="2000" step="10" value="0">
-        <p class="note" id="g-ship-note">Enter distance · $16/mi (high end of $6–$16 range).</p>
+        <p class="note" id="g-ship-note">Enter the miles to the job site. Garages ship $6–$16/mi; this uses $16 to be safe.</p>
 
-        <div class="flag">Snow load may add engineering and material costs (not calculated here). Windows and doors are not included in garage shell pricing. Sales tax added at invoice.</div>
+        <div class="flag">A few things to tell the customer: snow load can add engineering and material cost (not figured here), and windows and doors aren't included in the garage shell price. Sales tax is added at invoice.</div>
       </div>
 
       <div class="card">
@@ -263,7 +263,7 @@
     </div>
   </div>
 
-  <footer>ZipKit Homes &amp; Mountain Valley Prefab · 2026 · For internal sales use. Default shipping uses the high end of any range — verify the exact rate before contracting.<br><span style="opacity:0.7;">Version 2.0 · updated May 25, 2026 · doors included with window packages, shipping billed per mile</span></footer>
+  <footer>ZipKit Homes &amp; Mountain Valley Prefab · Sales Team Tool · 2026 · When a shipping range shows, this quote uses the high end to be safe — always confirm the real rate with the office before you send a quote.<br><span style="opacity:0.7;">Version 2.1 · updated May 25, 2026</span></footer>
 </div>
 
 <div id="invoice-print" style="display:none;"></div>
@@ -486,7 +486,7 @@ function calcShell(){
 
   var flag=document.getElementById('s-flag');
   var flags=[];
-  if(tag==='ship-range') flags.push('Summit shipping is a $16–$25/mi range; this tool uses $25 (high end). Verify the exact rate for the job.');
+  if(tag==='ship-range') flags.push('Summit ships at $16–$25/mi. This quote uses $25 to be safe — confirm the actual rate with the office before you send it.');
   if(flags.length){ flag.style.display='block'; flag.innerHTML=flags.join('<br>'); } else flag.style.display='none';
 
   var snow = snowSel===1?snow1 : snowSel===2?snow2 : 0;
@@ -563,11 +563,11 @@ function buildModularControls(){
   var winSelEl=document.getElementById('m-win'); winSelEl.addEventListener('change',calcModular);
   document.getElementById('m-meta').textContent=m[1]+' · '+m[2]+' sqft · base '+fmt(m[3])+' · includes design, engineering & windows';
   var flag=document.getElementById('m-flag');
-  var msgs=['Completed unit — design, engineering, and '+m[10]+' windows included. You handle site prep, foundation, crane set, utilities, and final finish.'];
-  msgs.push('Ships to 4 states only: UT · ID · MT · WY.');
-  if(m[13]==='per-module') msgs.push('Priced per module — each module is 2 or 3 separate 1-bed units, stackable up to 4 high.');
+  var msgs=['This is a completed, move-in-ready unit — design, engineering, and '+m[10]+' windows are already included in the price. The customer handles site prep, foundation, crane set, utilities, and final finish.'];
+  msgs.push('Remember: modular units only ship to UT, ID, MT, and WY.');
+  if(m[13]==='per-module') msgs.push('This one is priced per module — each module is 2 or 3 separate 1-bed units and they stack up to 4 high. Make sure you and the customer are counting modules, not units.');
   flag.innerHTML=msgs.join('<br>');
-  document.getElementById('m-disclaimer').textContent='Shipping shown uses the high end of the range — verify exact rate (varies by distance, permits, pilot cars, site access). Sales tax added at invoice. Pricing subject to change and correction.';
+  document.getElementById('m-disclaimer').textContent='This quote uses the high end of the shipping range to be safe — confirm the actual rate with the office (it depends on distance, permits, pilot cars, and site access). Sales tax is added at invoice. Prices can change, so confirm before committing in writing.';
 }
 function resetModular(){
   document.getElementById('m-units').value=1; document.getElementById('m-snow').value=0;
@@ -591,7 +591,7 @@ function calcModular(){
   var addonTotal=0, addonRows='';
   if(m[11]) m[11].forEach(function(a,i){ var c=document.getElementById('m-addon-'+i); if(c&&c.checked){ addonTotal+=a[1]; addonRows+=rowM(a[0], a[1]*units, {sub:units>1?fmt(a[1])+' × '+units:'optional'}); } });
   var shipPer = miles*shipHigh;
-  document.getElementById('m-ship-note').textContent = miles>0 ? miles.toLocaleString('en-US')+' mi × $'+shipHigh+' (high end) = '+fmt(shipPer)+'/unit.' : 'Enter distance · $'+m[6]+'–$'+shipHigh+'/mi range, using high end.';
+  document.getElementById('m-ship-note').textContent = miles>0 ? miles.toLocaleString('en-US')+' mi × $'+shipHigh+'/mi = '+fmt(shipPer)+' per unit (using the high end to be safe).' : 'Enter the miles to the job site. Ships $'+m[6]+'–$'+shipHigh+'/mi; this uses the high end.';
 
   var discPer=base*(disc/100);
   function rowM(l,a,o){o=o||{};var s=o.sub?'<div class="sub">'+o.sub+'</div>':'';var c=o.d?' class="discount"':'';var sg=o.d?'−':'';return '<tr><td class="label">'+l+s+'</td><td class="amt"'+c+'>'+sg+fmt(a)+'</td></tr>';}
@@ -640,8 +640,8 @@ function calcGarage(){
   var GHIGH=16;
   var shipPer=miles*GHIGH;
   document.getElementById('g-ship-note').textContent = miles>0
-    ? miles.toLocaleString('en-US')+' mi × $16 (high end of $6–$16 range) = '+fmt(shipPer)+'/unit.'
-    : 'Enter distance · $6–$16/mi range, using high end.';
+    ? miles.toLocaleString('en-US')+' mi × $16/mi = '+fmt(shipPer)+' per unit (using the high end to be safe).'
+    : 'Enter the miles to the job site. Ships $6–$16/mi; this uses $16.';
 
   function rowG(l,a,o){o=o||{};var s=o.sub?'<div class="sub">'+o.sub+'</div>':'';return '<tr><td class="label">'+l+s+'</td><td class="amt">'+fmt(a)+'</td></tr>';}
   var rows='';
