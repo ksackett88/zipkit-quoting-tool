@@ -139,7 +139,7 @@
     </div>
   </div>
 
-  <footer>ZipKit Homes · Contract Generator · Version 2.0 · 2026 · cover restored to working proposal pattern, popup in standards mode · Always have a contract approved by Sven before it goes to a customer.</footer>
+  <footer>ZipKit Homes · Contract Generator · Version 2.1 · 2026 · cover uses background-image + flex (bulletproof, no position:absolute) · Always have a contract approved by Sven before it goes to a customer.</footer>
 </div>
 
 <script>
@@ -386,27 +386,29 @@ function generateContract(){
 
   var html=''
   +'<div style="max-width:780px;margin:0 auto;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#1c1c1a;padding:32px;">'
-  // Photo title page — same structure as the proposal cover (which renders correctly).
-  // No flex column on the wrapper (that was breaking the overlay's absolute positioning
-  // in the popup's quirks-mode rendering).
+  // Photo title page — background-image + flex layout. Bulletproof: no <img> with
+  // height:100%, no position:absolute, no aspect-ratio. Works in every render context.
   +'<div style="page-break-after:always;">'
   +'<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px;">'
   +'<img src="'+ZIPKIT_LOGO+'" alt="Zip Kit Homes" style="height:56px;">'
   +'<div style="text-align:right; font-size:11px; color:#888; text-transform:uppercase; letter-spacing:0.08em;">Contract · '+coverDate+'</div>'
   +'</div>'
-  +'<div style="position:relative; width:100%; aspect-ratio:16/9; background:linear-gradient(135deg,#d85a30,#993c1d); border-radius:8px; overflow:hidden;">'
-  +'<img id="zk-contract-cover" src="" alt="" style="width:100%; height:100%; object-fit:cover; display:block;">'
-  +'<script>(function(){var urls='+JSON.stringify(modelPhotoUrls(c.m[0]))+';var img=document.getElementById("zk-contract-cover");var i=0;function nx(){if(i>=urls.length){img.style.display="none";return;}img.src=urls[i++];}img.onerror=nx;nx();})();<\/script>'
-  +'<div style="position:absolute; left:0; bottom:0; width:100%; background:linear-gradient(to top, rgba(0,0,0,0.78), rgba(0,0,0,0)); padding:80px 28px 24px; color:#fff;">'
+  // Container: explicit height, photo loads as background-image via JS (with fallback gradient).
+  // display:flex; justify-content:flex-end places the overlay block at the bottom of the
+  // container without using position:absolute.
+  +'<div id="zk-cover-box" style="width:100%; height:440px; background:linear-gradient(135deg,#d85a30,#993c1d); background-size:cover; background-position:center center; background-repeat:no-repeat; border-radius:8px; overflow:hidden; display:flex; flex-direction:column; justify-content:flex-end;">'
+  +'<div style="background:linear-gradient(to top, rgba(0,0,0,0.82), rgba(0,0,0,0.15) 60%, rgba(0,0,0,0)); padding:90px 32px 28px; color:#fff;">'
   +'<div style="font-size:13px; text-transform:uppercase; letter-spacing:0.12em; opacity:0.9; margin-bottom:8px;">Contract prepared for</div>'
   +'<div style="font-size:30px; font-weight:700; line-height:1.15;">'+buyer+'</div>'
   +(city && city!=='__________' ? '<div style="font-size:15px; margin-top:4px; opacity:0.95;">'+city+'</div>' : '')
   +'<div style="font-size:14px; margin-top:8px; opacity:0.92;">'+c.m[0]+' Model · '+coverDate+'</div>'
   +'</div>'
   +'</div>'
-  // Disclaimer with a generous top spacer so it sits low on the cover page
-  // without being so far down it spills onto page 2.
-  +'<div style="margin-top:280px; background:#f5f3ec; border-radius:8px; padding:18px 22px; font-size:13px; color:#5f5e5a; line-height:1.6;">'
+  // Test-load each candidate photo URL; set as background when one succeeds. Falls
+  // back to the brand-color gradient already on the container if no photo loads.
+  +'<script>(function(){var urls='+JSON.stringify(modelPhotoUrls(c.m[0]))+';var box=document.getElementById("zk-cover-box");function tryUrl(idx){if(idx>=urls.length)return;var t=new Image();t.onload=function(){box.style.backgroundImage="url(\\""+urls[idx]+"\\")";};t.onerror=function(){tryUrl(idx+1);};t.src=urls[idx];}tryUrl(0);})();<\/script>'
+  // Spacer pushes disclaimer lower on the cover page without spilling onto page 2.
+  +'<div style="margin-top:240px; background:#f5f3ec; border-radius:8px; padding:18px 22px; font-size:13px; color:#5f5e5a; line-height:1.6;">'
   +'<b>Panelized Shell Kit Purchase Agreement.</b> Prepared by Zip Kit Homes, LLC · Cedar City, Utah. This is a legally binding agreement — please review the full document carefully before signing.'
   +'</div>'
   +'</div>'
