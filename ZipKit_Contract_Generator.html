@@ -139,7 +139,7 @@
     </div>
   </div>
 
-  <footer>ZipKit Homes · Contract Generator · Version 1.4 · 2026 · photo cover page added · Always have a contract reviewed by our attorney before it goes to a customer.</footer>
+  <footer>ZipKit Homes · Contract Generator · Version 1.5 · 2026 · per-model cover photos · Always have a contract reviewed by our attorney before it goes to a customer.</footer>
 </div>
 
 <script>
@@ -149,6 +149,20 @@ var LEGAL_HTML = "\n<div style=\"border-top:2px solid #1c1c1a;padding-top:16px;\
 function fmt(n){return '$'+Math.round(n).toLocaleString('en-US');}
 function fmt2(n){return '$'+n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});}
 var SHELL_DESIGN=2500;
+
+function modelPhotoUrls(modelName){
+  // Tries multiple naming variants so the cover finds whatever file you committed.
+  var name=(modelName||'').trim();
+  var base=window.location.href.split('/').slice(0,-1).join('/')+'/photos/';
+  var variants=[
+    name, name.replace(/\s+/g,'_'), name.replace(/\s+/g,''), name.replace(/\s+/g,'-'),
+    name.toLowerCase(), name.toLowerCase().replace(/\s+/g,'-'),
+    name.toLowerCase().replace(/\s+/g,'_'), name.toLowerCase().replace(/\s+/g,'')
+  ];
+  var seen={}, urls=[];
+  variants.forEach(function(v){ if(v && !seen[v]){ seen[v]=true; urls.push(base+encodeURIComponent(v)+'.jpg'); }});
+  return urls;
+}
 
 var SHELL = [["Big Sky", "640", 51875, 6925, 7150, 14965, 14, [6750, 9850, 11600, 17550]], ["Bridger", "800", 71288, 7140, 7225, 14257, 14, [3400, 4900, 6150, 9846]], ["Tahoe", "1,000", 67145, 6750, 6675, 13400, 14, [7450, 10800, 12775, 19370]], ["Sequoia", "977", 87100, 8120, 8710, 17420, 16, [8723, 12648, 14950, 22678]], ["Frontier", "1,044", 74225, 6190, 7650, 15675, 14, [6200, 9500, 11375, 17485]], ["Clyde", "1,198", 82260, 8175, 7985, 16050, 14, [6350, 9225, 10900, 16540]], ["Birch", "1,284", 102595, 6750, 9680, 18363, 16, [9264, 13423, 15950, 24085]], ["Willow", "1,290-1,536", 72850, 6320, 7650, 15865, 14, [9100, 13900, 16550, 25275]], ["Bozeman", "1,403", 103600, 9945, 10775, 21600, 14, [11500, 17250, 19950, 29550]], ["Sunstone", "1,471", 89550, 6400, 10884, 21768, 16, [6750, 10250, 12150, 18450]], ["Bluebell", "1,536", 134120, 10510, 11410, 18850, 18, [7535, 12055, 13185, 21328]], ["Shasta", "1,590", 96225, 8475, 12400, 24875, 16, [10300, 15100, 17675, 26550]], ["Summit", "1,793", 102900, 9560, 10290, 20580, 25, [9100, 13750, 16300, 24800]], ["Jasper", "1,800", 124765, 11260, 12895, 28965, 16, [8105, 10805, 13720, 18374]], ["Mesa", "1,823", 127435, 11645, 12215, 24428, 16, [12300, 17835, 21075, 31978]], ["Koda", "1,864", 131475, 11670, 12750, 25965, 16, [7670, 11800, 14075, 21535]], ["Hayden", "1,959", 127435, 11645, 12215, 24428, 16, [12300, 17835, 21075, 31978]], ["Cedar", "1,989", 152157, 13175, 15215, 29965, 16, [9225, 14375, 16400, 23985]], ["Apache", "2,170", 108475, 6850, 9765, 18650, 16, [4420, 6945, 9595, 13465]], ["Juniper", "2,120", 235850, 14850, 13765, 23650, 23, [12855, 17930, 20475, 29925]], ["Zion", "2,226", 115225, 9475, 13650, 24875, 16, [13954, 15117, 16600, 23257]], ["Columbia", "2,276", 163540, 12415, 14275, 21650, 18, [12800, 19750, 23450, 35750]], ["Alpine", "2,372", 199380, 14965, 18938, 37200, 21, [17615, 27830, 30440, 49235]], ["Moab", "2,562", 166280, 13780, 19200, 29965, 18, [14200, 21900, 26050, 39785]], ["Meadow", "2,617", 185580, 12850, 18558, 31116, 20, [7930, 12200, 14500, 22145]], ["Solitude", "2,955", 179550, 14275, 17665, 31325, 20, [13200, 20100, 24275, 37600]], ["Olympic", "3,516", 209850, 13445, 19750, 28965, 23, [14800, 21150, 26150, 41500]]];
 
@@ -347,8 +361,9 @@ function generateContract(){
   +'<img src="'+ZIPKIT_LOGO+'" alt="Zip Kit Homes" style="height:64px;margin-top:10px;">'
   +'<div style="font-size:26px;font-weight:700;margin-top:14px;color:#3a3a37;">Panelized Kit Home Contract</div>'
   +'<div style="font-size:13px;color:#555;margin-top:6px;">Prepared by Zip Kit Homes · Cedar City, Utah</div>'
-  +'<div style="position:relative;margin-top:22px;">'
-  +'<img src="'+COVER_PHOTO+'" alt="" style="width:100%;height:520px;object-fit:cover;border-radius:6px;display:block;">'
+  +'<div style="position:relative;margin-top:22px;width:100%;aspect-ratio:16/9;background:linear-gradient(135deg,#d85a30,#993c1d);border-radius:6px;overflow:hidden;">'
+  +'<img id="zk-contract-cover" src="" alt="" style="width:100%;height:100%;object-fit:cover;display:block;">'
+  +'<script>(function(){var urls='+JSON.stringify(modelPhotoUrls(c.m[0]))+';var img=document.getElementById("zk-contract-cover");var i=0;function nx(){if(i>=urls.length){img.style.display="none";return;}img.src=urls[i++];}img.onerror=nx;nx();})();<\/script>'
   +'<div style="position:absolute;left:0;bottom:0;width:100%;background:linear-gradient(to top, rgba(0,0,0,0.62), rgba(0,0,0,0));padding:60px 28px 22px;box-sizing:border-box;text-align:left;color:#fff;border-radius:0 0 6px 6px;">'
   +'<div style="font-size:24px;font-weight:700;line-height:1.2;">'+buyer+'</div>'
   +'<div style="font-size:15px;margin-top:4px;opacity:0.95;">'+city+'</div>'
