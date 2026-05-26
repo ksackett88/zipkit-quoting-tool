@@ -150,17 +150,34 @@ function fmt(n){return '$'+Math.round(n).toLocaleString('en-US');}
 function fmt2(n){return '$'+n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});}
 var SHELL_DESIGN=2500;
 
+// Explicit map for photo files whose filename doesn't match the model name.
+var MODEL_PHOTO_MAP = {
+  'Apache':'apache4','Birch':'birch1','Bluebell':'bluebell2','Bozeman':'bozeman1',
+  'Cedar':'cedar1','Clyde':'clyde1','Dakota':'dakota1','Meadow':'meadow.1',
+  'Moab':'moab1','Sunstone':'sunstone1','Willow':'willow3'
+};
+
 function modelPhotoUrls(modelName){
-  // Tries multiple naming variants so the cover finds whatever file you committed.
+  // Ordered candidate URLs: explicit map first, then generic name variants.
+  // Each stem tried as both .png and .jpg.
   var name=(modelName||'').trim();
   var base=window.location.href.split('/').slice(0,-1).join('/')+'/photos/';
-  var variants=[
+  var stems=[];
+  if(MODEL_PHOTO_MAP[name]) stems.push(MODEL_PHOTO_MAP[name]);
+  stems.push(
     name, name.replace(/\s+/g,'_'), name.replace(/\s+/g,''), name.replace(/\s+/g,'-'),
     name.toLowerCase(), name.toLowerCase().replace(/\s+/g,'-'),
     name.toLowerCase().replace(/\s+/g,'_'), name.toLowerCase().replace(/\s+/g,'')
-  ];
-  var seen={}, urls=[];
-  variants.forEach(function(v){ if(v && !seen[v]){ seen[v]=true; urls.push(base+encodeURIComponent(v)+'.jpg'); }});
+  );
+  var seenStem={}, seenUrl={}, urls=[];
+  stems.forEach(function(s){
+    if(!s || seenStem[s]) return;
+    seenStem[s]=true;
+    ['.png','.jpg'].forEach(function(ext){
+      var u=base+encodeURIComponent(s)+ext;
+      if(!seenUrl[u]){ seenUrl[u]=true; urls.push(u); }
+    });
+  });
   return urls;
 }
 

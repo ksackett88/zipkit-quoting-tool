@@ -416,23 +416,40 @@ function generateInvoice(){
 }
 
 /* ---------- PROPOSAL ---------- */
+// Explicit map for photo files whose filename doesn't match the model name
+// (most files have number suffixes like "apache4.png" or "willow3.png").
+var MODEL_PHOTO_MAP = {
+  'Apache':'apache4','Birch':'birch1','Bluebell':'bluebell2','Bozeman':'bozeman1',
+  'Cedar':'cedar1','Clyde':'clyde1','Dakota':'dakota1','Meadow':'meadow.1',
+  'Moab':'moab1','Sunstone':'sunstone1','Willow':'willow3'
+};
+
 function modelPhotoUrls(modelName){
-  // Tries multiple naming variants so the cover finds whatever file you committed.
-  // Falls back to a brand-colored gradient if none match.
+  // Build an ordered list of candidate URLs. First the explicit map, then
+  // generic name variants. Each stem tried as both .png and .jpg.
   var name=(modelName||'').trim();
   var base=window.location.href.split('/').slice(0,-1).join('/')+'/photos/';
-  var variants=[
-    name,                                            // "Big Sky"
-    name.replace(/\s+/g,'_'),                        // "Big_Sky"
-    name.replace(/\s+/g,''),                         // "BigSky"
-    name.replace(/\s+/g,'-'),                        // "Big-Sky"
-    name.toLowerCase(),                              // "big sky"
-    name.toLowerCase().replace(/\s+/g,'-'),          // "big-sky"
-    name.toLowerCase().replace(/\s+/g,'_'),          // "big_sky"
-    name.toLowerCase().replace(/\s+/g,'')            // "bigsky"
-  ];
-  var seen={}, urls=[];
-  variants.forEach(function(v){ if(v && !seen[v]){ seen[v]=true; urls.push(base+encodeURIComponent(v)+'.jpg'); }});
+  var stems=[];
+  if(MODEL_PHOTO_MAP[name]) stems.push(MODEL_PHOTO_MAP[name]);
+  stems.push(
+    name,                                     // "Big Sky"
+    name.replace(/\s+/g,'_'),                 // "Big_Sky"
+    name.replace(/\s+/g,''),                  // "BigSky"
+    name.replace(/\s+/g,'-'),                 // "Big-Sky"
+    name.toLowerCase(),                       // "big sky"
+    name.toLowerCase().replace(/\s+/g,'-'),   // "big-sky"
+    name.toLowerCase().replace(/\s+/g,'_'),   // "big_sky"
+    name.toLowerCase().replace(/\s+/g,'')     // "bigsky"
+  );
+  var seenStem={}, seenUrl={}, urls=[];
+  stems.forEach(function(s){
+    if(!s || seenStem[s]) return;
+    seenStem[s]=true;
+    ['.png','.jpg'].forEach(function(ext){
+      var u=base+encodeURIComponent(s)+ext;
+      if(!seenUrl[u]){ seenUrl[u]=true; urls.push(u); }
+    });
+  });
   return urls;
 }
 
