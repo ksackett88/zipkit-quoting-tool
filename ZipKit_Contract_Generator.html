@@ -139,7 +139,7 @@
     </div>
   </div>
 
-  <footer>ZipKit Homes · Contract Generator · Version 2.1 · 2026 · cover uses background-image + flex (bulletproof, no position:absolute) · Always have a contract approved by Sven before it goes to a customer.</footer>
+  <footer>ZipKit Homes · Contract Generator · Version 2.2 · 2026 · print-color-adjust:exact added (so backgrounds actually print) · Always have a contract approved by Sven before it goes to a customer.</footer>
 </div>
 
 <script>
@@ -473,7 +473,7 @@ function generateContract(){
   if(!w){alert('Please allow pop-ups to generate the contract.');return;}
   w.document.write('<!DOCTYPE html><html><head><meta charset="utf-8"><title>Contract — '+buyer+' — '+c.m[0]+'</title></head><body style="margin:0;background:#fff;">'+html
     +'<div style="text-align:center;padding:20px;" class="noprint"><button onclick="window.print()" style="padding:10px 24px;font-size:14px;background:#d85a30;color:#fff;border:none;border-radius:8px;cursor:pointer;">Print / Save as PDF</button></div>'
-    +'<style>@media print{.noprint{display:none;}}</style></body></html>');
+    +'<style>@media print{.noprint{display:none;} body{-webkit-print-color-adjust:exact; print-color-adjust:exact;}}</style></body></html>');
   w.document.close();
 }
 </script>
