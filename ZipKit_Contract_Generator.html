@@ -34,6 +34,9 @@
   .total-flex .lbl{font-size:14px;color:var(--muted);}
   .total-flex .val{font-size:24px;font-weight:600;}
   .lineitem{display:grid;grid-template-columns:1fr 130px 32px;gap:8px;align-items:center;margin-bottom:8px;}
+  .scoperow{display:grid;grid-template-columns:1fr 150px auto;gap:8px;align-items:center;margin-bottom:6px;}
+  .scopelabel{font-size:12px;color:var(--ink);}
+  .scopesel{height:32px;font-size:12px;margin-bottom:0;padding:0 8px;}
   .lineitem input{margin-bottom:0;}
   .btn{height:38px;border:1px solid var(--line-strong);background:#fff;border-radius:8px;font-size:13px;font-weight:500;color:var(--ink);cursor:pointer;font-family:inherit;padding:0 16px;}
   .btn:hover{background:var(--surface-2);}
@@ -52,7 +55,7 @@
   </header>
 
   <div class="flag">
-    <b>Before you start:</b> fill in the buyer info and pick the model — this builds the contract and figures the payment schedule for you. Remember, the $2,500 design retainer is separate and paid up front; the contract itself bills engineering first, then 45% / 45% / 10% of what's left. Always read through the generated contract before you send it, and don't send any contract to a customer until it's been through our attorney.
+    <b>Before you start:</b> fill in the buyer info and pick the model — this builds the contract and figures the payment schedule for you. Remember, the $2,500 design retainer is separate and paid up front; the contract itself bills engineering first, then 45% / 45% / 10% of what's left. Always read through the generated contract before you send it, and don't send any contract to a customer until it's been approved by Sven.
   </div>
 
   <div class="grid">
@@ -68,12 +71,12 @@
           <div><label for="c-email">Email</label><input type="text" id="c-email" placeholder="buyer@email.com"></div>
         </div>
         <label for="c-buyer-addr">Buyer mailing address</label>
-        <input type="text" id="c-buyer-addr" placeholder="Street/City/State/Zip">
+        <input type="text" id="c-buyer-addr" placeholder="STREET/CITY/STATE/ZIP">
         <label for="c-site-addr">Project site address</label>
-        <input type="text" id="c-site-addr" placeholder="Street Address">
+        <input type="text" id="c-site-addr" placeholder="STREET ADDRESS">
         <div class="row2">
-          <div><label for="c-city">Ship to city, state</label><input type="text" id="c-city" placeholder="City, State"></div>
-          <div><label for="c-date">Contract date</label><input type="text" id="c-date" placeholder="May 25, 2026"></div>
+          <div><label for="c-city">Ship to city, state</label><input type="text" id="c-city" placeholder="CITY/STATE"></div>
+          <div><label for="c-date">Contract date</label><input type="text" id="c-date" placeholder="CONTRACT DATE"></div>
         </div>
         <label for="c-salesman">Salesman</label>
         <input type="text" id="c-salesman" placeholder="YOUR NAME">
@@ -102,6 +105,15 @@
         <button class="btn sm" onclick="addCustom()">+ Add custom line</button>
         <p class="note" style="margin-top:10px;">Use this for anything not in the standard kit — for example, "Basement structural framing — $7,500." It'll flow into the total and the payments.</p>
       </div>
+
+      <div class="card">
+        <h2>Scope of work</h2>
+        <p class="note" style="margin-top:0;">These are pre-set to our standard contract. Only change the ones that are different for this job, then add any custom items below.</p>
+        <div id="c-scope"></div>
+        <label style="margin-top:14px;">Custom scope items</label>
+        <div id="c-scope-custom"></div>
+        <button class="btn sm" onclick="addScopeCustom()">+ Add scope item</button>
+      </div>
     </div>
 
     <div>
@@ -127,7 +139,7 @@
     </div>
   </div>
 
-  <footer>ZipKit Homes · Contract Generator · Version 1.2 · 2026 · Always have a contract reviewed by our attorney before it goes to a customer.</footer>
+  <footer>ZipKit Homes · Contract Generator · Version 1.3 · 2026</footer>
 </div>
 
 <script>
@@ -140,6 +152,90 @@ var SHELL_DESIGN=2500;
 var SHELL = [["Big Sky", "640", 51875, 6925, 7150, 14965, 14, [6750, 9850, 11600, 17550]], ["Bridger", "800", 71288, 7140, 7225, 14257, 14, [3400, 4900, 6150, 9846]], ["Tahoe", "1,000", 67145, 6750, 6675, 13400, 14, [7450, 10800, 12775, 19370]], ["Sequoia", "977", 87100, 8120, 8710, 17420, 16, [8723, 12648, 14950, 22678]], ["Frontier", "1,044", 74225, 6190, 7650, 15675, 14, [6200, 9500, 11375, 17485]], ["Clyde", "1,198", 82260, 8175, 7985, 16050, 14, [6350, 9225, 10900, 16540]], ["Birch", "1,284", 102595, 6750, 9680, 18363, 16, [9264, 13423, 15950, 24085]], ["Willow", "1,290-1,536", 72850, 6320, 7650, 15865, 14, [9100, 13900, 16550, 25275]], ["Bozeman", "1,403", 103600, 9945, 10775, 21600, 14, [11500, 17250, 19950, 29550]], ["Sunstone", "1,471", 89550, 6400, 10884, 21768, 16, [6750, 10250, 12150, 18450]], ["Bluebell", "1,536", 134120, 10510, 11410, 18850, 18, [7535, 12055, 13185, 21328]], ["Shasta", "1,590", 96225, 8475, 12400, 24875, 16, [10300, 15100, 17675, 26550]], ["Summit", "1,793", 102900, 9560, 10290, 20580, 25, [9100, 13750, 16300, 24800]], ["Jasper", "1,800", 124765, 11260, 12895, 28965, 16, [8105, 10805, 13720, 18374]], ["Mesa", "1,823", 127435, 11645, 12215, 24428, 16, [12300, 17835, 21075, 31978]], ["Koda", "1,864", 131475, 11670, 12750, 25965, 16, [7670, 11800, 14075, 21535]], ["Hayden", "1,959", 127435, 11645, 12215, 24428, 16, [12300, 17835, 21075, 31978]], ["Cedar", "1,989", 152157, 13175, 15215, 29965, 16, [9225, 14375, 16400, 23985]], ["Apache", "2,170", 108475, 6850, 9765, 18650, 16, [4420, 6945, 9595, 13465]], ["Juniper", "2,120", 235850, 14850, 13765, 23650, 23, [12855, 17930, 20475, 29925]], ["Zion", "2,226", 115225, 9475, 13650, 24875, 16, [13954, 15117, 16600, 23257]], ["Columbia", "2,276", 163540, 12415, 14275, 21650, 18, [12800, 19750, 23450, 35750]], ["Alpine", "2,372", 199380, 14965, 18938, 37200, 21, [17615, 27830, 30440, 49235]], ["Moab", "2,562", 166280, 13780, 19200, 29965, 18, [14200, 21900, 26050, 39785]], ["Meadow", "2,617", 185580, 12850, 18558, 31116, 20, [7930, 12200, 14500, 22145]], ["Solitude", "2,955", 179550, 14275, 17665, 31325, 20, [13200, 20100, 24275, 37600]], ["Olympic", "3,516", 209850, 13445, 19750, 28965, 23, [14800, 21150, 26150, 41500]]];
 
 var customCount=0;
+
+// Standard scope-of-work items. inc:true = INCLUDED by default, false = NOT INCLUDED by default.
+var SCOPE_STD = [
+  {t:'Framed Exterior Wall Panels', inc:true},
+  {t:'Framed Interior Wall Panels', inc:true},
+  {t:'Framed Floor Panels', inc:true},
+  {t:'Framed Roof Panels', inc:true},
+  {t:'Framed Deck Panels (framed only)', inc:true},
+  {t:'Covered Rear Deck with Posts and Beam', inc:true},
+  {t:'Zip Wall Sheathing with taped seams', inc:true},
+  {t:'All Structural Posts, Beams and Headers as required', inc:true},
+  {t:'All posts &amp; beams connections', inc:true},
+  {t:'All metal hardware, hangars, plates, etc.', inc:true},
+  {t:'All roof sheathing, blocking, etc.', inc:true},
+  {t:'All windows &amp; ext entry doors', inc:true},
+  {t:'Standard Stairs', inc:true},
+  {t:'Ice &amp; Water shield for roofing dry-in', inc:true},
+  {t:'All labor to set and erect all panels, framing, trusses, roof dry-in, window and door install, etc.', inc:true},
+  {t:'Shipping of all items listed above', inc:true},
+  {t:'ALL items not specifically listed in the included items above', inc:false},
+  {t:'Crane to set the panels \u2014 scheduled and provided by local GC', inc:false},
+  {t:'Siding, materials or installation', inc:false},
+  {t:'Finished roofing, materials or installation', inc:false},
+  {t:'Metal roofing and metal roofing trim pieces \u2014 materials and labor', inc:false},
+  {t:'Garage doors', inc:false},
+  {t:'Mechanical, electrical &amp; plumbing \u2014 materials and labor', inc:false},
+  {t:'Insulation \u2014 all materials and labor', inc:false},
+  {t:'Drywall \u2014 materials and labor', inc:false},
+  {t:'All interior finishes \u2014 cabinets, countertops, flooring, fixtures, doors, painting, etc.', inc:false},
+  {t:'General Contractor Fee / Profit', inc:false}
+];
+
+var scopeCustomCount=0;
+function buildScopeUI(){
+  var box=document.getElementById('c-scope');
+  if(!box) return;
+  var h='';
+  SCOPE_STD.forEach(function(s,i){
+    h+='<div class="scoperow">'
+      +'<span class="scopelabel">'+s.t+'</span>'
+      +'<select class="scopesel" data-scope="'+i+'">'
+      +'<option value="inc"'+(s.inc?' selected':'')+'>INCLUDED</option>'
+      +'<option value="not"'+(!s.inc?' selected':'')+'>NOT INCLUDED</option>'
+      +'</select></div>';
+  });
+  box.innerHTML=h;
+}
+function addScopeCustom(){
+  var id='sc-'+(scopeCustomCount++);
+  var div=document.createElement('div');
+  div.className='scoperow';
+  div.innerHTML='<input type="text" placeholder="Custom scope item" data-sccust="t" style="margin-bottom:0;">'
+    +'<select class="scopesel" data-sccust="v"><option value="inc">INCLUDED</option><option value="not">NOT INCLUDED</option></select>'
+    +'<button class="remove" title="Remove">\u00d7</button>';
+  document.getElementById('c-scope-custom').appendChild(div);
+  div.querySelector('.remove').addEventListener('click',function(){div.remove();});
+}
+function getScopeItems(){
+  // returns {included:[...], notIncluded:[...]} preserving order
+  var inc=[], not=[];
+  SCOPE_STD.forEach(function(s,i){
+    var sel=document.querySelector('.scopesel[data-scope="'+i+'"]');
+    var v=sel?sel.value:(s.inc?'inc':'not');
+    (v==='inc'?inc:not).push(s.t);
+  });
+  document.querySelectorAll('#c-scope-custom .scoperow').forEach(function(row){
+    var t=row.querySelector('[data-sccust="t"]').value.trim();
+    if(!t) return;
+    var v=row.querySelector('[data-sccust="v"]').value;
+    (v==='inc'?inc:not).push(t);
+  });
+  return {included:inc, notIncluded:not};
+}
+function scopeTableHTML(){
+  var s=getScopeItems();
+  var rows='<table style="width:100%;border-collapse:collapse;font-size:12px;">'
+    +'<tr><td style="padding:5px 8px;border:1px solid #ccc;background:#5f5e5a;color:#fff;font-weight:600;" colspan="2">Items Included in the Kit</td></tr>';
+  s.included.forEach(function(t){ rows+='<tr><td style="padding:4px 8px;border:1px solid #ccc;">'+t+'</td><td style="padding:4px 8px;border:1px solid #ccc;text-align:right;">INCLUDED</td></tr>'; });
+  rows+='<tr><td style="padding:5px 8px;border:1px solid #ccc;background:#5f5e5a;color:#fff;font-weight:600;" colspan="2">Items NOT Included in the Kit</td></tr>';
+  s.notIncluded.forEach(function(t){ rows+='<tr><td style="padding:4px 8px;border:1px solid #ccc;">'+t+'</td><td style="padding:4px 8px;border:1px solid #ccc;text-align:right;">NOT INCLUDED</td></tr>'; });
+  rows+='</table>';
+  return rows;
+}
+
 function addCustom(val){
   var id='cust-'+(customCount++);
   var div=document.createElement('div');
@@ -158,6 +254,7 @@ function addCustom(val){
   SHELL.forEach(function(m,i){var o=document.createElement('option');o.value=i;o.textContent=m[0]+' · '+m[1]+' sqft';sel.appendChild(o);});
   sel.value=SHELL.findIndex(function(m){return m[0]==='Cedar';});
   ['c-model','c-snow','c-win','c-miles'].forEach(function(id){var el=document.getElementById(id);el.addEventListener('input',calc);el.addEventListener('change',calc);});
+  buildScopeUI();
   calc();
 })();
 
@@ -292,6 +389,7 @@ function generateContract(){
   // Legal agreement, with buyer fields filled
   +'<div style="page-break-before:always;margin-top:40px;">'
   +LEGAL_HTML
+    .replace(/<table style="width:100%;border-collapse:collapse;font-size:12px;">[\s\S]*?<\/table>/, scopeTableHTML())
     .replace(/\{\{BUYER\}\}/g,buyer)
     .replace(/\{\{BUYER_ADDR\}\}/g,buyerAddr)
     .replace(/\{\{BUYER_PHONE\}\}/g,phone)
