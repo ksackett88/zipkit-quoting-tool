@@ -787,10 +787,10 @@ function setBrand(which){
   var brandSub = document.getElementById('brand-sub');
   var contact = document.getElementById('contact');
   if(which==='mvp'){
-    document.getElementById('brand').innerHTML = '<img id="brand-logo" src="' + MVP_LOGO + '" alt="Mountain Valley Prefab"><small id="brand-sub">Sales Quoting Tool</small>';
+    document.getElementById('brand').innerHTML = '<a href="index.html" title="Back to sales tools" style="display:inline-block;"><img id="brand-logo" src="' + MVP_LOGO + '" alt="Mountain Valley Prefab"></a><small id="brand-sub">Sales Quoting Tool</small>';
     contact.innerHTML = MVP_CONTACT;
   } else {
-    document.getElementById('brand').innerHTML = '<img id="brand-logo" src="' + ZIPKIT_LOGO + '" alt="Zip Kit Homes"><small id="brand-sub">Sales Quoting Tool</small>';
+    document.getElementById('brand').innerHTML = '<a href="index.html" title="Back to sales tools" style="display:inline-block;"><img id="brand-logo" src="' + ZIPKIT_LOGO + '" alt="Zip Kit Homes"></a><small id="brand-sub">Sales Quoting Tool</small>';
     contact.innerHTML = ZIPKIT_CONTACT;
   }
 }

@@ -150,6 +150,18 @@ function fmt(n){return '$'+Math.round(n).toLocaleString('en-US');}
 function fmt2(n){return '$'+n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});}
 var SHELL_DESIGN=2500;
 
+// Wrap the header logo in a link back to the sales-tools index.
+(function linkLogoToIndex(){
+  var logo=document.getElementById('brand-logo');
+  if(!logo || logo.parentNode.tagName==='A') return;
+  var a=document.createElement('a');
+  a.href='index.html';
+  a.title='Back to sales tools';
+  a.style.cssText='display:inline-block;';
+  logo.parentNode.insertBefore(a, logo);
+  a.appendChild(logo);
+})();
+
 // Explicit map for photo files whose filename doesn't match the model name.
 var MODEL_PHOTO_MAP = {
   'Apache':'apache4','Birch':'birch1','Bluebell':'bluebell2','Bozeman':'bozeman1',
