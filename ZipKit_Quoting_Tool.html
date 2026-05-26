@@ -77,7 +77,7 @@
   .mode { display: none; }
   .mode.active { display: block; }
   @media print {
-    .tabs, .actions, footer, .card.inputs, #invoice-panel { display: none !important; }
+    .tabs, .actions, footer, .card.inputs, #invoice-panel, #proposal-panel { display: none !important; }
     .grid { grid-template-columns: 1fr; }
     .mode:not(.active) { display: none; }
   }
@@ -257,7 +257,9 @@
       <div><label for="prop-phone">Buyer phone</label><input type="text" id="prop-phone" placeholder="(555) 555-5555"></div>
       <div><label for="prop-num">Proposal number</label><input type="text" id="prop-num" placeholder="e.g. ZK-Q-1042"></div>
       <div><label for="prop-date">Date</label><input type="text" id="prop-date" placeholder="MM/DD/YYYY"></div>
-      <div><label for="prop-rep">Your name (sales rep)</label><input type="text" id="prop-rep" placeholder="e.g. Kelsey"></div>
+      <div><label for="prop-rep">Your name (sales rep)</label><input type="text" id="prop-rep" placeholder="e.g. Kelsey Sackett"></div>
+      <div><label for="prop-rep-email">Your email</label><input type="text" id="prop-rep-email" placeholder="you@zipkithomes.com"></div>
+      <div><label for="prop-rep-phone">Your phone</label><input type="text" id="prop-rep-phone" placeholder="(555) 555-5555"></div>
     </div>
     <div style="margin-top:14px;">
       <button class="act primary" style="width:auto; padding:0 22px;" onclick="generateProposal()">Generate proposal</button>
@@ -282,7 +284,7 @@
     </div>
   </div>
 
-  <footer>ZipKit Homes &amp; Mountain Valley Prefab · Sales Team Tool · 2026 · When a shipping range shows, this quote uses the high end to be safe — always confirm the real rate with the office before you send a quote.<br><span style="opacity:0.7;">Version 2.4 · updated May 26, 2026 · proposal generator + per-model cover photos</span></footer>
+  <footer>ZipKit Homes &amp; Mountain Valley Prefab · Sales Team Tool · 2026 · When a shipping range shows, this quote uses the high end to be safe — always confirm the real rate with the office before you send a quote.<br><span style="opacity:0.7;">Version 2.5 · updated May 26, 2026 · proposals valid 30 days · sales rep CTA · print fix</span></footer>
 </div>
 
 <div id="invoice-print" style="display:none;"></div>
@@ -468,7 +470,7 @@ var PROPOSAL_SCOPE = {
   }
 };
 
-var PROPOSAL_FIELDS = ['prop-buyer','prop-project','prop-location','prop-email','prop-phone','prop-num','prop-date','prop-rep'];
+var PROPOSAL_FIELDS = ['prop-buyer','prop-project','prop-location','prop-email','prop-phone','prop-num','prop-date','prop-rep','prop-rep-email','prop-rep-phone'];
 var PROPOSAL_STORE_KEY = 'zk_proposal_v1';
 
 function saveProposalFields(){
@@ -510,6 +512,8 @@ function generateProposal(){
   var num=g('prop-num')||'—';
   var date=g('prop-date')||new Date().toLocaleDateString('en-US');
   var rep=g('prop-rep')||'';
+  var repEmail=g('prop-rep-email')||'';
+  var repPhone=g('prop-rep-phone')||'';
 
   var co = QUOTE.company==='mvp'
     ? {name:'Mountain Valley Prefab', addr:'3791 East 49th North, Idaho Falls ID 83401', tel:'(435) 592·3596', email:'sales@mountainvalleyprefab.com', logo:MVP_LOGO}
@@ -568,7 +572,7 @@ function generateProposal(){
     +'</div>'
     +'</div>'
     +'<div style="margin-top:26px; background:#f5f3ec; border-radius:8px; padding:16px 20px; font-size:13px; color:#5f5e5a; line-height:1.6;">'
-    +'This proposal is valid for nine (9) months from the date above. Pricing is subject to confirmation at contract signing. Reply to this proposal to move forward — we\'ll prepare a contract and design retainer invoice for your signature.'
+    +'This proposal is valid for thirty (30) days from the date above. Once you sign a contract, pricing is locked for nine (9) months. Reply to this proposal to move forward — we\'ll prepare a contract and design retainer invoice for your signature.'
     +'</div>'
     +'</div>'
 
@@ -620,12 +624,12 @@ function generateProposal(){
 
     +'<div style="margin-top:30px; background:'+brandColor+'; color:#fff; padding:22px 24px; border-radius:8px;">'
     +'<div style="font-size:13px; text-transform:uppercase; letter-spacing:0.08em; opacity:0.85;">Next steps</div>'
-    +'<div style="font-size:16px; margin-top:8px; line-height:1.5;">Reply to '+co.email+' or call '+co.tel+' to accept. We\'ll prepare a full contract for signature and the design retainer invoice.</div>'
-    +(rep?'<div style="font-size:13px; margin-top:10px; opacity:0.9;">Your contact: '+rep+'</div>':'')
+    +'<div style="font-size:16px; margin-top:8px; line-height:1.5;">Reply to '+(repEmail||co.email)+' or call '+(repPhone||co.tel)+' to accept. We\'ll prepare a full contract for signature and the design retainer invoice.</div>'
+    +(rep?'<div style="font-size:13px; margin-top:10px; opacity:0.9;">Your contact: '+rep+(repEmail?' · '+repEmail:'')+(repPhone?' · '+repPhone:'')+'</div>':'')
     +'</div>'
 
     +'<div style="margin-top:24px; font-size:11px; color:#888; line-height:1.6; border-top:1px solid #e2e0d8; padding-top:14px;">'
-    +'Pricing is valid for nine (9) months from the proposal date. Pricing is subject to confirmation at contract signing and may change due to material costs or scope adjustments. Items in the "Not included" list are the buyer\'s responsibility unless added in writing. Shipping is calculated to the address provided. Sales tax is not included. Final contract terms will govern in the event of conflict with this proposal.'
+    +'This proposal is valid for thirty (30) days from the proposal date. Once a contract is signed, pricing is locked for nine (9) months. Pricing may change due to material costs or scope adjustments if not signed within the proposal window. Items in the "Not included" list are the buyer\'s responsibility unless added in writing. Shipping is calculated to the address provided. Sales tax is not included. Final contract terms will govern in the event of conflict with this proposal.'
     +'</div>'
     +'</div>'
     +'</div>';
