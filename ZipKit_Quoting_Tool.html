@@ -47,7 +47,12 @@
     border: 1px solid var(--line-strong); border-radius: 8px; background: #fff;
     color: var(--ink); margin-bottom: 16px; font-family: inherit;
   }
-  input:focus, select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(216,90,48,0.12); }
+  textarea {
+    width: 100%; padding: 10px 12px; font-size: 14px;
+    border: 1px solid var(--line-strong); border-radius: 8px; background: #fff;
+    color: var(--ink); margin-bottom: 16px; font-family: inherit; resize: vertical; line-height: 1.5;
+  }
+  input:focus, select:focus, textarea:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(216,90,48,0.12); }
   .note { font-size: 12px; color: var(--hint); margin: -10px 0 16px; }
   .slider-row { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
   input[type="range"] { flex: 1; accent-color: var(--accent); }
@@ -94,6 +99,7 @@
     <button class="tab active" data-mode="shell" onclick="setMode('shell')">Shell Kit Homes</button>
     <button class="tab" data-mode="modular" onclick="setMode('modular')">Modular Units</button>
     <button class="tab" data-mode="garage" onclick="setMode('garage')">Garages</button>
+    <button class="tab" data-mode="custom" onclick="setMode('custom')">Custom Home</button>
   </div>
 
   <!-- SHELL MODE -->
@@ -246,6 +252,58 @@
     </div>
   </div>
 
+  <!-- CUSTOM HOME MODE -->
+  <div class="mode" id="mode-custom">
+    <div class="grid">
+      <div class="card inputs">
+        <h2>Configure custom home quote</h2>
+
+        <label for="c-name">Project name</label>
+        <input type="text" id="c-name" placeholder="e.g. Smith Custom Lakeside">
+
+        <label for="c-sqft">Square footage</label>
+        <input type="number" id="c-sqft" min="0" step="1" placeholder="e.g. 2400">
+        <p class="note">Display only — doesn't affect the calculated total.</p>
+
+        <label for="c-build">Build cost ($)</label>
+        <input type="number" id="c-build" min="0" step="100" placeholder="e.g. 425000">
+        <p class="note">The negotiated construction price. Design and engineering are billed separately on top of this.</p>
+
+        <label for="c-eng">Engineering ($)</label>
+        <input type="number" id="c-eng" min="0" step="100" placeholder="varies by project — confirm with engineering">
+        <p class="note">Quoted per project based on sqft, snow load, and seismic zone.</p>
+
+        <label for="c-miles">Shipping distance (miles)</label>
+        <input type="number" id="c-miles" min="0" max="2000" step="10" value="0">
+
+        <label for="c-rate">Shipping rate ($/mile)</label>
+        <input type="number" id="c-rate" min="0" step="1" value="18">
+        <p class="note" id="c-ship-note">Default $18/mi. Adjust as needed.</p>
+
+        <label for="c-scope">Scope / description</label>
+        <textarea id="c-scope" rows="6" placeholder="Describe what's included in this custom build. One line per item.&#10;&#10;e.g.&#10;Full panelized shell&#10;Custom roof line &amp; dormer windows&#10;Wraparound porch with metal roof"></textarea>
+        <p class="note">Each line becomes a bullet on the proposal's "What's included" list.</p>
+
+        <div class="disclaimer">
+          Heads up: custom homes have a $3,500 design retainer up front. Engineering is quoted per project — get a real number from the engineering team before sending. Confirm everything with Sven before this goes to a customer.
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Quote summary</h2>
+        <table><tbody id="c-lines"></tbody></table>
+        <div class="total-row">
+          <div class="total-flex"><span class="lbl">Total project price</span><span class="val" id="c-total">$0</span></div>
+          <p class="per-unit" id="c-per-sqft"></p>
+        </div>
+        <div class="actions">
+          <button class="act" onclick="window.print()">Print / Save as PDF</button>
+          <button class="act primary" onclick="resetCustom()">Reset</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div class="card" id="rep-panel" style="margin-top:18px;">
     <h2>Your contact info (sales rep)</h2>
     <p class="meta">Used on proposals and invoices. Fill in once — saved on this browser.</p>
@@ -291,7 +349,7 @@
     </div>
   </div>
 
-  <footer>ZipKit Homes &amp; Mountain Valley Prefab · Sales Team Tool · 2026 · When a shipping range shows, this quote uses the high end to be safe — always confirm the real rate with the office before you send a quote.<br><span style="opacity:0.7;">Version 2.7 · updated May 26, 2026 · Timberline shell kit added (2,125 sqft)</span></footer>
+  <footer>ZipKit Homes &amp; Mountain Valley Prefab · Sales Team Tool · 2026 · When a shipping range shows, this quote uses the high end to be safe — always confirm the real rate with the office before you send a quote.<br><span style="opacity:0.7;">Version 2.8 · updated May 26, 2026 · Custom Home mode added · $3,500 design retainer · project-specific scope</span></footer>
 </div>
 
 <div id="invoice-print" style="display:none;"></div>
@@ -602,10 +660,26 @@ function generateProposal(){
   var photoUrls=modelPhotoUrls(QUOTE.model);
   var stages=invoiceStages(QUOTE);
   var schedTotal=stages.reduce(function(a,s){return a+s.amount;},0);
-  var scope=PROPOSAL_SCOPE[QUOTE.kind]||PROPOSAL_SCOPE['Shell Kit'];
+  // Custom homes use the rep-typed scope from the textarea; everything else uses the canned scope.
+  var scope;
+  if(QUOTE.kind==='Custom Home'){
+    var included = (QUOTE.customScope && QUOTE.customScope.length>0)
+      ? QUOTE.customScope
+      : ['Full custom build per design specifications (fill in the scope field for project-specific bullets)'];
+    scope = {
+      included: included,
+      notIncluded: ['Anything not specifically listed above','Site prep and foundation','Utility connections','Building permits and inspections','Sales tax']
+    };
+  } else {
+    scope = PROPOSAL_SCOPE[QUOTE.kind] || PROPOSAL_SCOPE['Shell Kit'];
+  }
 
   // Pull pricing rows from the active mode's table (already calculated)
-  var modeId = QUOTE.kind==='Modular'?'m-lines' : (QUOTE.kind==='Garage'?'g-lines':'s-lines');
+  var modeId =
+    QUOTE.kind==='Modular' ? 'm-lines' :
+    QUOTE.kind==='Garage'  ? 'g-lines' :
+    QUOTE.kind==='Custom Home' ? 'c-lines' :
+                                 's-lines';
   var pricingRows = document.getElementById(modeId).innerHTML;
 
   var scheduleRows = stages.map(function(s){
@@ -783,6 +857,7 @@ function setMode(mode){
   document.querySelectorAll('.mode').forEach(function(m){ m.classList.toggle('active', m.id==='mode-'+mode); });
   if(mode==='modular') { updateModularBrand(); calcModular(); }
   else if(mode==='garage') { setBrand('zipkit'); calcGarage(); }
+  else if(mode==='custom') { setBrand('zipkit'); calcCustom(); }
   else { setBrand('zipkit'); calcShell(); }
 }
 function setBrand(which){
@@ -1006,6 +1081,77 @@ function calcGarage(){
     kind: 'Garage', model: g[0]+' garage', units: units,
     design: design, engineering: 0, contract: g[2]*units + shipPer*units, total: total,
     company: 'zipkit'
+  };
+  renderInvoiceStages();
+}
+
+/* ---------- CUSTOM HOME ---------- */
+var CUSTOM_DESIGN = 3500;
+
+(function initCustom(){
+  var ids = ['c-name','c-sqft','c-build','c-eng','c-miles','c-rate','c-scope'];
+  ids.forEach(function(id){
+    var el = document.getElementById(id); if(!el) return;
+    el.addEventListener('input', calcCustom);
+    el.addEventListener('change', calcCustom);
+  });
+})();
+
+function resetCustom(){
+  document.getElementById('c-name').value = '';
+  document.getElementById('c-sqft').value = '';
+  document.getElementById('c-build').value = '';
+  document.getElementById('c-eng').value = '';
+  document.getElementById('c-miles').value = 0;
+  document.getElementById('c-rate').value = 18;
+  document.getElementById('c-scope').value = '';
+  calcCustom();
+}
+
+function calcCustom(){
+  var name  = (document.getElementById('c-name').value || '').trim();
+  var sqft  = parseInt(document.getElementById('c-sqft').value) || 0;
+  var build = parseFloat(document.getElementById('c-build').value) || 0;
+  var eng   = parseFloat(document.getElementById('c-eng').value) || 0;
+  var miles = Math.max(0, parseFloat(document.getElementById('c-miles').value) || 0);
+  var rate  = Math.max(0, parseFloat(document.getElementById('c-rate').value) || 0);
+  var scopeText = (document.getElementById('c-scope').value || '').trim();
+  var ship  = miles * rate;
+
+  document.getElementById('c-ship-note').textContent = miles>0 && rate>0
+    ? miles.toLocaleString('en-US')+' mi × $'+rate+' = '+fmt(ship)
+    : 'Default $18/mi. Adjust as needed.';
+
+  function row(l,a,o){o=o||{};var s=o.sub?'<div class="sub">'+o.sub+'</div>':'';return '<tr><td class="label">'+l+s+'</td><td class="amt">'+fmt(a)+'</td></tr>';}
+  var rows = '';
+  if(build>0) rows += row('Custom build', build, {sub: name || 'negotiated construction price'});
+  rows += row('Architectural design', CUSTOM_DESIGN, {sub:'per project · custom retainer'});
+  if(eng>0) rows += row('Engineering submittal', eng, {sub:'quoted per project'});
+  else      rows += rowRate('Engineering submittal', 'TBD', {sub:'enter project-specific amount'});
+  if(ship>0) rows += row('Shipping', ship, {sub:miles+' mi × $'+rate+'/mi'});
+  document.getElementById('c-lines').innerHTML = rows;
+
+  var total = build + CUSTOM_DESIGN + eng + ship;
+  document.getElementById('c-total').textContent = fmt(total);
+  document.getElementById('c-per-sqft').textContent = (sqft>0 && total>0) ? fmt(total/sqft)+' / sqft' : '';
+
+  // contract excludes design + engineering (billed as their own stages); matches shell-kit pattern
+  var contract = build + ship;
+
+  // Build dynamic scope from the textarea (one bullet per line)
+  var scopeLines = scopeText.split(/\r?\n/).map(function(s){return s.trim();}).filter(function(s){return s.length>0;});
+
+  QUOTE = {
+    kind: 'Custom Home',
+    model: name || 'Custom home',
+    units: 1,
+    design: CUSTOM_DESIGN,
+    engineering: eng,
+    contract: contract,
+    total: total,
+    company: 'zipkit',
+    sqft: sqft,
+    customScope: scopeLines   // consumed by generateProposal when present
   };
   renderInvoiceStages();
 }
