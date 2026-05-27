@@ -35,6 +35,15 @@
   .total-flex .val{font-size:24px;font-weight:600;}
   .lineitem{display:grid;grid-template-columns:1fr 130px 32px;gap:8px;align-items:center;margin-bottom:8px;}
   .scoperow{display:grid;grid-template-columns:1fr 150px auto;gap:8px;align-items:center;margin-bottom:6px;}
+  .scoperow-mvp{display:grid;grid-template-columns:1fr 110px auto;gap:8px;align-items:center;margin-bottom:6px;}
+  .specrow{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;margin-bottom:6px;}
+  .specrow input[type="text"]{margin-bottom:0;}
+  .tabs{display:flex;gap:8px;margin-bottom:22px;flex-wrap:wrap;}
+  .tab{padding:9px 18px;border:1px solid var(--line-strong);background:#fff;border-radius:999px;font-size:14px;font-weight:500;color:var(--muted);cursor:pointer;font-family:inherit;}
+  .tab:hover{background:var(--surface-2);}
+  .tab.active{background:var(--accent);border-color:var(--accent);color:#fff;}
+  .mode{display:none;}
+  .mode.active{display:block;}
   .scopelabel{font-size:12px;color:var(--ink);}
   .scopesel{height:32px;font-size:12px;margin-bottom:0;padding:0 8px;}
   .lineitem input{margin-bottom:0;}
@@ -56,6 +65,11 @@
 
   <div class="flag">
     <b>Before you start:</b> fill in the buyer info and pick the model — this builds the contract and figures the payment schedule for you. Remember, the $2,500 design retainer is separate and paid up front; the contract itself bills engineering first, then 45% / 45% / 10% of what's left. Always read through the generated contract before you send it, and don't send any contract to a customer until it's been approved by Sven.
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" data-mode="shell" onclick="setContractMode('shell')">Shell Kit Contract</button>
+    <button class="tab" data-mode="modular" onclick="setContractMode('modular')">Modular Contract</button>
   </div>
 
   <div class="grid">
@@ -82,6 +96,7 @@
         <input type="text" id="c-salesman" placeholder="YOUR NAME">
       </div>
 
+      <div id="shell-mode" class="mode active">
       <div class="card">
         <h2>Model &amp; pricing</h2>
         <label for="c-model">Model</label>
@@ -114,6 +129,41 @@
         <div id="c-scope-custom"></div>
         <button class="btn sm" onclick="addScopeCustom()">+ Add scope item</button>
       </div>
+      </div>
+
+      <div id="modular-mode" class="mode">
+      <div class="card">
+        <h2>Modular model &amp; pricing</h2>
+        <label for="cm-model">Model</label>
+        <select id="cm-model"></select>
+        <p class="note" id="cm-model-meta"></p>
+        <div class="row2">
+          <div><label for="cm-units">Number of units</label><input type="number" id="cm-units" min="1" max="50" step="1" value="1"></div>
+          <div><label for="cm-miles">Shipping distance (miles)</label><input type="number" id="cm-miles" min="0" step="10" value="0"></div>
+        </div>
+        <p class="note" id="cm-ship-note"></p>
+        <label style="margin-top:8px;">Custom line items</label>
+        <div id="cm-custom"></div>
+        <button class="btn sm" onclick="addModularCustom()">+ Add custom line</button>
+        <p class="note" style="margin-top:10px;">Adjustments to the standard unit price — use negatives for credits (e.g. "No fireplaces" as -$8,400 for 6 units at -$1,400 each).</p>
+      </div>
+
+      <div class="card">
+        <h2>Scope of work (MVP vs Buyer)</h2>
+        <p class="note" style="margin-top:0;">Standard modular scope, two-column. Toggle each row to MVP or Buyer; add custom items below.</p>
+        <div id="cm-scope"></div>
+        <label style="margin-top:14px;">Custom scope items</label>
+        <div id="cm-scope-custom"></div>
+        <button class="btn sm" onclick="addModularScopeCustom()">+ Add scope item</button>
+      </div>
+
+      <div class="card">
+        <h2>Specifications</h2>
+        <p class="note" style="margin-top:0;">Standard MVP spec list — edit, remove, or add per project.</p>
+        <div id="cm-specs"></div>
+        <button class="btn sm" onclick="addModularSpec()">+ Add specification</button>
+      </div>
+      </div>
     </div>
 
     <div>
@@ -121,7 +171,7 @@
         <h2>Contract summary</h2>
         <table><tbody id="c-lines"></tbody></table>
         <div class="total-row">
-          <div class="total-flex"><span class="lbl">Design retainer (separate)</span><span class="val" id="c-design" style="font-size:16px;">$2,500</span></div>
+          <div class="total-flex" id="c-design-row"><span class="lbl">Design retainer (separate)</span><span class="val" id="c-design" style="font-size:16px;">$2,500</span></div>
           <div class="total-flex" style="margin-top:8px;"><span class="lbl">Contract total</span><span class="val" id="c-total">$0</span></div>
         </div>
       </div>
@@ -133,13 +183,13 @@
 
       <div class="card">
         <h2>Generate</h2>
-        <button class="btn primary" style="width:100%;" onclick="generateContract()">Generate contract document</button>
+        <button class="btn primary" style="width:100%;" onclick="dispatchGenerate()">Generate contract document</button>
         <p class="note" style="margin-top:12px;">This opens the finished contract in a new tab — print it or save it as a PDF from there. If nothing opens, allow pop-ups for this page.</p>
       </div>
     </div>
   </div>
 
-  <footer>ZipKit Homes · Contract Generator · Version 2.2 · 2026 · print-color-adjust:exact added (so backgrounds actually print) · Always have a contract approved by Sven before it goes to a customer.</footer>
+  <footer>ZipKit Homes &amp; Mountain Valley Prefab · Contract Generator · Version 3.0 · 2026 · modular contract added (full 16-section legal body, MVP/ZK brand routing) · Always have a contract approved by Sven before it goes to a customer.</footer>
 </div>
 
 <script>
@@ -342,6 +392,10 @@ function calc(){
   var contract=eng+shell+snow+win+customTotal+ship;
   document.getElementById('c-total').textContent=fmt(contract);
 
+  // Restore the design retainer row (modular hides it)
+  var dRow=document.getElementById('c-design-row');
+  if(dRow) dRow.style.display='';
+
   // Payments: engineering first, then 45/45/10 of remainder
   var remainder=contract-eng;
   var p2=Math.round(remainder*0.45), p3=Math.round(remainder*0.45);
@@ -476,6 +530,501 @@ function generateContract(){
     +'<style>@media print{.noprint{display:none;} body{-webkit-print-color-adjust:exact; print-color-adjust:exact;}}</style></body></html>');
   w.document.close();
 }
+
+/* =========================================================================
+   MODULAR CONTRACT MODE
+   ========================================================================= */
+
+var MODULAR = [
+  ["Teton","Zip Kit Homes","340",119600,15,22,"Cascade WinPro Vinyl — Clay"],
+  ["XL 470","Zip Kit Homes","470",126500,15,22,"Cascade WinPro Vinyl — Clay"],
+  ["Yellowstone","Zip Kit Homes","550",176900,15,22,"Cascade WinPro Vinyl — Clay"],
+  ["Sierra","Mountain Valley Prefab","806",195000,15,22,"Andersen 100 Series"],
+  ["Ridgeline","Mountain Valley Prefab","840",259500,10,15,"Andersen 100 Series"],
+  ["Dakota","Mountain Valley Prefab","840 / module",296900,10,15,"Andersen 100 Series","per-module"]
+];
+
+var MODULAR_SCOPE_STD = [
+  {t:'Design and engineering — complete floor plans, submittals, engineering approved by the applicable state modular housing division', mvp:true},
+  {t:'All excavation and utility trenching to the final location at the home (crawlspace)', mvp:false},
+  {t:'All footings, foundations, sidewalks, driveways, etc.', mvp:false},
+  {t:'Complete modular homes built and delivered to the jobsite', mvp:true},
+  {t:'Shipping from the factory to the jobsite', mvp:true},
+  {t:'Crane set onto the foundation', mvp:true},
+  {t:'Double sill plate installation on the foundation', mvp:true},
+  {t:'All structural connections of the modular unit to the foundation', mvp:true},
+  {t:'Mechanical connections from the street to the foundation (electrical, water, sewer)', mvp:false},
+  {t:'Onsite radon mitigation', mvp:false},
+  {t:'Foundation insulation', mvp:false},
+  {t:'On-site stitch-up of modulars', mvp:true},
+  {t:'Final inspection onsite for occupancy permit', mvp:false}
+];
+
+var MODULAR_SPEC_STD = [
+  'Cascade vinyl windows, color black exterior white interior',
+  'Engineered light gauge steel framing, including floors, walls and roof — stamped',
+  'R-63 insulation in the ceilings, R-21 in all walls',
+  'Ducted HVAC system with gas heat and AC, exposed ductwork in LR/BR',
+  'Exterior door: solid insulated fiberglass door, full-lite, painted tricorn flat black',
+  'Standing seam metal roof',
+  'Wood soffit and fascia as shown on plans',
+  'Siding: metal and composite as shown on plans',
+  'Plywood cabinets with dovetail drawers in kitchen and bath — color chosen by owner',
+  'Quartz countertops chosen by buyer',
+  'Engineered hardwood floors — color chosen by buyer',
+  'Hollow core interior doors — panel design chosen by buyer',
+  'Moen plumbing fixtures chosen by buyer',
+  '40 gallon electric hot water heater',
+  'One-piece fiberglass tub/shower surround in bath (no tile)',
+  'Accent wall behind TV wall in LR (acoustical panels)',
+  'Light skip-trowel drywall finish',
+  'Appliance package — LG or GE as available, black finish, including: fridge, dishwasher, range (washer/dryer optional)'
+];
+
+var MODULAR_LEGAL_HTML = "\n<div style=\"border-top:2px solid #1c1c1a;padding-top:16px;page-break-before:always;\">"
+  +"<div style=\"text-align:center;font-size:16px;font-weight:700;margin-bottom:4px;\">{{SELLER_NAME}}</div>"
+  +"<div style=\"text-align:center;font-size:14px;font-weight:600;margin-top:2px;\">MODULAR HOME PURCHASE AGREEMENT</div>"
+  +"<div style=\"text-align:center;font-size:12px;font-style:italic;margin:6px 0 16px;\">This is a legally binding agreement. Please read carefully before signing.</div>"
+  +"<div style=\"font-size:13px;font-weight:700;margin:18px 0 8px;\">PARTIES TO THIS AGREEMENT</div>"
+  +"<p style=\"font-size:12px;line-height:1.55;margin:0 0 10px;\">This Modular Home Purchase Agreement (\"Agreement\") is entered into as of the date last signed below, by and between:</p>"
+  +"<p style=\"font-size:12px;line-height:1.55;margin:0 0 10px;\">{{SELLER_NAME}}, a company with its principal place of business in {{SELLER_CITY_STATE}} (\"Seller\"); and <b>{{BUYER}}</b> (\"Buyer\").</p>"
+  +"<p style=\"font-size:12px;line-height:1.55;margin:0 0 10px;\">Buyer Full Legal Name: <b>{{BUYER}}</b><br>Buyer Address: {{BUYER_ADDR}}<br>Buyer Phone: {{BUYER_PHONE}}<br>Buyer Email: {{BUYER_EMAIL}}<br>Project Site Address: {{SITE_ADDR}}</p>"
+  +"<p style=\"font-size:12px;line-height:1.55;margin:0 0 10px;\">Seller and Buyer are each referred to individually as a \"Party\" and collectively as the \"Parties.\"</p>"
+  +"<div style=\"font-size:13px;font-weight:700;margin:18px 0 8px;\">1. PURPOSE AND SCOPE OF AGREEMENT</div>"
+  +"<p style=\"font-size:12px;line-height:1.55;margin:0 0 10px;\">This Agreement governs the design, fabrication, delivery, on-site setting, and on-site finish work of a modular home (\"Modular Home\") consisting of one or more modular units (\"Modular Units\") as specified in the contract documents executed by both Parties. The Modular Units are fabricated at Seller's facility in {{SELLER_CITY_STATE}}, delivered to Buyer's project site, set on the foundation by Seller's set crew, and finished on-site by Seller's crew to deliver a fully finished Modular Home.</p>"
+  +"<p style=\"font-size:12px;line-height:1.55;margin:0 0 10px;\">Seller is not the general contractor on the project and is not responsible for any site work or any other work outside the scope defined in Section 3. Buyer is responsible for site preparation, foundation, utility connections to the Modular Home, metal railings, stairs, and all other work outside of Seller's defined scope.</p>"
+  +"<p style=\"font-size:12px;line-height:1.55;margin:0 0 10px;\">This Agreement, together with the contract documents, home specifications sheet, and any written and signed change orders, constitutes the entire agreement between the Parties regarding the Modular Home. It supersedes all prior oral or written representations, understandings, and agreements.</p>"
+  +"<div style=\"font-size:13px;font-weight:700;margin:18px 0 8px;\">2. DEFINED TERMS</div>"
+  +"<p style=\"font-size:12px;line-height:1.55;margin:0 0 10px;\">For purposes of this Agreement, the following terms shall have the meanings set forth below:</p>"
+  +"<p style=\"font-size:12px;line-height:1.5;margin:0 0 5px;\">a. \"Agreement\" means this Modular Home Purchase Agreement, including all exhibits, specifications, and written change orders incorporated herein.</p>"
+  +"<p style=\"font-size:12px;line-height:1.5;margin:0 0 5px;\">b. \"Modular Home\" means the completed modular structure supplied under this Agreement, consisting of one or more Modular Units as specified in the contract documents.</p>"
+  +"<p style=\"font-size:12px;line-height:1.5;margin:0 0 5px;\">c. \"Modular Units\" means the individual factory-built modules that together comprise the Modular Home.</p>"
+  +"<p style=\"font-size:12px;line-height:1.5;margin:0 0 5px;\">d. \"Contract Documents\" means the home specifications sheet, floor plans, structural drawings, and any other documents incorporated into this Agreement by reference and executed by both Parties.</p>"
+  +"<p style=\"font-size:12px;line-height:1.5;margin:0 0 5px;\">e. \"Purchase Price\" means the total price for the Modular Home as set forth in the contract documents, subject to adjustment for any written and signed change orders.</p>"
+  +"<p style=\"font-size:12px;line-height:1.5;margin:0 0 5px;\">f. \"On-Site Finish Work\" means the on-site work performed by Seller's crew after the Modular Units are set, including but not limited to connection of exterior siding at seams, metal roofing installation over seams, gutters and downspouts, soffit and fascia connections, interior marriage wall connections, drywall finish, finish trim, and interior paint at connection points between Modular Units, all as required to deliver a fully finished Modular Home in accordance with the contract documents.</p>"
+  +"<p style=\"font-size:12px;line-height:1.5;margin:0 0 5px;\">g. \"Set\" or \"Setting\" means the on-site placement of the Modular Units on the foundation by Seller's set crew.</p>"
+  +"<p style=\"font-size:12px;line-height:1.5;margin:0 0 5px;\">h. \"Buyer's Site Work\" means all site-related work required to receive and complete the Modular Home, including without limitation site preparation and grading, foundation, utility stubs and final utility connections (plumbing, electrical, HVAC, water, sewer, gas), metal railings, stairs, decks, porches, and any other work not expressly included in Seller's scope of work under Section 3.</p>"
+  +"<p style=\"font-size:12px;line-height:1.5;margin:0 0 5px;\">i. \"Completion\" means the point at which Seller has completed Setting of the Modular Units and the On-Site Finish Work to the extent of Seller's defined scope of work and the on-site walkthrough described in Section 4 has been conducted.</p>"
+  +"<div style=\"font-size:13px;font-weight:700;margin:18px 0 8px;\">3. SCOPE OF WORK</div>"
+  +"<p style=\"font-size:12px;line-height:1.55;margin:0 0 10px;\">Seller's scope of work under this Agreement is limited to the following:</p>"
+  +"<p style=\"font-size:12px;line-height:1.5;margin:0 0 5px;\">a. Fabrication of the Modular Units at Seller's facility in accordance with the contract documents, including all interior and exterior finishes specified therein.</p>"
+  +"<p style=\"font-size:12px;line-height:1.5;margin:0 0 5px;\">b. Delivery of the Modular Units to Buyer's project site address as identified in this Agreement.</p>"
+  +"<p style=\"font-size:12px;line-height:1.5;margin:0 0 5px;\">c. On-site Setting of the Modular Units on the foundation by Seller's set crew.</p>"
+  +"<p style=\"font-size:12px;line-height:1.5;margin:0 0 5px;\">d. On-Site Finish Work as defined in Section 2, performed by Seller's crew, to deliver a fully finished Modular Home in accordance with the contract documents.</p>"
+  +"<p style=\"font-size:12px;line-height:1.5;margin:0 0 5px;\">e. Repair of any cosmetic damage to the Modular Units incurred during shipping and transport, performed as part of the On-Site Finish Work.</p>"
+  +"<p style=\"font-size:12px;line-height:1.55;margin:0 0 10px;\">Seller's scope of work expressly excludes all Buyer's Site Work and any other work not listed above. Without limiting the foregoing, Seller is not responsible for: site preparation, grading, or excavation; foundation design or construction; utility service, utility stubs, or final utility connections to the Modular Home (including plumbing, electrical, HVAC, water, sewer, and gas); metal railings; stairs; decks; porches; landscaping; driveways; or any other general contracting work outside the items listed in this Section 3.</p>"
+  +"<p style=\"font-size:12px;line-height:1.55;margin:0 0 10px;\">Buyer is solely responsible for Buyer's Site Work, whether performed by Buyer directly or through Buyer's general contractor or subcontractors. Buyer is responsible for ensuring the foundation is complete, level, square, and ready to receive the Modular Units on the scheduled set date, and for ensuring all utility stubs are in place at the locations required by the contract documents.</p>"
+  +"<p style=\"font-size:12px;line-height:1.55;margin:0 0 10px;\">After Completion of Seller's scope of work and final walkthrough, Seller is a supplier of the Modular Home only. Any questions regarding general construction, site work, or trades outside Seller's scope shall be directed to Buyer's general contractor. Seller is not responsible for damage caused by Buyer's Site Work, improper foundation, improper utility connections by Buyer's contractors, or improper handling, storage, or modification of the Modular Home by Buyer or Buyer's contractors after Completion.</p>"
+  +"<div style=\"font-size:13px;font-weight:700;margin:18px 0 8px;\">4. PURCHASE PRICE AND PAYMENT TERMS</div>"
+  +"<p style=\"font-size:12px;line-height:1.55;margin:0 0 10px;\">The Purchase Price for the Modular Home shall be as set forth in the contract documents. All payments shall be made to {{SELLER_NAME}} in accordance with the following schedule:</p>"
+  +"<p style=\"font-size:12px;line-height:1.55;margin:0 0 10px;\"><b>Payment 1 — Materials Procurement Payment: 30% of the Purchase Price</b><br>Due upon execution of this Agreement unless otherwise agreed in writing by both Parties. Payment 1 constitutes reimbursement for materials procured specifically for Buyer's Modular Home. Upon execution of this Agreement, Seller will immediately purchase lumber, structural components, hardware, and all other raw materials required to fabricate Buyer's Modular Home to Buyer's unique floor plan and specifications. These materials are custom-ordered and cut to specification and cannot be returned to suppliers, resold, or repurposed for another project.</p>"
+  +"<p style=\"font-size:12px;line-height:1.55;margin:0 0 10px;\">Buyer expressly acknowledges and agrees that Payment 1 represents actual costs incurred by Seller on Buyer's behalf and is therefore non-refundable upon execution. This payment is not a penalty, earnest money, or speculative deposit — it reflects the direct cost of materials that Seller has procured exclusively for Buyer's project. In the event Buyer cancels or defaults after execution, Seller shall retain Payment 1 as reimbursement for those actual material costs. This payment is non-refundable except as expressly provided in the Seller default provisions of Section 11.</p>"
+  +"<p style=\"font-size:12px;line-height:1.55;margin:0 0 10px;\"><b>Payment 2 — Framing Completion Payment: 30% of the Purchase Price</b><br>Due upon completion of framing of the Modular Units. Seller shall provide Buyer with written notice and invoice when framing is complete. Buyer agrees to make Payment 2 within ten (10) calendar days of receiving Seller's written invoice.</p>"
+  +"<p style=\"font-size:12px;line-height:1.55;margin:0 0 10px;\"><b>Payment 3 — Exterior Siding and Interior Paint Completion Payment: 30% of the Purchase Price</b><br>Due upon completion of exterior siding and interior paint on the Modular Units. Seller shall provide Buyer with written notice and invoice when this milestone is complete. Buyer agrees to make Payment 3 within ten (10) calendar days of receiving Seller's written invoice. Seller shall not release the Modular Units for shipment until Payment 3 is received in full.</p>"
+  +"<p style=\"font-size:12px;line-height:1.55;margin:0 0 10px;\"><b>Payment 4 — Final Payment: 10% of the Purchase Price</b><br>Due and payable on-site on the final day Seller's crew is present at the project site, upon completion of Seller's On-Site Finish Work. Payment shall be made by wire transfer or check, payable to {{SELLER_NAME}}, and delivered to Seller's crew leader before the crew departs the project site. Before Seller's crew departs, Buyer or Buyer's general contractor shall conduct an on-site walkthrough with Seller's crew leader to confirm that Seller's scope of work has been completed. Buyer is required to schedule any required local jurisdictional inspections in a timely manner; failure to do so is solely the responsibility of Buyer. Final payment is not contingent upon the resolution of any outstanding warranty claims or punch list items. The existence of any warranty items or items requiring a return visit by Seller shall not delay, reduce, or offset Buyer's obligation to remit final payment in full. Seller acknowledges its warranty obligations and will schedule a return visit to address any valid warranty items submitted in writing by Buyer in accordance with Section 9. Payment and warranty obligations are independent of one another.</p>"
+  +"<p style=\"font-size:12px;line-height:1.55;margin:0 0 10px;\">All payments are due within the timeframes stated above. Buyer's failure to make any payment when due shall constitute a default under this Agreement, subject to the cure provisions of Section 11.</p>"
+  +"<div style=\"font-size:13px;font-weight:700;margin:18px 0 8px;\">5. CHANGE ORDERS AND UPGRADES</div>"
+  +"<p style=\"font-size:12px;line-height:1.55;margin:0 0 10px;\">Any Buyer-requested changes to plans, designs, specifications, or materials after execution of this Agreement must be submitted in writing and are subject to Seller's approval in Seller's reasonable discretion, including a determination of feasibility. Seller is not obligated to accept any change order request.</p>"
+  +"<p style=\"font-size:12px;line-height:1.55;margin:0 0 10px;\">All approved change orders must be documented in a written change order signed by both Parties, or confirmed through email with return confirmation from both Parties. Verbal change order approvals are not valid and shall not be binding on either Party.</p>"
+  +"<p style=\"font-size:12px;line-height:1.55;margin:0 0 10px;\">The agreed cost of any change order, including any applicable change order fee, shall be paid by Buyer to Seller in full prior to the commencement of the changed or additional work. Such payment shall be credited against the adjusted Purchase Price.</p>"
+  +"<p style=\"font-size:12px;line-height:1.55;margin:0 0 10px;\">Buyer acknowledges that change orders, including minor modifications, may affect the production schedule and result in unavoidable delays. Seller shall not be held responsible for any delays caused by Buyer-requested change orders.</p>"
+  +"<div style=\"font-size:13px;font-weight:700;margin:18px 0 8px;\">6. OPTION SELECTIONS</div>"
+  +"<p style=\"font-size:12px;line-height:1.55;margin:0 0 10px;\">Buyer agrees to meet with Seller and make all material and color selections within five (5) calendar days after being requested by Seller to do so. Delays in option selections may affect the production schedule and are the responsibility of Buyer.</p>"
+  +"<div style=\"font-size:13px;font-weight:700;margin:18px 0 8px;\">7. COMPLETION DATE AND UNAVOIDABLE DELAYS</div>"
+  +"<p style=\"font-size:12px;line-height:1.55;margin:0 0 10px;\">Seller shall use commercially reasonable efforts to complete fabrication and delivery of the Modular Home within the timeframe set forth in the contract documents. Seller shall be entitled to a reasonable extension of the completion date due to any of the following unavoidable circumstances:</p>"
+  +"<p style=\"font-size:12px;line-height:1.5;margin:0 0 5px;\">a. Interruption of transportation or logistics.</p>"
+  +"<p style=\"font-size:12px;line-height:1.5;margin:0 0 5px;\">b. Unavailability or delay in delivery of materials from Seller's suppliers.</p>"
+  +"<p style=\"font-size:12px;line-height:1.5;margin:0 0 5px;\">c. Labor disputes, strikes, or workforce disruptions.</p>"
+  +"<p style=\"font-size:12px;line-height:1.5;margin:0 0 5px;\">d. Fire, flood, earthquake, or other acts of nature or force majeure events.</p>"
+  +"<p style=\"font-size:12px;line-height:1.5;margin:0 0 5px;\">e. Adverse weather conditions affecting fabrication or delivery.</p>"
+  +"<p style=\"font-size:12px;line-height:1.5;margin:0 0 5px;\">f. Any Buyer-requested change orders or modifications.</p>"
+  +"<p style=\"font-size:12px;line-height:1.5;margin:0 0 5px;\">g. Delays caused by Buyer's site readiness, foundation, or failure to timely make option selections.</p>"
+  +"<p style=\"font-size:12px;line-height:1.5;margin:0 0 5px;\">h. Any other circumstances beyond the reasonable control of Seller.</p>"
+  +"<p style=\"font-size:12px;line-height:1.55;margin:0 0 10px;\">In the event Seller completes fabrication prior to the scheduled completion date and the Modular Units are ready for shipment, Buyer agrees to accept shipment within five (5) calendar days of receiving Seller's written notice of readiness.</p>"
+  +"<div style=\"font-size:13px;font-weight:700;margin:18px 0 8px;\">8. MATERIAL STORAGE, SHIPMENT, AND ADDITIONAL ORDERS</div>"
+  +"<p style=\"font-size:12px;line-height:1.55;margin:0 0 10px;\">Seller shall ship all materials and components as required by the contract documents, plus a reasonable industry-standard waste factor.</p>"
+  +"<p style=\"font-size:12px;line-height:1.55;margin:0 0 10px;\"><b>Storage Fee.</b> If the Modular Units are completed and ready for shipment, but Buyer's foundation or site is not ready to receive them, and Seller is therefore required to store the Modular Units at Seller's facility or another location, a storage fee of twenty-five dollars ($25.00) per day per Modular Unit shall be assessed and paid by Buyer. Storage fees shall accrue beginning on the sixth (6th) calendar day after Seller's written notice that the Modular Units are ready for shipment and shall be paid by Buyer prior to shipment.</p>"
+  +"<p style=\"font-size:12px;line-height:1.55;margin:0 0 10px;\"><b>Site Readiness Delays.</b> If Buyer's site, foundation, or utility stubs are not ready on the scheduled set date, and Seller's crew is required to demobilize and return at a later date to Set the Modular Units or to perform On-Site Finish Work, Buyer shall be responsible for Seller's reasonable remobilization costs, including crew travel, lodging, and per diem, at Seller's then-current rates. Remobilization costs shall be invoiced by Seller and paid by Buyer prior to remobilization.</p>"
+  +"<p style=\"font-size:12px;line-height:1.55;margin:0 0 10px;\">Any damage to materials or to the Modular Home caused by improper handling, weather, inadequate site conditions, defective foundation, or improper work by Buyer's contractors is the sole responsibility of Buyer.</p>"
+  +"<p style=\"font-size:12px;line-height:1.55;margin:0 0 10px;\">If Buyer requires additional materials beyond those specified in the contract documents, Seller will use commercially reasonable efforts to fulfill such requests. Additional materials must be paid for in full, including applicable shipping costs, prior to shipment.</p>"
+  +"<div style=\"font-size:13px;font-weight:700;margin:18px 0 8px;\">9. WARRANTY</div>"
+  +"<p style=\"font-size:12px;line-height:1.55;margin:0 0 10px;\">Seller warrants to Buyer that:</p>"
+  +"<p style=\"font-size:12px;line-height:1.5;margin:0 0 5px;\">a. All materials and components furnished under this Agreement shall be new and free from material defects at the time of delivery.</p>"
+  +"<p style=\"font-size:12px;line-height:1.5;margin:0 0 5px;\">b. Fabrication of the Modular Units, Setting of the Modular Home, and On-Site Finish Work performed by Seller shall be performed in a good and workmanlike manner, consistent with industry standards and in conformance with the home specifications sheet outlined in the contract documents.</p>"
+  +"<p style=\"font-size:12px;line-height:1.5;margin:0 0 5px;\">c. Upon Completion, the Modular Home shall conform to all specifications set forth in the contract documents.</p>"
+  +"<p style=\"font-size:12px;line-height:1.55;margin:0 0 10px;\">Seller's warranty expressly excludes the following:</p>"
+  +"<p style=\"font-size:12px;line-height:1.5;margin:0 0 5px;\">a. Any work, materials, or components outside of Seller's defined scope of work as set forth in Section 3, including all Buyer's Site Work.</p>"
+  +"<p style=\"font-size:12px;line-height:1.5;margin:0 0 5px;\">b. Any damage to the Modular Home caused by defective, incomplete, or improper foundation, site preparation, or utility connections performed by Buyer or Buyer's contractors.</p>"
+  +"<p style=\"font-size:12px;line-height:1.5;margin:0 0 5px;\">c. Any damage caused by improper handling, storage, modification, or repair of the Modular Home by Buyer or Buyer's contractors after Completion.</p>"
+  +"<p style=\"font-size:12px;line-height:1.5;margin:0 0 5px;\">d. Normal wear and tear, settlement, or cosmetic items arising after Completion that are not the result of Seller's workmanship or materials.</p>"
+  +"<p style=\"font-size:12px;line-height:1.5;margin:0 0 5px;\">e. Damage caused by acts of nature, force majeure events, or conditions beyond Seller's reasonable control after Completion.</p>"
+  +"<p style=\"font-size:12px;line-height:1.55;margin:0 0 10px;\">No back-charges will be assessed against Seller for items outside of Seller's defined scope of work. Warranty claims must be submitted to Seller in writing within thirty (30) days of the date the defect is discovered or reasonably should have been discovered.</p>"
+  +"<p style=\"font-size:12px;line-height:1.55;margin:0 0 10px;\"><b>Unauthorized Warranty Work.</b> If Buyer or Buyer's contractors perform any corrective, repair, or remediation work on items that fall within Seller's defined scope of work or warranty obligations without first obtaining Seller's prior written approval, Seller shall have no obligation to reimburse Buyer for the cost of such work and all warranty coverage for the affected items shall be void. Seller's warranty is contingent on Seller being given the opportunity to inspect, evaluate, and remedy any alleged defect through Seller's own personnel or approved contractors. Buyer waives any right to reimbursement or warranty claim for any item repaired or modified without Seller's prior written authorization.</p>"
+  +"<div style=\"font-size:13px;font-weight:700;margin:18px 0 8px;\">10. INSURANCE</div>"
+  +"<p style=\"font-size:12px;line-height:1.55;margin:0 0 10px;\">Seller shall maintain appropriate commercial general liability and property insurance, including Builders Risk insurance covering the Modular Home during fabrication at Seller's facility, during transport, during on-site Setting, and during On-Site Finish Work performed by Seller's crew.</p>"
+  +"<p style=\"font-size:12px;line-height:1.55;margin:0 0 10px;\">Upon Completion and acceptance of the Modular Home by Buyer, the Modular Home becomes a fixture of the real property and Buyer assumes all risk of loss. Buyer is solely responsible for obtaining and maintaining appropriate property and builder's risk insurance coverage from and after the date of Completion and acceptance. Buyer is responsible for insuring Buyer's Site Work, foundation, and utility work at all times.</p>"
+  +"<div style=\"font-size:13px;font-weight:700;margin:18px 0 8px;\">11. DEFAULT AND REMEDIES</div>"
+  +"<p style=\"font-size:12px;line-height:1.55;margin:0 0 10px;\"><b>Buyer Default.</b> In the event Buyer fails to make any payment when due, fails to accept shipment within the required timeframe, or otherwise materially breaches this Agreement, Seller shall provide Buyer with written notice of default. Buyer shall have ten (10) calendar days from receipt of such notice to cure the default. If Buyer fails to cure the default within the cure period, Seller may, at Seller's sole and absolute discretion, elect to terminate this Agreement and pursue any and all remedies available at law or in equity, including retention of all payments made to date as reimbursement for actual costs incurred.</p>"
+  +"<p style=\"font-size:12px;line-height:1.55;margin:0 0 10px;\"><b>Seller Default.</b> In the event Seller materially breaches this Agreement, Buyer shall provide Seller with written notice of the alleged breach. Seller shall have twenty (20) calendar days from receipt of such notice to cure the breach or provide Buyer with a written remediation plan acceptable to Buyer. Seller's liability to Buyer for any breach of this Agreement shall not exceed the total Purchase Price paid by Buyer to Seller at the time of the alleged breach.</p>"
+  +"<div style=\"font-size:13px;font-weight:700;margin:18px 0 8px;\">12. COMMUNICATION</div>"
+  +"<p style=\"font-size:12px;line-height:1.55;margin:0 0 10px;\">Buyer may contact {{SELLER_NAME}} at any time with questions, concerns, or requests related to this Agreement. Buyer agrees to direct all questions and concerns regarding the Modular Home to the project manager assigned to Buyer's project, and agrees not to direct project concerns or questions to other {{SELLER_NAME}} employees or subcontractors.</p>"
+  +"<p style=\"font-size:12px;line-height:1.55;margin:0 0 10px;\">All formal notices required or permitted under this Agreement must be submitted in writing via email to Seller's designated project manager or by certified mail to Seller's principal place of business. Seller agrees to respond to all written inquiries, emails, and calls within twenty-four (24) hours on working days.</p>"
+  +"<p style=\"font-size:12px;line-height:1.55;margin:0 0 10px;\">Seller agrees to provide Buyer with bi-weekly progress reports during the fabrication phase of the Modular Home.</p>"
+  +"<div style=\"font-size:13px;font-weight:700;margin:18px 0 8px;\">13. DISPUTE RESOLUTION</div>"
+  +"<p style=\"font-size:12px;line-height:1.55;margin:0 0 10px;\"><b>Mediation.</b> In the event of any dispute, claim, or controversy arising out of or relating to this Agreement, the Parties agree to first attempt resolution through good faith mediation conducted in Iron County, Utah. Either Party may initiate mediation by providing written notice to the other Party. The Parties shall mutually agree on a mediator within fifteen (15) days of such notice. Mediation costs shall be shared equally by the Parties.</p>"
+  +"<p style=\"font-size:12px;line-height:1.55;margin:0 0 10px;\"><b>Binding Arbitration.</b> If mediation does not result in a resolution within sixty (60) days of initiation, or if either Party refuses to participate, the dispute shall be submitted to binding arbitration in Iron County, Utah, in accordance with the rules of the American Arbitration Association then in effect. The arbitrator's decision shall be final and binding and may be entered as a judgment in any court of competent jurisdiction.</p>"
+  +"<p style=\"font-size:12px;line-height:1.55;margin:0 0 10px;\"><b>Attorneys' Fees.</b> In any arbitration or subsequent litigation to enforce an arbitration award, the prevailing Party shall be entitled to recover reasonable attorneys' fees and costs from the non-prevailing Party.</p>"
+  +"<div style=\"font-size:13px;font-weight:700;margin:18px 0 8px;\">14. GOVERNING LAW AND VENUE</div>"
+  +"<p style=\"font-size:12px;line-height:1.55;margin:0 0 10px;\">This Agreement shall be governed by and construed in accordance with the laws of the State of Utah, without regard to conflict of laws principles. Any legal proceedings not subject to arbitration under Section 13 shall be brought exclusively in the state or federal courts located in Iron County, Utah. Both Parties consent to personal jurisdiction in such courts.</p>"
+  +"<div style=\"font-size:13px;font-weight:700;margin:18px 0 8px;\">15. GENERAL PROVISIONS</div>"
+  +"<p style=\"font-size:12px;line-height:1.5;margin:0 0 5px;\">a. This Agreement constitutes the entire understanding between the Parties regarding the subject matter hereof and supersedes all prior oral or written agreements, representations, and understandings. Any amendment must be made in writing and signed by both Parties.</p>"
+  +"<p style=\"font-size:12px;line-height:1.5;margin:0 0 5px;\">b. If any provision of this Agreement is found invalid or unenforceable, that provision shall be modified to the minimum extent necessary to make it enforceable, and all remaining provisions shall continue in full force and effect.</p>"
+  +"<p style=\"font-size:12px;line-height:1.5;margin:0 0 5px;\">c. No waiver of any provision of this Agreement shall be effective unless made in writing. Failure to enforce any provision shall not constitute a waiver of the right to enforce that provision in the future.</p>"
+  +"<p style=\"font-size:12px;line-height:1.5;margin:0 0 5px;\">d. Seller is acting as an independent contractor. Nothing in this Agreement creates an employment relationship, partnership, joint venture, or agency between the Parties.</p>"
+  +"<p style=\"font-size:12px;line-height:1.5;margin:0 0 5px;\">e. Buyer may not assign this Agreement or any rights hereunder without Seller's prior written consent. Seller may assign this Agreement to a successor entity without Buyer's consent.</p>"
+  +"<div style=\"font-size:13px;font-weight:700;margin:18px 0 8px;\">16. EXECUTION AND ACCEPTANCE</div>"
+  +"<p style=\"font-size:12px;line-height:1.55;margin:0 0 10px;\">The undersigned Parties represent that they have read, understand, and agree to be bound by the terms and conditions of this Agreement and that each signatory is duly authorized to execute this Agreement on behalf of the Party indicated.</p>"
+  +"<div style=\"display:flex;justify-content:space-between;margin-top:30px;font-size:12px;\">"
+  +"<div style=\"width:45%;\"><div style=\"border-top:1px solid #1c1c1a;padding-top:4px;\">{{SELLER_NAME}} (Seller)</div><div style=\"margin-top:24px;border-top:1px solid #1c1c1a;padding-top:4px;\">Authorized Signature: Sven Heistad / Date</div></div>"
+  +"<div style=\"width:45%;\"><div style=\"border-top:1px solid #1c1c1a;padding-top:4px;\">{{BUYER}} (Buyer)</div><div style=\"margin-top:24px;border-top:1px solid #1c1c1a;padding-top:4px;\">Buyer Signature / Date</div></div>"
+  +"</div>"
+  +"<p style=\"font-size:10px;color:#888;margin-top:20px;text-align:center;\">{{SELLER_NAME}} · Modular Home Purchase Agreement · {{SELLER_ADDRESS}}</p>"
+  +"</div>";
+
+var CONTRACT_MODE = 'shell';
+var modularCustomCount = 0;
+var CURRENT_MODULAR = null;
+
+function setContractMode(mode){
+  CONTRACT_MODE = mode;
+  document.querySelectorAll('.tab').forEach(function(t){ t.classList.toggle('active', t.dataset.mode===mode); });
+  document.querySelectorAll('.mode').forEach(function(m){ m.classList.toggle('active', m.id===mode+'-mode'); });
+  if(mode==='modular') calcModular(); else calc();
+}
+
+function dispatchGenerate(){
+  if(CONTRACT_MODE==='modular') generateModularContract();
+  else generateContract();
+}
+
+function initModularContract(){
+  var sel = document.getElementById('cm-model');
+  var groups = {};
+  MODULAR.forEach(function(m,i){ (groups[m[1]]=groups[m[1]]||[]).push(i); });
+  Object.keys(groups).forEach(function(brand){
+    var og = document.createElement('optgroup'); og.label = brand;
+    groups[brand].forEach(function(i){
+      var m = MODULAR[i];
+      var o = document.createElement('option'); o.value = i; o.textContent = m[0]+' · '+m[2]+' sqft';
+      og.appendChild(o);
+    });
+    sel.appendChild(og);
+  });
+  ['cm-model','cm-units','cm-miles'].forEach(function(id){
+    var el = document.getElementById(id);
+    el.addEventListener('input', calcModular);
+    el.addEventListener('change', calcModular);
+  });
+  buildModularScopeUI();
+  buildModularSpecUI();
+}
+
+function buildModularScopeUI(){
+  var box = document.getElementById('cm-scope'); if(!box) return;
+  var h = '';
+  MODULAR_SCOPE_STD.forEach(function(s,i){
+    h += '<div class="scoperow-mvp">'
+      +'<span class="scopelabel">'+s.t+'</span>'
+      +'<select class="scopeselm" data-mscope="'+i+'">'
+      +'<option value="mvp"'+(s.mvp?' selected':'')+'>MVP / Seller</option>'
+      +'<option value="buyer"'+(!s.mvp?' selected':'')+'>BUYER</option>'
+      +'</select></div>';
+  });
+  box.innerHTML = h;
+}
+
+function addModularScopeCustom(){
+  var div = document.createElement('div');
+  div.className = 'scoperow-mvp';
+  div.innerHTML = '<input type="text" placeholder="Custom scope item" data-msccust="t" style="margin-bottom:0;">'
+    +'<select class="scopeselm" data-msccust="v"><option value="mvp">MVP / Seller</option><option value="buyer">BUYER</option></select>'
+    +'<button class="remove" title="Remove">×</button>';
+  document.getElementById('cm-scope-custom').appendChild(div);
+  div.querySelector('.remove').addEventListener('click', function(){ div.remove(); });
+}
+
+function getModularScopeItems(){
+  var mvp = [], buyer = [];
+  MODULAR_SCOPE_STD.forEach(function(s,i){
+    var sel = document.querySelector('.scopeselm[data-mscope="'+i+'"]');
+    var v = sel ? sel.value : (s.mvp?'mvp':'buyer');
+    (v==='mvp'?mvp:buyer).push(s.t);
+  });
+  document.querySelectorAll('#cm-scope-custom .scoperow-mvp').forEach(function(row){
+    var t = row.querySelector('[data-msccust="t"]').value.trim(); if(!t) return;
+    var v = row.querySelector('[data-msccust="v"]').value;
+    (v==='mvp'?mvp:buyer).push(t);
+  });
+  return {mvp:mvp, buyer:buyer};
+}
+
+function buildModularSpecUI(){
+  var box = document.getElementById('cm-specs'); if(!box) return;
+  box.innerHTML = '';
+  MODULAR_SPEC_STD.forEach(function(s){ addModularSpec(s); });
+}
+
+function addModularSpec(val){
+  var v = (typeof val === 'string') ? val : '';
+  var div = document.createElement('div');
+  div.className = 'specrow';
+  var safe = v.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  div.innerHTML = '<input type="text" value="'+safe+'" placeholder="Specification" data-mspec="t">'
+    +'<button class="remove" title="Remove">×</button>';
+  document.getElementById('cm-specs').appendChild(div);
+  div.querySelector('.remove').addEventListener('click', function(){ div.remove(); });
+}
+
+function getModularSpecs(){
+  var specs = [];
+  document.querySelectorAll('#cm-specs .specrow').forEach(function(row){
+    var t = row.querySelector('[data-mspec="t"]').value.trim();
+    if(t) specs.push(t);
+  });
+  return specs;
+}
+
+function addModularCustom(){
+  var div = document.createElement('div');
+  div.className = 'lineitem';
+  div.innerHTML = '<input type="text" placeholder="Description (e.g. No fireplaces)" data-mcust="desc">'
+    +'<input type="number" placeholder="0 or -1400" data-mcust="amt" step="1">'
+    +'<button class="remove" title="Remove">×</button>';
+  document.getElementById('cm-custom').appendChild(div);
+  div.querySelectorAll('input').forEach(function(i){ i.addEventListener('input', calcModular); });
+  div.querySelector('.remove').addEventListener('click', function(){ div.remove(); calcModular(); });
+  calcModular();
+}
+
+function getModularCustoms(){
+  var items = [];
+  document.querySelectorAll('#cm-custom .lineitem').forEach(function(row){
+    var desc = row.querySelector('[data-mcust="desc"]').value.trim();
+    var amt = parseFloat(row.querySelector('[data-mcust="amt"]').value) || 0;
+    if(desc || amt) items.push({desc: desc||'Custom item', amt: amt});
+  });
+  return items;
+}
+
+function calcModular(){
+  var sel = document.getElementById('cm-model'); if(!sel || sel.options.length===0) return;
+  var m = MODULAR[+sel.value];
+  var units = Math.max(1, parseInt(document.getElementById('cm-units').value)||1);
+  var miles = Math.max(0, parseFloat(document.getElementById('cm-miles').value)||0);
+  var base = m[3];
+  var shipLow = m[4], shipHigh = m[5];
+  var shipPer = miles * shipHigh;
+  var perLabel = (m[7]==='per-module') ? ' per module' : ' per unit';
+  document.getElementById('cm-model-meta').textContent = m[1]+' · '+m[2]+' sqft · base '+fmt(base)+perLabel+' · includes design, engineering & windows';
+  document.getElementById('cm-ship-note').textContent = miles>0
+    ? miles.toLocaleString()+' mi × $'+shipHigh+'/mi = '+fmt(shipPer)+' per unit (using high end of $'+shipLow+'-'+shipHigh+'/mi range)'
+    : 'Ships $'+shipLow+'–$'+shipHigh+'/mi from Idaho Falls, ID. Enter distance.';
+
+  var customs = getModularCustoms();
+  var customTotal = customs.reduce(function(a,c){return a+c.amt;},0);
+  var total = base*units + shipPer*units + customTotal;
+
+  // Right-column summary
+  var rows = '';
+  function row(l,a,sub){var s=sub?'<div class="sub">'+sub+'</div>':''; return '<tr><td class="label">'+l+s+'</td><td class="amt">'+fmt(a)+'</td></tr>';}
+  rows += row('Completed modular unit', base*units, units>1 ? fmt(base)+' × '+units+(m[7]==='per-module'?' modules':' units') : 'move-in ready, design/engineering included');
+  customs.forEach(function(c){ rows += row(c.desc, c.amt, 'custom'); });
+  if(shipPer>0) rows += row('Shipping', shipPer*units, units>1?fmt(shipPer)+' × '+units:'from Idaho Falls, ID');
+  else rows += '<tr><td class="label">Shipping<div class="sub">enter miles or include in unit price</div></td><td class="amt" style="color:var(--hint);">included / TBD</td></tr>';
+  document.getElementById('c-lines').innerHTML = rows;
+  document.getElementById('c-total').textContent = fmt(total);
+
+  // Hide the design retainer line for modular (design is included)
+  var dRow = document.getElementById('c-design-row');
+  if(dRow) dRow.style.display = 'none';
+
+  // 30/30/30/10 payment schedule
+  var p1 = Math.round(total*0.30), p2 = Math.round(total*0.30), p3 = Math.round(total*0.30);
+  var p4 = total - p1 - p2 - p3;
+  var prows = '';
+  function prow(l,a,sub){var s=sub?'<div class="sub">'+sub+'</div>':''; return '<tr><td class="label">'+l+s+'</td><td class="amt">'+fmt(a)+'</td></tr>';}
+  prows += prow('Payment 1 — Materials Procurement (30%)', p1, 'upon signing · engineering & long-lead orders');
+  prows += prow('Payment 2 — Framing Complete (30%)', p2, 'when framing complete on all units');
+  prows += prow('Payment 3 — Siding & Interior Paint (30%)', p3, 'when exterior siding & interior paint done');
+  prows += prow('Payment 4 — Final (10%)', p4, 'on-site when set & connected');
+  document.getElementById('c-payments').innerHTML = prows;
+
+  CURRENT_MODULAR = {m:m, units:units, miles:miles, shipPer:shipPer, shipLow:shipLow, shipHigh:shipHigh, customs:customs, total:total, p1:p1, p2:p2, p3:p3, p4:p4};
+}
+
+function generateModularContract(){
+  if(!CURRENT_MODULAR){ alert('Configure the modular contract first.'); return; }
+  var g = function(id){return document.getElementById(id).value.trim();};
+  var c = CURRENT_MODULAR;
+  var m = c.m;
+
+  var buyer = g('c-buyer')||'__________';
+  var project = g('c-project')||(m[0]+' Modular project');
+  var phone = g('c-phone')||'__________';
+  var email = g('c-email')||'__________';
+  var buyerAddr = g('c-buyer-addr')||'__________';
+  var siteAddr = g('c-site-addr')||'__________';
+  var city = g('c-city')||'__________';
+  var date = g('c-date')||new Date().toLocaleDateString('en-US');
+  var salesman = g('c-salesman')||'__________';
+
+  var isMVP = (m[1]==='Mountain Valley Prefab');
+  var seller = isMVP ? {
+    name: 'Mountain Valley Prefab, LLC',
+    cityState: 'Idaho Falls, Idaho',
+    address: '3791 East 49th Street North, Idaho Falls, ID 83401',
+    phone: '(435) 592-1974',
+    email: 'sales@mountainvalleyprefab.com',
+    brandTextHTML: '<div style="font-size:26px;font-weight:700;letter-spacing:-0.01em;color:#1c1c1a;">mountainvalley<span style="color:#d85a30;">prefab</span><span style="font-size:14px;color:#d85a30;">.com</span></div>'
+  } : {
+    name: 'Zip Kit Homes, LLC',
+    cityState: 'Cedar City, Utah',
+    address: '3665 West 2700 South, Cedar City, UT 84720',
+    phone: '(435) 340-1171',
+    email: 'sales@zipkithomes.com',
+    brandTextHTML: '<img src="'+ZIPKIT_LOGO+'" alt="Zip Kit Homes" style="height:48px;">'
+  };
+
+  var scope = getModularScopeItems();
+  var specs = getModularSpecs();
+
+  var scopeRows = ''
+    + scope.mvp.map(function(t){
+        return '<tr><td style="padding:5px 8px;border:1px solid #ccc;">'+t+'</td><td style="padding:5px 8px;border:1px solid #ccc;text-align:center;font-weight:700;">X</td><td style="padding:5px 8px;border:1px solid #ccc;"></td></tr>';
+      }).join('')
+    + scope.buyer.map(function(t){
+        return '<tr><td style="padding:5px 8px;border:1px solid #ccc;">'+t+'</td><td style="padding:5px 8px;border:1px solid #ccc;"></td><td style="padding:5px 8px;border:1px solid #ccc;text-align:center;font-weight:700;">X</td></tr>';
+      }).join('');
+
+  var specRows = specs.map(function(s){
+    return '<tr><td style="padding:4px 8px;border:1px solid #ccc;">'+s+'</td><td style="padding:4px 8px;border:1px solid #ccc;text-align:center;font-weight:700;">X</td></tr>';
+  }).join('');
+
+  var costRows = '';
+  function cr(l,a,com){return '<tr><td style="padding:5px 8px;border:1px solid #ccc;">'+l+'</td><td style="padding:5px 8px;border:1px solid #ccc;text-align:right;white-space:nowrap;">'+fmt(a)+'</td><td style="padding:5px 8px;border:1px solid #ccc;font-size:11px;color:#555;">'+(com||'')+'</td></tr>';}
+  costRows += cr(m[0]+' Modular ('+m[2]+' sqft)', m[3]*c.units, c.units>1 ? c.units+' units @ '+fmt(m[3]) : 'move-in ready, design & engineering included');
+  c.customs.forEach(function(x){ costRows += cr(x.desc, x.amt, ''); });
+  if(c.shipPer>0) costRows += cr('Shipping', c.shipPer*c.units, c.miles+' mi at $'+c.shipHigh+'/mi');
+  else costRows += '<tr><td style="padding:5px 8px;border:1px solid #ccc;">Transportation</td><td style="padding:5px 8px;border:1px solid #ccc;text-align:right;">—</td><td style="padding:5px 8px;border:1px solid #ccc;font-size:11px;color:#555;">INCLUDED</td></tr>';
+
+  var photoUrls = modelPhotoUrls(m[0]);
+
+  var html = ''
+    // ----- COVER -----
+    +'<div style="max-width:780px;margin:0 auto;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#1c1c1a;padding:32px;">'
+    +'<div style="page-break-after:always;">'
+    +'<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px;">'
+    +seller.brandTextHTML
+    +'<div style="text-align:right; font-size:11px; color:#888; text-transform:uppercase; letter-spacing:0.08em;">Modular Contract · '+date+'</div>'
+    +'</div>'
+    +'<div id="zk-modular-cover-box" style="width:100%; height:440px; background:linear-gradient(135deg,#d85a30,#993c1d); background-size:cover; background-position:center center; background-repeat:no-repeat; border-radius:8px; overflow:hidden; display:flex; flex-direction:column; justify-content:flex-end;">'
+    +'<div style="background:linear-gradient(to top, rgba(0,0,0,0.82), rgba(0,0,0,0.15) 60%, rgba(0,0,0,0)); padding:90px 32px 28px; color:#fff;">'
+    +'<div style="font-size:13px; text-transform:uppercase; letter-spacing:0.12em; opacity:0.9; margin-bottom:8px;">Modular contract prepared for</div>'
+    +'<div style="font-size:30px; font-weight:700; line-height:1.15;">'+buyer+'</div>'
+    +(city && city!=='__________' ? '<div style="font-size:15px; margin-top:4px; opacity:0.95;">'+city+'</div>' : '')
+    +'<div style="font-size:14px; margin-top:8px; opacity:0.92;">'+m[0]+' Modular'+(c.units>1?' × '+c.units:'')+' · '+date+'</div>'
+    +'</div>'
+    +'</div>'
+    +'<script>(function(){var urls='+JSON.stringify(photoUrls)+';var box=document.getElementById("zk-modular-cover-box");function tryUrl(idx){if(idx>=urls.length)return;var t=new Image();t.onload=function(){box.style.backgroundImage="url(\\""+urls[idx]+"\\")";};t.onerror=function(){tryUrl(idx+1);};t.src=urls[idx];}tryUrl(0);})();<\/script>'
+    +'<div style="margin-top:240px; background:#f5f3ec; border-radius:8px; padding:18px 22px; font-size:13px; color:#5f5e5a; line-height:1.6;">'
+    +'<b>Modular Home Purchase Agreement.</b> Prepared by '+seller.name+' · '+seller.cityState+'. This is a legally binding agreement — please review the full document carefully before signing.'
+    +'</div>'
+    +'</div>'
+
+    // ----- BUYER/SELLER + COST + PAYMENT PAGE -----
+    +'<div style="page-break-after:always;">'
+    +'<div style="text-align:center;border-bottom:2px solid #1c1c1a;padding-bottom:18px;">'
+    +seller.brandTextHTML
+    +'<div style="font-size:22px;font-weight:700;margin-top:10px;">Modular Home Purchase Agreement</div>'
+    +'<div style="font-size:13px;color:#555;margin-top:6px;">Prepared by '+seller.name+' · '+seller.cityState+'</div>'
+    +'</div>'
+    +'<table style="width:100%;border-collapse:collapse;margin-top:24px;font-size:12px;">'
+    +'<tr><td style="padding:5px 8px;border:1px solid #ccc;background:#f5f3ec;font-weight:600;" colspan="2">Buyer Information</td><td style="padding:5px 8px;border:1px solid #ccc;background:#f5f3ec;font-weight:600;" colspan="2">Seller Information</td></tr>'
+    +'<tr><td style="padding:5px 8px;border:1px solid #ccc;">Customer</td><td style="padding:5px 8px;border:1px solid #ccc;">'+buyer+'</td><td style="padding:5px 8px;border:1px solid #ccc;">Salesman</td><td style="padding:5px 8px;border:1px solid #ccc;">'+salesman+'</td></tr>'
+    +'<tr><td style="padding:5px 8px;border:1px solid #ccc;">Project</td><td style="padding:5px 8px;border:1px solid #ccc;">'+project+'</td><td style="padding:5px 8px;border:1px solid #ccc;">General Manager</td><td style="padding:5px 8px;border:1px solid #ccc;">Sven Heistad</td></tr>'
+    +'<tr><td style="padding:5px 8px;border:1px solid #ccc;">Contract Date</td><td style="padding:5px 8px;border:1px solid #ccc;">'+date+'</td><td style="padding:5px 8px;border:1px solid #ccc;">Phone</td><td style="padding:5px 8px;border:1px solid #ccc;">'+seller.phone+'</td></tr>'
+    +'<tr><td style="padding:5px 8px;border:1px solid #ccc;">Ship to Address</td><td style="padding:5px 8px;border:1px solid #ccc;">'+siteAddr+'</td><td style="padding:5px 8px;border:1px solid #ccc;">Email</td><td style="padding:5px 8px;border:1px solid #ccc;">'+seller.email+'</td></tr>'
+    +'<tr><td style="padding:5px 8px;border:1px solid #ccc;">Livable Sq Ft</td><td style="padding:5px 8px;border:1px solid #ccc;">'+m[2]+' sqft per unit</td><td style="padding:5px 8px;border:1px solid #ccc;">Plant Location</td><td style="padding:5px 8px;border:1px solid #ccc;">'+seller.address+'</td></tr>'
+    +'<tr><td style="padding:5px 8px;border:1px solid #ccc;">Phone</td><td style="padding:5px 8px;border:1px solid #ccc;">'+phone+'</td><td style="padding:5px 8px;border:1px solid #ccc;">Floor Plan</td><td style="padding:5px 8px;border:1px solid #ccc;">'+m[0]+' · '+c.units+' unit'+(c.units>1?'s':'')+'</td></tr>'
+    +'</table>'
+    +'<div style="font-size:11px;font-style:italic;color:#555;margin-top:6px;">Pricing is valid for a period of nine (9) months from the contract date. Any applicable sales tax will be added to final invoice.</div>'
+    +'<table style="width:100%;border-collapse:collapse;margin-top:14px;font-size:12px;">'
+    +'<tr><td style="padding:5px 8px;border:1px solid #ccc;background:#5f5e5a;color:#fff;font-weight:600;">'+m[0]+' Modular — COST SUMMARY</td><td style="padding:5px 8px;border:1px solid #ccc;background:#5f5e5a;color:#fff;font-weight:600;text-align:right;">PRICE</td><td style="padding:5px 8px;border:1px solid #ccc;background:#5f5e5a;color:#fff;font-weight:600;">COMMENTS</td></tr>'
+    +costRows
+    +'<tr><td style="padding:6px 8px;border:1px solid #ccc;font-weight:700;">Total Price</td><td style="padding:6px 8px;border:1px solid #ccc;text-align:right;font-weight:700;">'+fmt(c.total)+'</td><td style="padding:6px 8px;border:1px solid #ccc;"></td></tr>'
+    +'</table>'
+    +'<table style="width:100%;border-collapse:collapse;margin-top:14px;font-size:12px;">'
+    +'<tr><td style="padding:5px 8px;border:1px solid #ccc;background:#5f5e5a;color:#fff;font-weight:600;" colspan="3">ESTIMATED TIMING &amp; PAYMENT SCHEDULE</td></tr>'
+    +'<tr><td style="padding:5px 8px;border:1px solid #ccc;">Payment 1 — Materials Procurement (30%)</td><td style="padding:5px 8px;border:1px solid #ccc;text-align:right;">'+fmt(c.p1)+'</td><td style="padding:5px 8px;border:1px solid #ccc;font-size:11px;color:#555;">Upon signing — engineering, special orders, secure production slots</td></tr>'
+    +'<tr><td style="padding:5px 8px;border:1px solid #ccc;">Payment 2 — Framing Completion (30%)</td><td style="padding:5px 8px;border:1px solid #ccc;text-align:right;">'+fmt(c.p2)+'</td><td style="padding:5px 8px;border:1px solid #ccc;font-size:11px;color:#555;">When framing is complete on all units</td></tr>'
+    +'<tr><td style="padding:5px 8px;border:1px solid #ccc;">Payment 3 — Siding &amp; Interior Paint (30%)</td><td style="padding:5px 8px;border:1px solid #ccc;text-align:right;">'+fmt(c.p3)+'</td><td style="padding:5px 8px;border:1px solid #ccc;font-size:11px;color:#555;">When exterior siding and interior paint are complete</td></tr>'
+    +'<tr><td style="padding:5px 8px;border:1px solid #ccc;">Payment 4 — Final (10%)</td><td style="padding:5px 8px;border:1px solid #ccc;text-align:right;">'+fmt(c.p4)+'</td><td style="padding:5px 8px;border:1px solid #ccc;font-size:11px;color:#555;">On-site, on the day Seller\'s crew departs after Completion</td></tr>'
+    +'</table>'
+    +'<div style="margin-top:30px;display:flex;justify-content:space-between;font-size:12px;">'
+    +'<div style="width:45%;"><div style="border-top:1px solid #1c1c1a;padding-top:4px;">Seller: Sven Heistad</div><div style="margin-top:18px;border-top:1px solid #1c1c1a;padding-top:4px;">Signature / Date</div></div>'
+    +'<div style="width:45%;"><div style="border-top:1px solid #1c1c1a;padding-top:4px;">Buyer: '+buyer+'</div><div style="margin-top:18px;border-top:1px solid #1c1c1a;padding-top:4px;">Signature / Date</div></div>'
+    +'</div>'
+    +'</div>'
+
+    // ----- SCOPE + SPECS PAGE -----
+    +'<div style="page-break-after:always;">'
+    +'<div style="border-bottom:2px solid #1c1c1a;padding-bottom:14px;margin-bottom:18px;">'
+    +'<div style="font-size:11px;text-transform:uppercase;letter-spacing:0.1em;color:#888;">Scope of work &amp; specifications</div>'
+    +'<div style="font-size:20px;font-weight:700;margin-top:4px;">'+m[0]+' Modular · '+c.units+' unit'+(c.units>1?'s':'')+'</div>'
+    +'</div>'
+    +'<table style="width:100%;border-collapse:collapse;font-size:12px;">'
+    +'<tr><td style="padding:5px 8px;border:1px solid #ccc;background:#5f5e5a;color:#fff;font-weight:600;">Scope of Work Item</td><td style="padding:5px 8px;border:1px solid #ccc;background:#5f5e5a;color:#fff;font-weight:600;text-align:center;width:110px;">'+(isMVP?'MVP':'Seller')+' Scope</td><td style="padding:5px 8px;border:1px solid #ccc;background:#5f5e5a;color:#fff;font-weight:600;text-align:center;width:110px;">Buyer Scope</td></tr>'
+    +scopeRows
+    +'</table>'
+    +'<table style="width:100%;border-collapse:collapse;font-size:12px;margin-top:18px;">'
+    +'<tr><td style="padding:5px 8px;border:1px solid #ccc;background:#5f5e5a;color:#fff;font-weight:600;">SPECIFICATIONS</td><td style="padding:5px 8px;border:1px solid #ccc;background:#5f5e5a;color:#fff;font-weight:600;text-align:center;width:110px;">Included</td></tr>'
+    +specRows
+    +'</table>'
+    +'<div style="margin-top:30px;display:flex;justify-content:space-between;font-size:12px;">'
+    +'<div style="width:45%;"><div style="border-top:1px solid #1c1c1a;padding-top:4px;">Seller Signature / Date</div></div>'
+    +'<div style="width:45%;"><div style="border-top:1px solid #1c1c1a;padding-top:4px;">Buyer Signature / Date</div></div>'
+    +'</div>'
+    +'</div>'
+
+    // ----- LEGAL BODY (multi-page) -----
+    +MODULAR_LEGAL_HTML
+      .replace(/\{\{SELLER_NAME\}\}/g, seller.name)
+      .replace(/\{\{SELLER_CITY_STATE\}\}/g, seller.cityState)
+      .replace(/\{\{SELLER_ADDRESS\}\}/g, seller.address)
+      .replace(/\{\{BUYER\}\}/g, buyer)
+      .replace(/\{\{BUYER_ADDR\}\}/g, buyerAddr)
+      .replace(/\{\{BUYER_PHONE\}\}/g, phone)
+      .replace(/\{\{BUYER_EMAIL\}\}/g, email)
+      .replace(/\{\{SITE_ADDR\}\}/g, siteAddr)
+    +'</div>';
+
+  var w = window.open('','_blank');
+  if(!w){ alert('Please allow pop-ups to generate the contract.'); return; }
+  w.document.write('<!DOCTYPE html><html><head><meta charset="utf-8"><title>Modular Contract — '+buyer+' — '+m[0]+'</title></head><body style="margin:0;background:#fff;">'+html
+    +'<div style="text-align:center;padding:20px;" class="noprint"><button onclick="window.print()" style="padding:10px 24px;font-size:14px;background:#d85a30;color:#fff;border:none;border-radius:8px;cursor:pointer;">Print / Save as PDF</button></div>'
+    +'<style>@media print{.noprint{display:none;} body{-webkit-print-color-adjust:exact; print-color-adjust:exact;}}</style></body></html>');
+  w.document.close();
+}
+
+// Wire up modular UI after page load
+(function initModularDeferred(){
+  if(document.readyState==='loading'){
+    document.addEventListener('DOMContentLoaded', function(){ initModularContract(); calcModular(); });
+  } else {
+    initModularContract(); calcModular();
+  }
+})();
+
 </script>
 </body>
 </html>
