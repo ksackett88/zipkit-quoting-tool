@@ -447,8 +447,16 @@ var PAYMENT_INFO = {
   },
   mvp: {
     payable: 'Mountain Valley Prefab',
-    mailing: ['3791 East 49th North', 'Idaho Falls, ID 83401'],
-    wire: null  // add MVP wire details here when available
+    mailing: ['P.O. Box 517', 'Ucon, ID 83454'],
+    wire: {
+      accountName: 'Mountain Valley Prefab',
+      accountNumber: '501019238082',
+      routingNumber: '324079555',
+      bank: 'Mountain America Credit Union',
+      bankBranch: null,
+      bankAddress: [],
+      businessAddress: ['3791 East 49th North', 'Idaho Falls, ID 83401']
+    }
   }
 };
 
@@ -533,7 +541,7 @@ function generateInvoice(){
         +'<tr><td style="color:#888; padding:2px 8px 2px 0; vertical-align:top; white-space:nowrap;">Account name</td><td style="padding:2px 0; vertical-align:top;">'+pay.wire.accountName+'</td></tr>'
         +'<tr><td style="color:#888; padding:2px 8px 2px 0; vertical-align:top; white-space:nowrap;">Account #</td><td style="padding:2px 0; vertical-align:top;">'+pay.wire.accountNumber+'</td></tr>'
         +'<tr><td style="color:#888; padding:2px 8px 2px 0; vertical-align:top; white-space:nowrap;">Routing #</td><td style="padding:2px 0; vertical-align:top;">'+pay.wire.routingNumber+'</td></tr>'
-        +'<tr><td style="color:#888; padding:2px 8px 2px 0; vertical-align:top; white-space:nowrap;">Bank</td><td style="padding:2px 0; vertical-align:top;">'+pay.wire.bank+(pay.wire.bankBranch?'<br>'+pay.wire.bankBranch:'')+'<br>'+pay.wire.bankAddress.join('<br>')+'</td></tr>'
+        +'<tr><td style="color:#888; padding:2px 8px 2px 0; vertical-align:top; white-space:nowrap;">Bank</td><td style="padding:2px 0; vertical-align:top;">'+pay.wire.bank+(pay.wire.bankBranch?'<br>'+pay.wire.bankBranch:'')+(pay.wire.bankAddress && pay.wire.bankAddress.length?'<br>'+pay.wire.bankAddress.join('<br>'):'')+'</td></tr>'
         +(pay.wire.businessAddress?'<tr><td style="color:#888; padding:2px 8px 2px 0; vertical-align:top; white-space:nowrap;">Business addr</td><td style="padding:2px 0; vertical-align:top;">'+pay.wire.businessAddress.join('<br>')+'</td></tr>':'')
         +'</table>'
       : '<div style="color:#5f5e5a;">Contact '+co.email+' for wire details.</div>')
