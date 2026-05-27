@@ -61,6 +61,13 @@
   .checkrow input { width: 17px; height: 17px; margin-top: 2px; accent-color: var(--accent); flex-shrink: 0; }
   .flag { background: var(--flag-bg); color: var(--flag-ink); border-radius: 8px; padding: 10px 13px; margin-bottom: 16px; font-size: 12px; line-height: 1.5; }
   .disclaimer { background: var(--surface-2); border-radius: 8px; padding: 14px 16px; margin-top: 4px; font-size: 12px; color: var(--muted); }
+  .lineitem { display: grid; grid-template-columns: 1fr 130px 32px; gap: 8px; align-items: center; margin-bottom: 8px; }
+  .lineitem input { margin-bottom: 0; }
+  .btn-sm { height: 32px; padding: 0 12px; font-size: 12px; border: 1px solid var(--line-strong); background: #fff; border-radius: 8px; cursor: pointer; font-family: inherit; color: var(--ink); }
+  .btn-sm:hover { background: var(--surface-2); }
+  .remove { height: 32px; border: 1px solid var(--line-strong); background: #fff; border-radius: 8px; cursor: pointer; color: var(--accent-dark); font-size: 16px; line-height: 1; font-family: inherit; }
+  .remove:hover { background: var(--surface-2); }
+  .custom-help { font-size: 12px; color: var(--hint); margin: 6px 0 14px; line-height: 1.5; }
   table { width: 100%; border-collapse: collapse; font-size: 13px; }
   td { padding: 6px 0; vertical-align: top; }
   td.label { color: var(--muted); }
@@ -141,6 +148,11 @@
           <span class="slider-out" id="s-disc-out">0%</span>
         </div>
 
+        <label>Add-ons &amp; extras</label>
+        <div id="s-custom"></div>
+        <button type="button" class="btn-sm" onclick="addCustomItem('s')">+ Add line item</button>
+        <p class="custom-help">For anything not in the standard kit — garage, patio, deck, extra room, basement, premium upgrades, etc. Each line flows into the total, proposal, contract, and payment schedule. Use a negative amount for a credit.</p>
+
         <div class="disclaimer">
           Heads up: the $2,500 design fee and engineering are quoted per project. The shell kit does not include foundation, mechanical/electrical/plumbing, or interior finishing — make sure the customer knows that. Prices can change, so confirm before you commit anything in writing.
         </div>
@@ -194,6 +206,11 @@
           <span class="slider-out" id="m-disc-out">0%</span>
         </div>
 
+        <label>Add-ons &amp; extras</label>
+        <div id="m-custom"></div>
+        <button type="button" class="btn-sm" onclick="addCustomItem('m')">+ Add line item</button>
+        <p class="custom-help">For project extras or credits — site survey, premium appliances, no-fireplace credit, etc. Use a negative amount for a credit (e.g. -1400). Each line flows into the total, proposal, contract, and payment schedule.</p>
+
         <div class="disclaimer" id="m-disclaimer"></div>
       </div>
 
@@ -233,6 +250,11 @@
         <label for="g-miles">Shipping distance from Cedar City, UT (miles)</label>
         <input type="number" id="g-miles" min="0" max="2000" step="10" value="0">
         <p class="note" id="g-ship-note">Enter the miles to the job site. The rate depends on standalone vs. bundled above.</p>
+
+        <label>Add-ons &amp; extras</label>
+        <div id="g-custom"></div>
+        <button type="button" class="btn-sm" onclick="addCustomItem('g')">+ Add line item</button>
+        <p class="custom-help">For garage doors, windows, snow-load engineering, or any extras. Each line flows into the total, proposal, and payment schedule. Use a negative amount for a credit.</p>
 
         <div class="flag">A few things to tell the customer: snow load can add engineering and material cost (not figured here), and windows and doors aren't included in the garage shell price. Sales tax is added at invoice.</div>
       </div>
@@ -349,7 +371,7 @@
     </div>
   </div>
 
-  <footer>ZipKit Homes &amp; Mountain Valley Prefab · Sales Team Tool · 2026 · When a shipping range shows, this quote uses the high end to be safe — always confirm the real rate with the office before you send a quote.<br><span style="opacity:0.7;">Version 2.8 · updated May 26, 2026 · Custom Home mode added · $3,500 design retainer · project-specific scope</span></footer>
+  <footer>ZipKit Homes &amp; Mountain Valley Prefab · Sales Team Tool · 2026 · When a shipping range shows, this quote uses the high end to be safe — always confirm the real rate with the office before you send a quote.<br><span style="opacity:0.7;">Version 2.9 · updated May 26, 2026 · Custom line items / add-ons on every standard mode (garages, decks, premium upgrades, credits)</span></footer>
 </div>
 
 <div id="invoice-print" style="display:none;"></div>
@@ -888,7 +910,37 @@ function setBrand(which){
 function resetShell(){
   document.getElementById('s-units').value=1; document.getElementById('s-snow').value=0;
   document.getElementById('s-win').value=-1; document.getElementById('s-miles').value=0;
-  document.getElementById('s-disc').value=0; calcShell();
+  document.getElementById('s-disc').value=0;
+  document.getElementById('s-custom').innerHTML='';
+  calcShell();
+}
+
+/* ---------- CUSTOM LINE ITEMS (shared across shell/modular/garage) ---------- */
+function addCustomItem(prefix){
+  var container = document.getElementById(prefix+'-custom');
+  if(!container) return;
+  var div = document.createElement('div');
+  div.className = 'lineitem';
+  div.innerHTML = '<input type="text" placeholder="Description (e.g. Detached garage, Wraparound deck)" data-cust="desc">'
+    +'<input type="number" placeholder="0" data-cust="amt" step="1">'
+    +'<button type="button" class="remove" title="Remove">×</button>';
+  container.appendChild(div);
+  var fn = prefix==='s' ? calcShell : (prefix==='m' ? calcModular : calcGarage);
+  div.querySelectorAll('input').forEach(function(i){ i.addEventListener('input', fn); });
+  div.querySelector('.remove').addEventListener('click', function(){ div.remove(); fn(); });
+  fn();
+}
+
+function getCustomItems(prefix){
+  var items = [];
+  var container = document.getElementById(prefix+'-custom');
+  if(!container) return items;
+  container.querySelectorAll('.lineitem').forEach(function(row){
+    var desc = (row.querySelector('[data-cust="desc"]').value || '').trim();
+    var amt = parseFloat(row.querySelector('[data-cust="amt"]').value) || 0;
+    if(desc || amt) items.push({desc: desc || 'Custom item', amt: amt});
+  });
+  return items;
 }
 function calcShell(){
   var m = SHELL[+document.getElementById('s-model').value];
@@ -926,14 +978,20 @@ function calcShell(){
   else rows+=rowRate('Windows & doors', 'not included', {sub:'select a package — doors come with it'});
   if(shipPer>0) rows+=row('Shipping', shipPer*units, {sub:units>1?fmt(shipPer)+' × '+units:'from Cedar City, UT'});
   else rows+=rowRate('Shipping', '$'+rate+'/mi', {sub:'from Cedar City, UT · enter distance'});
+
+  // Custom line items (add-ons / extras)
+  var customs = getCustomItems('s');
+  var customTotal = customs.reduce(function(a,c){return a+c.amt;}, 0);
+  customs.forEach(function(c){ rows += row(c.desc, c.amt, {sub:'add-on'}); });
+
   document.getElementById('s-lines').innerHTML=rows;
 
-  var total = (shell-discPer)*units + SHELL_DESIGN + eng + snow*units + win*units + shipPer*units;
+  var total = (shell-discPer)*units + SHELL_DESIGN + eng + snow*units + win*units + shipPer*units + customTotal;
   document.getElementById('s-total').textContent=fmt(total);
   document.getElementById('s-per-unit').textContent = units>1?fmt(total/units)+' per unit':'';
 
-  // contract = everything except design & engineering (incl. shipping), after discount
-  var contract = (shell-discPer)*units + snow*units + win*units + shipPer*units;
+  // contract = everything except design & engineering (incl. shipping + customs), after discount
+  var contract = (shell-discPer)*units + snow*units + win*units + shipPer*units + customTotal;
   QUOTE = {
     kind: 'Shell Kit', model: m[0], units: units,
     design: SHELL_DESIGN, engineering: eng, contract: contract, total: total,
@@ -1022,9 +1080,15 @@ function calcModular(){
   if(snow>0) rows+=rowM('Snow load upgrade', snow*units, {sub:units>1?fmt(snow)+' × '+units:'per unit'});
   if(shipPer>0) rows+=rowM('Shipping', shipPer*units, {sub:units>1?fmt(shipPer)+' × '+units:'high end of range'});
   else rows+=rowRate('Shipping', '$'+m[6]+'–$'+shipHigh+'/mi', {sub:'enter distance · uses high end'});
+
+  // Custom line items (add-ons / extras / credits)
+  var customs = getCustomItems('m');
+  var customTotal = customs.reduce(function(a,c){return a+c.amt;}, 0);
+  customs.forEach(function(c){ rows += rowM(c.desc, c.amt, {sub: c.amt<0 ? 'credit' : 'add-on'}); });
+
   document.getElementById('m-lines').innerHTML=rows;
 
-  var total=(base-discPer)*units + winCost*units + addonTotal*units + snow*units + shipPer*units;
+  var total=(base-discPer)*units + winCost*units + addonTotal*units + snow*units + shipPer*units + customTotal;
   document.getElementById('m-total').textContent=fmt(total);
   var label = m[13]==='per-module' ? ' per module' : ' per unit';
   document.getElementById('m-per-unit').textContent = units>1?fmt(total/units)+label:'';
@@ -1046,7 +1110,9 @@ function calcModular(){
 })();
 function resetGarage(){
   document.getElementById('g-units').value=1; document.getElementById('g-design').value=1125;
-  document.getElementById('g-miles').value=0; calcGarage();
+  document.getElementById('g-miles').value=0;
+  document.getElementById('g-custom').innerHTML='';
+  calcGarage();
 }
 function calcGarage(){
   var g=GARAGES[+document.getElementById('g-model').value];
@@ -1071,15 +1137,21 @@ function calcGarage(){
   rows+=rowG('Design & engineering', design, {sub:design===562?'bundled with a home':'standalone'});
   if(shipPer>0) rows+=rowG('Shipping', shipPer*units, {sub:units>1?fmt(shipPer)+' × '+units:rateDesc});
   else rows+=rowRate('Shipping', '$'+grate+'/mi', {sub:bundled?'bundled with a home':'standalone · enter distance'});
+
+  // Custom line items (add-ons / extras)
+  var customs = getCustomItems('g');
+  var customTotal = customs.reduce(function(a,c){return a+c.amt;}, 0);
+  customs.forEach(function(c){ rows += rowG(c.desc, c.amt, {sub: c.amt<0 ? 'credit' : 'add-on'}); });
+
   document.getElementById('g-lines').innerHTML=rows;
 
-  var total=g[2]*units + design + shipPer*units;
+  var total=g[2]*units + design + shipPer*units + customTotal;
   document.getElementById('g-total').textContent=fmt(total);
   document.getElementById('g-per-unit').textContent=units>1?fmt(total/units)+' per unit':'';
 
   QUOTE = {
     kind: 'Garage', model: g[0]+' garage', units: units,
-    design: design, engineering: 0, contract: g[2]*units + shipPer*units, total: total,
+    design: design, engineering: 0, contract: g[2]*units + shipPer*units + customTotal, total: total,
     company: 'zipkit'
   };
   renderInvoiceStages();
