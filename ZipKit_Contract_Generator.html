@@ -70,6 +70,7 @@
   <div class="tabs">
     <button class="tab active" data-mode="shell" onclick="setContractMode('shell')">Shell Kit Contract</button>
     <button class="tab" data-mode="modular" onclick="setContractMode('modular')">Modular Contract</button>
+    <button class="tab" data-mode="custom" onclick="setContractMode('custom')">Custom Home</button>
   </div>
 
   <div class="grid">
@@ -164,6 +165,49 @@
         <button class="btn sm" onclick="addModularSpec()">+ Add specification</button>
       </div>
       </div>
+
+      <div id="custom-mode" class="mode">
+      <div class="card">
+        <h2>Custom home pricing</h2>
+        <p class="note" style="margin-top:0;">Free-form pricing — sales rep enters the negotiated build cost and engineering. Uses the panelized shell kit purchase agreement as the legal body.</p>
+        <label for="cu-name">Project / model name</label>
+        <input type="text" id="cu-name" placeholder="e.g. Smith Custom Lakeside">
+
+        <label for="cu-sqft">Square footage (display only)</label>
+        <input type="number" id="cu-sqft" min="0" step="1" placeholder="e.g. 2400">
+
+        <label for="cu-build">Build cost ($)</label>
+        <input type="number" id="cu-build" min="0" step="100" placeholder="e.g. 425000">
+        <p class="note">Negotiated construction price (kit + labor + everything except design/engineering/shipping).</p>
+
+        <label for="cu-eng">Engineering ($)</label>
+        <input type="number" id="cu-eng" min="0" step="100" placeholder="varies — get a number from engineering">
+
+        <label for="cu-miles">Shipping distance (miles)</label>
+        <input type="number" id="cu-miles" min="0" step="10" value="0">
+
+        <label for="cu-rate">Shipping rate ($/mile)</label>
+        <input type="number" id="cu-rate" min="0" step="1" value="18">
+        <p class="note" id="cu-ship-note">Default $18/mi. Adjust if needed.</p>
+
+        <label for="cu-photo">Cover photo</label>
+        <select id="cu-photo"><option value="">— No photo (brand gradient) —</option></select>
+        <p class="note">Pick any existing model photo to use as the contract cover image, or leave blank for the orange/red brand gradient.</p>
+
+        <label style="margin-top:8px;">Custom line items</label>
+        <div id="cu-custom"></div>
+        <button class="btn sm" onclick="addCuCustom()">+ Add custom line</button>
+      </div>
+
+      <div class="card">
+        <h2>Scope of work</h2>
+        <p class="note" style="margin-top:0;">Pre-set to the standard panelized shell kit contract. Adjust per-project, then add any custom items.</p>
+        <div id="cu-scope"></div>
+        <label style="margin-top:14px;">Custom scope items</label>
+        <div id="cu-scope-custom"></div>
+        <button class="btn sm" onclick="addCuScopeCustom()">+ Add scope item</button>
+      </div>
+      </div>
     </div>
 
     <div>
@@ -189,7 +233,7 @@
     </div>
   </div>
 
-  <footer>ZipKit Homes &amp; Mountain Valley Prefab · Contract Generator · Version 3.0 · 2026 · modular contract added (full 16-section legal body, MVP/ZK brand routing) · Always have a contract approved by Sven before it goes to a customer.</footer>
+  <footer>ZipKit Homes &amp; Mountain Valley Prefab · Contract Generator · Version 3.1 · 2026 · Custom Home tab added (uses panelized shell kit legal body + $3,500 design retainer + free-form pricing) · Always have a contract approved by Sven before it goes to a customer.</footer>
 </div>
 
 <script>
@@ -392,9 +436,11 @@ function calc(){
   var contract=eng+shell+snow+win+customTotal+ship;
   document.getElementById('c-total').textContent=fmt(contract);
 
-  // Restore the design retainer row (modular hides it)
+  // Restore the design retainer row (modular hides it; custom retitles to $3,500)
   var dRow=document.getElementById('c-design-row');
   if(dRow) dRow.style.display='';
+  var dVal=document.getElementById('c-design');
+  if(dVal) dVal.textContent='$2,500';
 
   // Payments: engineering first, then 45/45/10 of remainder
   var remainder=contract-eng;
@@ -1016,12 +1062,297 @@ function generateModularContract(){
   w.document.close();
 }
 
-// Wire up modular UI after page load
+/* =========================================================================
+   CUSTOM HOME CONTRACT MODE
+   Uses the panelized shell kit purchase agreement (LEGAL_HTML) but with
+   sales-rep-entered pricing instead of model lookup.
+   ========================================================================= */
+
+var CUSTOM_DESIGN = 3500;
+var CURRENT_CUSTOM = null;
+var cuCustomCount = 0;
+var cuScopeCustomCount = 0;
+
+function initCustomContract(){
+  // Populate the cover-photo dropdown with every model name we have
+  var sel = document.getElementById('cu-photo'); if(!sel) return;
+  var seen = {};
+  function addOpt(name){
+    if(!name || seen[name]) return; seen[name] = true;
+    var o = document.createElement('option'); o.value = name; o.textContent = name; sel.appendChild(o);
+  }
+  if(typeof SHELL !== 'undefined') SHELL.forEach(function(m){ addOpt(m[0]); });
+  if(typeof MODULAR !== 'undefined') MODULAR.forEach(function(m){ addOpt(m[0]); });
+  // Default to Cedar (a nice-looking standard) when first opened
+  if(seen['Cedar']) sel.value = 'Cedar';
+
+  ['cu-name','cu-sqft','cu-build','cu-eng','cu-miles','cu-rate','cu-photo'].forEach(function(id){
+    var el = document.getElementById(id);
+    el.addEventListener('input', calcCustom);
+    el.addEventListener('change', calcCustom);
+  });
+
+  buildCuScopeUI();
+}
+
+function buildCuScopeUI(){
+  var box = document.getElementById('cu-scope'); if(!box) return;
+  var h = '';
+  SCOPE_STD.forEach(function(s,i){
+    h += '<div class="scoperow">'
+      +'<span class="scopelabel">'+s.t+'</span>'
+      +'<select class="scopeselc" data-cuscope="'+i+'">'
+      +'<option value="inc"'+(s.inc?' selected':'')+'>INCLUDED</option>'
+      +'<option value="not"'+(!s.inc?' selected':'')+'>NOT INCLUDED</option>'
+      +'</select></div>';
+  });
+  box.innerHTML = h;
+}
+
+function addCuScopeCustom(){
+  var div = document.createElement('div');
+  div.className = 'scoperow';
+  div.innerHTML = '<input type="text" placeholder="Custom scope item" data-cusccust="t" style="margin-bottom:0;">'
+    +'<select class="scopeselc" data-cusccust="v"><option value="inc">INCLUDED</option><option value="not">NOT INCLUDED</option></select>'
+    +'<button class="remove" title="Remove">×</button>';
+  document.getElementById('cu-scope-custom').appendChild(div);
+  div.querySelector('.remove').addEventListener('click', function(){ div.remove(); });
+}
+
+function getCuScopeItems(){
+  var inc = [], not = [];
+  SCOPE_STD.forEach(function(s,i){
+    var sel = document.querySelector('.scopeselc[data-cuscope="'+i+'"]');
+    var v = sel ? sel.value : (s.inc?'inc':'not');
+    (v==='inc'?inc:not).push(s.t);
+  });
+  document.querySelectorAll('#cu-scope-custom .scoperow').forEach(function(row){
+    var t = row.querySelector('[data-cusccust="t"]').value.trim(); if(!t) return;
+    var v = row.querySelector('[data-cusccust="v"]').value;
+    (v==='inc'?inc:not).push(t);
+  });
+  return {included:inc, notIncluded:not};
+}
+
+function cuScopeTableHTML(){
+  var s = getCuScopeItems();
+  var rows = '<table style="width:100%;border-collapse:collapse;font-size:12px;">'
+    +'<tr><td style="padding:5px 8px;border:1px solid #ccc;background:#5f5e5a;color:#fff;font-weight:600;" colspan="2">Items Included in the Custom Home Package</td></tr>';
+  s.included.forEach(function(t){ rows+='<tr><td style="padding:4px 8px;border:1px solid #ccc;">'+t+'</td><td style="padding:4px 8px;border:1px solid #ccc;text-align:right;">INCLUDED</td></tr>'; });
+  rows+='<tr><td style="padding:5px 8px;border:1px solid #ccc;background:#5f5e5a;color:#fff;font-weight:600;" colspan="2">Items NOT Included</td></tr>';
+  s.notIncluded.forEach(function(t){ rows+='<tr><td style="padding:4px 8px;border:1px solid #ccc;">'+t+'</td><td style="padding:4px 8px;border:1px solid #ccc;text-align:right;">NOT INCLUDED</td></tr>'; });
+  rows+='</table>';
+  return rows;
+}
+
+function addCuCustom(){
+  var div = document.createElement('div');
+  div.className = 'lineitem';
+  div.innerHTML = '<input type="text" placeholder="Description" data-cucust="desc">'
+    +'<input type="number" placeholder="0" data-cucust="amt" step="1">'
+    +'<button class="remove" title="Remove">×</button>';
+  document.getElementById('cu-custom').appendChild(div);
+  div.querySelectorAll('input').forEach(function(i){ i.addEventListener('input', calcCustom); });
+  div.querySelector('.remove').addEventListener('click', function(){ div.remove(); calcCustom(); });
+  calcCustom();
+}
+
+function getCuCustoms(){
+  var items = [];
+  document.querySelectorAll('#cu-custom .lineitem').forEach(function(row){
+    var desc = (row.querySelector('[data-cucust="desc"]').value || '').trim();
+    var amt = parseFloat(row.querySelector('[data-cucust="amt"]').value) || 0;
+    if(desc || amt) items.push({desc: desc||'Custom item', amt: amt});
+  });
+  return items;
+}
+
+function calcCustom(){
+  var name = (document.getElementById('cu-name').value || 'Custom Home').trim();
+  var sqft = parseFloat(document.getElementById('cu-sqft').value) || 0;
+  var build = Math.max(0, parseFloat(document.getElementById('cu-build').value) || 0);
+  var eng = Math.max(0, parseFloat(document.getElementById('cu-eng').value) || 0);
+  var miles = Math.max(0, parseFloat(document.getElementById('cu-miles').value) || 0);
+  var rate = Math.max(0, parseFloat(document.getElementById('cu-rate').value) || 0);
+  var ship = miles * rate;
+  var photo = document.getElementById('cu-photo').value || '';
+
+  document.getElementById('cu-ship-note').textContent = miles>0
+    ? miles.toLocaleString()+' mi × $'+rate+'/mi = '+fmt(ship)
+    : 'Enter distance × rate.';
+
+  var customs = getCuCustoms();
+  var customTotal = customs.reduce(function(a,c){return a+c.amt;}, 0);
+
+  var rows = '';
+  function row(l,a,sub){var s=sub?'<div class="sub">'+sub+'</div>':''; return '<tr><td class="label">'+l+s+'</td><td class="amt">'+fmt(a)+'</td></tr>';}
+  rows += row('Engineering', eng, 'payment 1 of contract');
+  rows += row('Custom build', build, (sqft>0 ? sqft.toLocaleString()+' sqft livable' : 'negotiated build cost'));
+  customs.forEach(function(c){ rows += row(c.desc, c.amt, c.amt<0?'credit':'add-on'); });
+  if(ship>0) rows += row('Shipping', ship, miles+' mi @ $'+rate+'/mi');
+  document.getElementById('c-lines').innerHTML = rows;
+
+  // Show & set the design retainer for custom homes ($3,500)
+  var dRow = document.getElementById('c-design-row');
+  if(dRow) dRow.style.display = '';
+  var dVal = document.getElementById('c-design');
+  if(dVal) dVal.textContent = fmt(CUSTOM_DESIGN);
+
+  var contract = eng + build + customTotal + ship;
+  document.getElementById('c-total').textContent = fmt(contract);
+
+  // Payments: engineering first, then 45/45/10 of remainder
+  var remainder = contract - eng;
+  var p2 = Math.round(remainder*0.45), p3 = Math.round(remainder*0.45);
+  var p4 = remainder - p2 - p3;
+  var prows = '';
+  function prow(l,a,sub){var s=sub?'<div class="sub">'+sub+'</div>':''; return '<tr><td class="label">'+l+s+'</td><td class="amt">'+fmt(a)+'</td></tr>';}
+  prows += prow('Engineering', eng, 'payment 1 · due at contract signing');
+  prows += prow('Materials (45%)', p2, '45% of remainder · due after engineering');
+  prows += prow('Pre-ship (45%)', p3, '45% of remainder · due before shipment');
+  prows += prow('Final set (10%)', p4, '10% of remainder · due on set');
+  document.getElementById('c-payments').innerHTML = prows;
+
+  CURRENT_CUSTOM = {name:name, sqft:sqft, build:build, eng:eng, miles:miles, rate:rate, ship:ship, photo:photo, customs:customs, contract:contract, p1:eng, p2:p2, p3:p3, p4:p4};
+}
+
+function generateCustomContract(){
+  if(!CURRENT_CUSTOM){ alert('Configure the custom home contract first.'); return; }
+  var g = function(id){return document.getElementById(id).value.trim();};
+  var c = CURRENT_CUSTOM;
+
+  var buyer = g('c-buyer')||'__________';
+  var project = g('c-project')||(c.name+' project');
+  var phone = g('c-phone')||'__________';
+  var email = g('c-email')||'__________';
+  var buyerAddr = g('c-buyer-addr')||'__________';
+  var siteAddr = g('c-site-addr')||'__________';
+  var city = g('c-city')||'__________';
+  var date = g('c-date')||new Date().toLocaleDateString('en-US');
+  var salesman = g('c-salesman')||'__________';
+
+  // Custom homes always go through ZipKit (panelized shell kit purchase agreement)
+  var sumRows = '';
+  function sr(l,a,comment){return '<tr><td style="padding:5px 8px;border:1px solid #ccc;">'+l+'</td><td style="padding:5px 8px;border:1px solid #ccc;text-align:right;white-space:nowrap;">'+fmt(a)+'</td><td style="padding:5px 8px;border:1px solid #ccc;font-size:11px;color:#555;">'+(comment||'')+'</td></tr>';}
+  sumRows += sr('Engineered plans', c.eng, 'payment 1 of contract');
+  sumRows += sr('Custom build', c.build, c.sqft>0 ? c.sqft.toLocaleString()+' sqft livable' : 'negotiated build cost');
+  c.customs.forEach(function(x){ sumRows += sr(x.desc, x.amt, ''); });
+  if(c.ship>0) sumRows += sr('Shipping', c.ship, c.miles+' miles at $'+c.rate+'/mile');
+
+  var photoUrls = c.photo ? modelPhotoUrls(c.photo) : [];
+
+  var html = ''
+  // Photo title page
+  +'<div style="max-width:780px;margin:0 auto;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#1c1c1a;padding:32px;">'
+  +'<div style="page-break-after:always;">'
+  +'<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px;">'
+  +'<img src="'+ZIPKIT_LOGO+'" alt="Zip Kit Homes" style="height:56px;">'
+  +'<div style="text-align:right; font-size:11px; color:#888; text-transform:uppercase; letter-spacing:0.08em;">Custom Home Contract · '+date+'</div>'
+  +'</div>'
+  +'<div id="zk-custom-cover-box" style="width:100%; height:440px; background:linear-gradient(135deg,#d85a30,#993c1d); background-size:cover; background-position:center center; background-repeat:no-repeat; border-radius:8px; overflow:hidden; display:flex; flex-direction:column; justify-content:flex-end;">'
+  +'<div style="background:linear-gradient(to top, rgba(0,0,0,0.82), rgba(0,0,0,0.15) 60%, rgba(0,0,0,0)); padding:90px 32px 28px; color:#fff;">'
+  +'<div style="font-size:13px; text-transform:uppercase; letter-spacing:0.12em; opacity:0.9; margin-bottom:8px;">Custom home contract prepared for</div>'
+  +'<div style="font-size:30px; font-weight:700; line-height:1.15;">'+buyer+'</div>'
+  +(city && city!=='__________' ? '<div style="font-size:15px; margin-top:4px; opacity:0.95;">'+city+'</div>' : '')
+  +'<div style="font-size:14px; margin-top:8px; opacity:0.92;">'+c.name+' · '+(c.sqft>0?c.sqft.toLocaleString()+' sqft · ':'')+date+'</div>'
+  +'</div>'
+  +'</div>'
+  +(photoUrls.length ? '<script>(function(){var urls='+JSON.stringify(photoUrls)+';var box=document.getElementById("zk-custom-cover-box");function tryUrl(idx){if(idx>=urls.length)return;var t=new Image();t.onload=function(){box.style.backgroundImage="url(\\""+urls[idx]+"\\")";};t.onerror=function(){tryUrl(idx+1);};t.src=urls[idx];}tryUrl(0);})();<\/script>' : '')
+  +'<div style="margin-top:240px; background:#f5f3ec; border-radius:8px; padding:18px 22px; font-size:13px; color:#5f5e5a; line-height:1.6;">'
+  +'<b>Panelized Shell Kit Purchase Agreement (Custom Home).</b> Prepared by Zip Kit Homes, LLC · Cedar City, Utah. This is a legally binding agreement — please review the full document carefully before signing.'
+  +'</div>'
+  +'</div>'
+
+  // Cover/summary page
+  +'<div style="text-align:center;border-bottom:2px solid #1c1c1a;padding-bottom:18px;">'
+  +'<img src="'+ZIPKIT_LOGO+'" alt="Zip Kit Homes" style="height:56px;">'
+  +'<div style="font-size:22px;font-weight:700;margin-top:10px;">Custom Home Contract</div>'
+  +'<div style="font-size:13px;color:#555;margin-top:6px;">Prepared by Zip Kit Homes · Cedar City, Utah · Uses Panelized Shell Kit Purchase Agreement</div>'
+  +'</div>'
+  +'<div style="display:flex;justify-content:space-between;margin-top:20px;font-size:13px;">'
+  +'<div><div style="color:#888;text-transform:uppercase;font-size:11px;">Buyer</div><div style="font-weight:500;font-size:15px;">'+buyer+'</div><div style="color:#555;">'+city+'</div><div style="color:#555;">'+c.name+' · '+date+'</div></div>'
+  +'<div style="text-align:right;"><div style="color:#888;text-transform:uppercase;font-size:11px;">Seller</div><div style="font-weight:500;">Zip Kit Homes, LLC</div><div style="color:#555;">3665 W 2700 S, Cedar City UT 84720</div></div>'
+  +'</div>'
+  +'<table style="width:100%;border-collapse:collapse;margin-top:24px;font-size:12px;">'
+  +'<tr><td style="padding:5px 8px;border:1px solid #ccc;background:#f5f3ec;font-weight:600;" colspan="2">Buyer Information</td><td style="padding:5px 8px;border:1px solid #ccc;background:#f5f3ec;font-weight:600;" colspan="2">Seller Information</td></tr>'
+  +'<tr><td style="padding:5px 8px;border:1px solid #ccc;">Customer</td><td style="padding:5px 8px;border:1px solid #ccc;">'+buyer+'</td><td style="padding:5px 8px;border:1px solid #ccc;">Salesman</td><td style="padding:5px 8px;border:1px solid #ccc;">'+salesman+'</td></tr>'
+  +'<tr><td style="padding:5px 8px;border:1px solid #ccc;">Project</td><td style="padding:5px 8px;border:1px solid #ccc;">'+project+'</td><td style="padding:5px 8px;border:1px solid #ccc;">General Manager</td><td style="padding:5px 8px;border:1px solid #ccc;">Sven Heistad</td></tr>'
+  +'<tr><td style="padding:5px 8px;border:1px solid #ccc;">Contract Date</td><td style="padding:5px 8px;border:1px solid #ccc;">'+date+'</td><td style="padding:5px 8px;border:1px solid #ccc;">Phone</td><td style="padding:5px 8px;border:1px solid #ccc;">435-340-1171</td></tr>'
+  +'<tr><td style="padding:5px 8px;border:1px solid #ccc;">Ship to Address</td><td style="padding:5px 8px;border:1px solid #ccc;">'+siteAddr+'</td><td style="padding:5px 8px;border:1px solid #ccc;">Email</td><td style="padding:5px 8px;border:1px solid #ccc;">sales@ZipKitHomes.com</td></tr>'
+  +'<tr><td style="padding:5px 8px;border:1px solid #ccc;">House Sq ft</td><td style="padding:5px 8px;border:1px solid #ccc;">'+(c.sqft>0?c.sqft.toLocaleString()+' livable':'—')+'</td><td style="padding:5px 8px;border:1px solid #ccc;">Floor Plan</td><td style="padding:5px 8px;border:1px solid #ccc;">'+c.name+' (custom)</td></tr>'
+  +'<tr><td style="padding:5px 8px;border:1px solid #ccc;">Phone</td><td style="padding:5px 8px;border:1px solid #ccc;">'+phone+'</td><td style="padding:5px 8px;border:1px solid #ccc;"></td><td style="padding:5px 8px;border:1px solid #ccc;"></td></tr>'
+  +'</table>'
+  +'<div style="font-size:11px;font-style:italic;color:#555;margin-top:6px;">Pricing is valid for a period of nine (9) months from the contract date.</div>'
+  // Design retainer
+  +'<table style="width:100%;border-collapse:collapse;margin-top:18px;font-size:12px;">'
+  +'<tr><td style="padding:5px 8px;border:1px solid #ccc;background:#5f5e5a;color:#fff;font-weight:600;" colspan="3">DESIGN RETAINER (separate from contract)</td></tr>'
+  +'<tr><td style="padding:5px 8px;border:1px solid #ccc;">Architectural design retainer</td><td style="padding:5px 8px;border:1px solid #ccc;text-align:right;">'+fmt(CUSTOM_DESIGN)+'</td><td style="padding:5px 8px;border:1px solid #ccc;font-size:11px;color:#555;">paid up front · separate from contract</td></tr>'
+  +'</table>'
+  // Contract cost summary
+  +'<table style="width:100%;border-collapse:collapse;margin-top:14px;font-size:12px;">'
+  +'<tr><td style="padding:5px 8px;border:1px solid #ccc;background:#5f5e5a;color:#fff;font-weight:600;">CONTRACT COST SUMMARY</td><td style="padding:5px 8px;border:1px solid #ccc;background:#5f5e5a;color:#fff;font-weight:600;text-align:right;">PRICE</td><td style="padding:5px 8px;border:1px solid #ccc;background:#5f5e5a;color:#fff;font-weight:600;">COMMENTS</td></tr>'
+  +sumRows
+  +'<tr><td style="padding:6px 8px;border:1px solid #ccc;font-weight:700;">Contract Total</td><td style="padding:6px 8px;border:1px solid #ccc;text-align:right;font-weight:700;">'+fmt(c.contract)+'</td><td style="padding:6px 8px;border:1px solid #ccc;"></td></tr>'
+  +'</table>'
+  // Payment schedule
+  +'<table style="width:100%;border-collapse:collapse;margin-top:14px;font-size:12px;">'
+  +'<tr><td style="padding:5px 8px;border:1px solid #ccc;background:#f5f3ec;font-weight:600;" colspan="3">Estimated Timing &amp; Payment Schedule</td></tr>'
+  +'<tr><td style="padding:5px 8px;border:1px solid #ccc;">Payment 1 — Engineering</td><td style="padding:5px 8px;border:1px solid #ccc;text-align:right;">'+fmt(c.p1)+'</td><td style="padding:5px 8px;border:1px solid #ccc;font-size:11px;color:#555;">due at contract signing</td></tr>'
+  +'<tr><td style="padding:5px 8px;border:1px solid #ccc;">Payment 2 — Materials (45%)</td><td style="padding:5px 8px;border:1px solid #ccc;text-align:right;">'+fmt(c.p2)+'</td><td style="padding:5px 8px;border:1px solid #ccc;font-size:11px;color:#555;">45% of remainder · due after engineering</td></tr>'
+  +'<tr><td style="padding:5px 8px;border:1px solid #ccc;">Payment 3 — Pre-ship (45%)</td><td style="padding:5px 8px;border:1px solid #ccc;text-align:right;">'+fmt(c.p3)+'</td><td style="padding:5px 8px;border:1px solid #ccc;font-size:11px;color:#555;">45% of remainder · due before shipment</td></tr>'
+  +'<tr><td style="padding:5px 8px;border:1px solid #ccc;">Final — Set (10%)</td><td style="padding:5px 8px;border:1px solid #ccc;text-align:right;">'+fmt(c.p4)+'</td><td style="padding:5px 8px;border:1px solid #ccc;font-size:11px;color:#555;">10% of remainder · due on set</td></tr>'
+  +'</table>'
+  +'<div style="font-size:11px;color:#555;margin-top:6px;font-style:italic;">Design retainer ('+fmt(CUSTOM_DESIGN)+') is separate and paid up front. Contract is billed engineering first, then 45% / 45% / 10% of the remainder. Sums to the contract total.</div>'
+  +'<div style="margin-top:36px;display:flex;justify-content:space-between;font-size:12px;">'
+  +'<div style="width:45%;">Seller: ______________________ Date: __________</div>'
+  +'<div style="width:45%;">Buyer: ______________________ Date: __________</div>'
+  +'</div>'
+  // Legal body (panelized shell kit purchase agreement)
+  +'<div style="page-break-before:always;margin-top:40px;">'
+  +LEGAL_HTML
+    .replace(/<table style="width:100%;border-collapse:collapse;font-size:12px;">[\s\S]*?<\/table>/, cuScopeTableHTML())
+    .replace(/\{\{BUYER\}\}/g, buyer)
+    .replace(/\{\{BUYER_ADDR\}\}/g, buyerAddr)
+    .replace(/\{\{BUYER_PHONE\}\}/g, phone)
+    .replace(/\{\{BUYER_EMAIL\}\}/g, email)
+    .replace(/\{\{SITE_ADDR\}\}/g, siteAddr)
+  +'</div>'
+  +'</div>';
+
+  var w = window.open('','_blank');
+  if(!w){ alert('Please allow pop-ups to generate the contract.'); return; }
+  w.document.write('<!DOCTYPE html><html><head><meta charset="utf-8"><title>Custom Home Contract — '+buyer+' — '+c.name+'</title></head><body style="margin:0;background:#fff;">'+html
+    +'<div style="text-align:center;padding:20px;" class="noprint"><button onclick="window.print()" style="padding:10px 24px;font-size:14px;background:#d85a30;color:#fff;border:none;border-radius:8px;cursor:pointer;">Print / Save as PDF</button></div>'
+    +'<style>@media print{.noprint{display:none;} body{-webkit-print-color-adjust:exact; print-color-adjust:exact;}}</style></body></html>');
+  w.document.close();
+}
+
+// Patch the dispatcher and mode switcher to know about 'custom'
+(function patchDispatchers(){
+  var origSet = setContractMode;
+  setContractMode = function(mode){
+    CONTRACT_MODE = mode;
+    document.querySelectorAll('.tab').forEach(function(t){ t.classList.toggle('active', t.dataset.mode===mode); });
+    document.querySelectorAll('.mode').forEach(function(m){ m.classList.toggle('active', m.id===mode+'-mode'); });
+    if(mode==='modular') calcModular();
+    else if(mode==='custom') calcCustom();
+    else calc();
+  };
+  var origDispatch = dispatchGenerate;
+  dispatchGenerate = function(){
+    if(CONTRACT_MODE==='modular') generateModularContract();
+    else if(CONTRACT_MODE==='custom') generateCustomContract();
+    else generateContract();
+  };
+})();
+
+// Wire up modular + custom UI after page load
 (function initModularDeferred(){
+  function go(){ initModularContract(); calcModular(); initCustomContract(); calcCustom(); }
   if(document.readyState==='loading'){
-    document.addEventListener('DOMContentLoaded', function(){ initModularContract(); calcModular(); });
+    document.addEventListener('DOMContentLoaded', go);
   } else {
-    initModularContract(); calcModular();
+    go();
   }
 })();
 
