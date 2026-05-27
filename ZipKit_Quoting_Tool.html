@@ -393,10 +393,10 @@ function invoiceStages(q){
     // Modular units: 30 / 30 / 30 / 10 of the total (design, engineering & windows already included)
     var p1=Math.round(q.total*0.30), p2=Math.round(q.total*0.30), p3=Math.round(q.total*0.30);
     var p4=q.total-p1-p2-p3; // final absorbs rounding
-    stages.push({key:'pay1', name:'Payment 1 (30%)', desc:'30% · design & engineering, secures production', amount:p1});
-    stages.push({key:'pay2', name:'Payment 2 (30%)', desc:'30% · materials & production', amount:p2});
-    stages.push({key:'pay3', name:'Payment 3 (30%)', desc:'30% · factory completion, before transport', amount:p3});
-    stages.push({key:'final', name:'Final Payment (10%)', desc:'10% · after set & completion on site', amount:p4});
+    stages.push({key:'pay1', name:'Payment 1 (30%)', desc:'Upon signing contract — deposit to order windows, doors, trusses and all long lead time items', amount:p1});
+    stages.push({key:'pay2', name:'Payment 2 (30%)', desc:'When framing is completed on all units', amount:p2});
+    stages.push({key:'pay3', name:'Payment 3 (30%)', desc:'When exterior siding is completed and interior painting is completed', amount:p3});
+    stages.push({key:'final', name:'Final Payment (10%)', desc:'Final payment (contract price, less all deposits and payments) — due when the modular unit is set and connected to the foundation', amount:p4});
     return stages;
   }
   // Shell kits & garages: design separate, engineering first, then 45/45/10 of the remainder

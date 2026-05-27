@@ -900,10 +900,10 @@ function calcModular(){
   var p4 = total - p1 - p2 - p3;
   var prows = '';
   function prow(l,a,sub){var s=sub?'<div class="sub">'+sub+'</div>':''; return '<tr><td class="label">'+l+s+'</td><td class="amt">'+fmt(a)+'</td></tr>';}
-  prows += prow('Payment 1 — Materials Procurement (30%)', p1, 'upon signing · engineering & long-lead orders');
-  prows += prow('Payment 2 — Framing Complete (30%)', p2, 'when framing complete on all units');
-  prows += prow('Payment 3 — Siding & Interior Paint (30%)', p3, 'when exterior siding & interior paint done');
-  prows += prow('Payment 4 — Final (10%)', p4, 'on-site when set & connected');
+  prows += prow('Payment 1 (30%)', p1, 'upon signing contract · deposit to order windows, doors, trusses & long lead time items');
+  prows += prow('Payment 2 (30%)', p2, 'when framing is completed on all units');
+  prows += prow('Payment 3 (30%)', p3, 'when exterior siding & interior painting are completed');
+  prows += prow('Final Payment (10%)', p4, 'when unit is set & connected to foundation');
   document.getElementById('c-payments').innerHTML = prows;
 
   CURRENT_MODULAR = {m:m, units:units, miles:miles, shipPer:shipPer, shipLow:shipLow, shipHigh:shipHigh, customs:customs, total:total, p1:p1, p2:p2, p3:p3, p4:p4};
@@ -1012,10 +1012,10 @@ function generateModularContract(){
     +'</table>'
     +'<table style="width:100%;border-collapse:collapse;margin-top:14px;font-size:12px;">'
     +'<tr><td style="padding:5px 8px;border:1px solid #ccc;background:#5f5e5a;color:#fff;font-weight:600;" colspan="3">ESTIMATED TIMING &amp; PAYMENT SCHEDULE</td></tr>'
-    +'<tr><td style="padding:5px 8px;border:1px solid #ccc;">Payment 1 — Materials Procurement (30%)</td><td style="padding:5px 8px;border:1px solid #ccc;text-align:right;">'+fmt(c.p1)+'</td><td style="padding:5px 8px;border:1px solid #ccc;font-size:11px;color:#555;">Upon signing — engineering, special orders, secure production slots</td></tr>'
-    +'<tr><td style="padding:5px 8px;border:1px solid #ccc;">Payment 2 — Framing Completion (30%)</td><td style="padding:5px 8px;border:1px solid #ccc;text-align:right;">'+fmt(c.p2)+'</td><td style="padding:5px 8px;border:1px solid #ccc;font-size:11px;color:#555;">When framing is complete on all units</td></tr>'
-    +'<tr><td style="padding:5px 8px;border:1px solid #ccc;">Payment 3 — Siding &amp; Interior Paint (30%)</td><td style="padding:5px 8px;border:1px solid #ccc;text-align:right;">'+fmt(c.p3)+'</td><td style="padding:5px 8px;border:1px solid #ccc;font-size:11px;color:#555;">When exterior siding and interior paint are complete</td></tr>'
-    +'<tr><td style="padding:5px 8px;border:1px solid #ccc;">Payment 4 — Final (10%)</td><td style="padding:5px 8px;border:1px solid #ccc;text-align:right;">'+fmt(c.p4)+'</td><td style="padding:5px 8px;border:1px solid #ccc;font-size:11px;color:#555;">On-site, on the day Seller\'s crew departs after Completion</td></tr>'
+    +'<tr><td style="padding:5px 8px;border:1px solid #ccc;">Payment 1 (30%)</td><td style="padding:5px 8px;border:1px solid #ccc;text-align:right;">'+fmt(c.p1)+'</td><td style="padding:5px 8px;border:1px solid #ccc;font-size:11px;color:#555;">Upon signing contract — deposit to order windows, doors, trusses and all long lead time items.</td></tr>'
+    +'<tr><td style="padding:5px 8px;border:1px solid #ccc;">Payment 2 (30%)</td><td style="padding:5px 8px;border:1px solid #ccc;text-align:right;">'+fmt(c.p2)+'</td><td style="padding:5px 8px;border:1px solid #ccc;font-size:11px;color:#555;">When framing is completed on all units.</td></tr>'
+    +'<tr><td style="padding:5px 8px;border:1px solid #ccc;">Payment 3 (30%)</td><td style="padding:5px 8px;border:1px solid #ccc;text-align:right;">'+fmt(c.p3)+'</td><td style="padding:5px 8px;border:1px solid #ccc;font-size:11px;color:#555;">When exterior siding is completed and interior painting is completed.</td></tr>'
+    +'<tr><td style="padding:5px 8px;border:1px solid #ccc;">Final Payment (10%)</td><td style="padding:5px 8px;border:1px solid #ccc;text-align:right;">'+fmt(c.p4)+'</td><td style="padding:5px 8px;border:1px solid #ccc;font-size:11px;color:#555;">Final payment (contract price, less all deposits and payments) — due when the modular unit is set and connected to the foundation.</td></tr>'
     +'</table>'
     +'<div style="margin-top:30px;display:flex;justify-content:space-between;font-size:12px;">'
     +'<div style="width:45%;"><div style="border-top:1px solid #1c1c1a;padding-top:4px;">Seller: Sven Heistad</div><div style="margin-top:18px;border-top:1px solid #1c1c1a;padding-top:4px;">Signature / Date</div></div>'
