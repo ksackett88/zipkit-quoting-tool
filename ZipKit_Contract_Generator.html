@@ -261,7 +261,8 @@ var MODEL_PHOTO_MAP = {
   'Apache':'apache4','Birch':'birch1','Bluebell':'bluebell2','Bozeman':'bozeman1',
   'Cedar':'cedar1','Clyde':'clyde1','Dakota':'dakota1','Meadow':'meadow.1',
   'Moab':'moab1','Sunstone':'sunstone1','Timberline':'timberline1','Willow':'willow3',
-  '1-Car':'1car-garage','2-Car':'2car-garage','3-Car':'3car-garage','4-Car':'4car-garage'
+  '1-Car':'1car-garage','2-Car':'2car-garage','3-Car':'3car-garage','4-Car':'4car-garage',
+  'Custom Home':'customhome'
 };
 
 function modelPhotoUrls(modelName){
@@ -1081,10 +1082,12 @@ function initCustomContract(){
     if(!name || seen[name]) return; seen[name] = true;
     var o = document.createElement('option'); o.value = name; o.textContent = name; sel.appendChild(o);
   }
+  // Generic "Custom Home" photo first (default)
+  addOpt('Custom Home');
   if(typeof SHELL !== 'undefined') SHELL.forEach(function(m){ addOpt(m[0]); });
   if(typeof MODULAR !== 'undefined') MODULAR.forEach(function(m){ addOpt(m[0]); });
-  // Default to Cedar (a nice-looking standard) when first opened
-  if(seen['Cedar']) sel.value = 'Cedar';
+  // Default to the generic Custom Home photo
+  sel.value = 'Custom Home';
 
   ['cu-name','cu-sqft','cu-build','cu-eng','cu-miles','cu-rate','cu-photo'].forEach(function(id){
     var el = document.getElementById(id);
