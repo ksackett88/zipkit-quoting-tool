@@ -186,6 +186,10 @@
         <label for="m-units">Number of units</label>
         <input type="number" id="m-units" min="1" max="50" step="1" value="1">
 
+        <label for="m-base-override">Negotiated unit price (override)</label>
+        <input type="number" id="m-base-override" min="0" step="100" placeholder="leave blank to use default">
+        <p class="note" id="m-base-override-note">Optional — fill in if the negotiated unit price differs from the default. Snow, windows, addons, shipping, and discounts all apply on top of this number.</p>
+
         <label for="m-snow">Snow load engineering</label>
         <select id="m-snow"></select>
 
@@ -371,7 +375,7 @@
     </div>
   </div>
 
-  <footer>ZipKit Homes &amp; Mountain Valley Prefab · Sales Team Tool · 2026 · When a shipping range shows, this quote uses the high end to be safe — always confirm the real rate with the office before you send a quote.<br><span style="opacity:0.7;">Version 2.9 · updated May 26, 2026 · Custom line items / add-ons on every standard mode (garages, decks, premium upgrades, credits)</span></footer>
+  <footer>ZipKit Homes &amp; Mountain Valley Prefab · Sales Team Tool · 2026 · When a shipping range shows, this quote uses the high end to be safe — always confirm the real rate with the office before you send a quote.<br><span style="opacity:0.7;">Version 3.0 · updated May 26, 2026 · Modular unit-price override for negotiated/custom-price projects · custom line items on every mode</span></footer>
 </div>
 
 <div id="invoice-print" style="display:none;"></div>
@@ -1012,7 +1016,7 @@ function calcShell(){
     sel.appendChild(og);
   });
   sel.addEventListener('change', function(){ buildModularControls(); calcModular(); });
-  ['m-units','m-miles','m-disc'].forEach(function(id){ var el=document.getElementById(id); el.addEventListener('input',calcModular); el.addEventListener('change',calcModular); });
+  ['m-units','m-base-override','m-miles','m-disc'].forEach(function(id){ var el=document.getElementById(id); el.addEventListener('input',calcModular); el.addEventListener('change',calcModular); });
   buildModularControls(); calcModular();
 })();
 function updateModularBrand(){ var m=MODULAR[+document.getElementById('m-model').value]; setBrand(m[1]==='Mountain Valley Prefab'?'mvp':'zipkit'); }
@@ -1049,6 +1053,8 @@ function buildModularControls(){
 function resetModular(){
   document.getElementById('m-units').value=1; document.getElementById('m-snow').value=0;
   document.getElementById('m-miles').value=0; document.getElementById('m-disc').value=0;
+  document.getElementById('m-base-override').value='';
+  document.getElementById('m-custom').innerHTML='';
   var w=document.getElementById('m-win'); if(w.options.length) w.value=-1;
   document.querySelectorAll('#m-addons input').forEach(function(c){c.checked=false;});
   calcModular();
@@ -1061,7 +1067,15 @@ function calcModular(){
   var disc=parseInt(document.getElementById('m-disc').value)||0;
   document.getElementById('m-disc-out').textContent=disc+'%';
 
-  var base=m[3], snow1=m[4], snow2=m[5], shipHigh=m[7];
+  var defaultBase=m[3], snow1=m[4], snow2=m[5], shipHigh=m[7];
+  var overrideRaw = (document.getElementById('m-base-override').value || '').trim();
+  var overrideBase = overrideRaw ? Math.max(0, parseFloat(overrideRaw) || 0) : 0;
+  var base = overrideBase > 0 ? overrideBase : defaultBase;
+  var isOverride = overrideBase > 0 && overrideBase !== defaultBase;
+  // Helper text reflects whether override is active
+  document.getElementById('m-base-override-note').textContent = isOverride
+    ? 'Override active: using '+fmt(overrideBase)+'/unit instead of the default '+fmt(defaultBase)+'. Clear to revert.'
+    : 'Optional — fill in if the negotiated unit price differs from the default '+fmt(defaultBase)+'. Snow, windows, addons, shipping, and discounts all apply on top.';
   var snow = snowSel===1?snow1 : snowSel===2?snow2 : 0;
   var winSel=+(document.getElementById('m-win').value||-1);
   var winCost = (winSel>=0 && m[12][winSel]) ? m[12][winSel][1] : 0;
@@ -1074,7 +1088,10 @@ function calcModular(){
   function rowM(l,a,o){o=o||{};var s=o.sub?'<div class="sub">'+o.sub+'</div>':'';var c=o.d?' class="discount"':'';var sg=o.d?'−':'';return '<tr><td class="label">'+l+s+'</td><td class="amt"'+c+'>'+sg+fmt(a)+'</td></tr>';}
   window.rowM=rowM;
   var rows='';
-  rows+=rowM('Completed modular unit', base*units, {sub:units>1?fmt(base)+' × '+units+(m[13]==='per-module'?' modules':' units'):(m[13]==='per-module'?'per module':'move-in ready')});
+  var unitSub = isOverride
+    ? (units>1 ? fmt(base)+' × '+units+(m[13]==='per-module'?' modules · negotiated':' units · negotiated') : 'negotiated price'+(m[13]==='per-module'?' per module':' per unit'))
+    : (units>1 ? fmt(base)+' × '+units+(m[13]==='per-module'?' modules':' units') : (m[13]==='per-module'?'per module':'move-in ready'));
+  rows+=rowM('Completed modular unit', base*units, {sub: unitSub});
   if(disc>0) rows+=rowM('Multi-unit discount', discPer*units, {d:true, sub:disc+'% off base'});
   if(winCost>0) rows+=rowM('Window upgrade', winCost*units, {sub:units>1?fmt(winCost)+' × '+units:m[12][winSel][0]});
   rows+=addonRows;
