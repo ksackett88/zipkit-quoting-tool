@@ -25,7 +25,7 @@
   .brand { font-size: 20px; font-weight: 600; letter-spacing: -0.01em; }
   .brand span { color: var(--accent); }
   .brand small { display:block; font-size: 12px; font-weight: 400; color: var(--hint); letter-spacing: 0.04em; text-transform: uppercase; margin-top: 2px; }
-  #brand-logo { height: 44px; width: auto; display: block; }
+  #brand-logo { height: 60px; width: auto; display: block; }
   .brand small { display:block; font-size: 12px; font-weight: 400; color: var(--hint); letter-spacing: 0.04em; text-transform: uppercase; margin-top: 6px; }
   .mvp-word { font-size: 20px; font-weight: 600; color: var(--ink); }
   .mvp-word b { color: var(--accent); font-weight: 600; }
@@ -485,7 +485,7 @@ function generateInvoice(){
   var remaining = schedTotal - priorPaid - stage.amount;
 
   var brandHead = co.logo
-    ? '<img src="'+co.logo+'" alt="'+co.name+'" style="height:52px;">'
+    ? '<img src="'+co.logo+'" alt="'+co.name+'" style="height:68px;">'
     : '<div style="font-size:24px; font-weight:700;">'+co.name+'</div>';
 
   var scheduleRows = stages.map(function(s){
@@ -734,7 +734,7 @@ function generateProposal(){
     +'<div style="max-width:780px; margin:0 auto; font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif; color:#1c1c1a;">'
     +'<div style="page-break-after:always; padding:32px;">'
     +'<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px;">'
-    +'<img src="'+co.logo+'" alt="'+co.name+'" style="height:56px;">'
+    +'<img src="'+co.logo+'" alt="'+co.name+'" style="height:72px;">'
     +'<div style="text-align:right; font-size:11px; color:#888; text-transform:uppercase; letter-spacing:0.08em;">Proposal · '+num+'</div>'
     +'</div>'
     // Hero photo area — 16:9 banner, tries multiple filename variants, gradient fallback if all 404

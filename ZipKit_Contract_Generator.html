@@ -265,6 +265,11 @@ var MODEL_PHOTO_MAP = {
   'Custom Home':'customhome'
 };
 
+// Absolute URL helper — popups need fully-qualified URLs to resolve relative paths.
+function imageUrl(name){
+  return window.location.href.split('/').slice(0,-1).join('/')+'/images/'+name;
+}
+
 function modelPhotoUrls(modelName){
   // Ordered candidate URLs: explicit map first, then generic name variants.
   // Each stem tried as both .png and .jpg.
@@ -932,14 +937,14 @@ function generateModularContract(){
     address: '3791 East 49th Street North, Idaho Falls, ID 83401',
     phone: '(435) 592-1974',
     email: 'sales@mountainvalleyprefab.com',
-    brandTextHTML: '<div style="font-size:26px;font-weight:700;letter-spacing:-0.01em;color:#1c1c1a;">mountainvalley<span style="color:#d85a30;">prefab</span><span style="font-size:14px;color:#d85a30;">.com</span></div>'
+    brandTextHTML: '<img src="'+imageUrl('mvp-logo.png')+'" alt="Mountain Valley Prefab" style="height:72px;">'
   } : {
     name: 'Zip Kit Homes, LLC',
     cityState: 'Cedar City, Utah',
     address: '3665 West 2700 South, Cedar City, UT 84720',
     phone: '(435) 340-1171',
     email: 'sales@zipkithomes.com',
-    brandTextHTML: '<img src="'+ZIPKIT_LOGO+'" alt="Zip Kit Homes" style="height:48px;">'
+    brandTextHTML: '<img src="'+ZIPKIT_LOGO+'" alt="Zip Kit Homes" style="height:64px;">'
   };
 
   var scope = getModularScopeItems();
