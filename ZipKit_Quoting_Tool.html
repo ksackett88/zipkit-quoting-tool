@@ -106,6 +106,7 @@
     <button class="tab active" data-mode="shell" onclick="setMode('shell')">Shell Kit Homes</button>
     <button class="tab" data-mode="modular" onclick="setMode('modular')">Modular Units</button>
     <button class="tab" data-mode="garage" onclick="setMode('garage')">Garages</button>
+    <button class="tab" data-mode="hangar" onclick="setMode('hangar')">Airplane Hangars</button>
     <button class="tab" data-mode="custom" onclick="setMode('custom')">Custom Home</button>
   </div>
 
@@ -278,6 +279,55 @@
     </div>
   </div>
 
+  <!-- HANGAR MODE -->
+  <div class="mode" id="mode-hangar">
+    <div class="grid">
+      <div class="card inputs">
+        <h2>Configure airplane hangar quote</h2>
+        <label for="h-model">Configuration</label>
+        <select id="h-model"></select>
+        <p class="meta" id="h-meta"></p>
+
+        <label for="h-units">Number of units</label>
+        <input type="number" id="h-units" min="1" max="50" step="1" value="1">
+
+        <label for="h-base-override">Negotiated unit price (override)</label>
+        <input type="number" id="h-base-override" min="0" step="100" placeholder="leave blank to use starting price">
+        <p class="note" id="h-base-override-note">Optional — fill in if the negotiated price differs from the starting price. Shipping and add-ons apply on top.</p>
+
+        <label for="h-miles">Shipping distance from Cedar City, UT (miles)</label>
+        <input type="number" id="h-miles" min="0" max="2000" step="10" value="0">
+        <p class="note" id="h-ship-note">Enter the miles to the job site. Hangar shipping is $12/mile.</p>
+
+        <label for="h-disc">Multi-unit discount (% off kit)</label>
+        <div class="slider-row">
+          <input type="range" id="h-disc" min="0" max="15" step="1" value="0">
+          <span class="slider-out" id="h-disc-out">0%</span>
+        </div>
+
+        <label>Add-ons &amp; extras</label>
+        <div id="h-custom"></div>
+        <button type="button" class="btn-sm" onclick="addCustomItem('h')">+ Add line item</button>
+        <p class="custom-help">For hangar doors, windows, snow-load engineering, insulation, lighting, anything not in the base kit. Each line flows into the total, proposal, and payment schedule. Use a negative amount for a credit.</p>
+
+        <div class="flag">Heads up: hangar shells are "starting at" pricing. Snow load, custom door packages, special finishes, and aviation-specific items (lighting, fire suppression, etc.) typically add to the base. Sales tax is added at invoice.</div>
+      </div>
+
+      <div class="card">
+        <h2>Quote summary</h2>
+        <table><tbody id="h-lines"></tbody></table>
+        <div class="total-row">
+          <div class="total-flex"><span class="lbl">Total project price</span><span class="val" id="h-total">$0</span></div>
+          <p class="per-unit" id="h-per-unit"></p>
+        </div>
+        <div class="actions">
+          <button class="act" onclick="window.print()">Print / Save as PDF</button>
+          <button class="act primary" onclick="resetHangar()">Reset</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- CUSTOM HOME MODE -->
   <div class="mode" id="mode-custom">
     <div class="grid">
@@ -375,7 +425,7 @@
     </div>
   </div>
 
-  <footer>ZipKit Homes &amp; Mountain Valley Prefab · Sales Team Tool · 2026 · When a shipping range shows, this quote uses the high end to be safe — always confirm the real rate with the office before you send a quote.<br><span style="opacity:0.7;">Version 3.0 · updated May 26, 2026 · Modular unit-price override for negotiated/custom-price projects · custom line items on every mode</span></footer>
+  <footer>ZipKit Homes &amp; Mountain Valley Prefab · Sales Team Tool · 2026 · When a shipping range shows, this quote uses the high end to be safe — always confirm the real rate with the office before you send a quote.<br><span style="opacity:0.7;">Version 3.1 · updated May 26, 2026 · Airplane Hangars tab added (64'×50' from $158,700 · 80'×60' from $179,400 · $2,500 design · $12/mi shipping · negotiated-price override · custom line items)</span></footer>
 </div>
 
 <div id="invoice-print" style="display:none;"></div>
@@ -892,6 +942,7 @@ function setMode(mode){
   document.querySelectorAll('.mode').forEach(function(m){ m.classList.toggle('active', m.id==='mode-'+mode); });
   if(mode==='modular') { updateModularBrand(); calcModular(); }
   else if(mode==='garage') { setBrand('zipkit'); calcGarage(); }
+  else if(mode==='hangar') { setBrand('zipkit'); calcHangar(); }
   else if(mode==='custom') { setBrand('zipkit'); calcCustom(); }
   else { setBrand('zipkit'); calcShell(); }
 }
@@ -938,7 +989,7 @@ function addCustomItem(prefix){
     +'<input type="number" placeholder="0" data-cust="amt" step="1">'
     +'<button type="button" class="remove" title="Remove">×</button>';
   container.appendChild(div);
-  var fn = prefix==='s' ? calcShell : (prefix==='m' ? calcModular : calcGarage);
+  var fn = prefix==='s' ? calcShell : (prefix==='m' ? calcModular : (prefix==='h' ? calcHangar : calcGarage));
   div.querySelectorAll('input').forEach(function(i){ i.addEventListener('input', fn); });
   div.querySelector('.remove').addEventListener('click', function(){ div.remove(); fn(); });
   fn();
@@ -1179,6 +1230,89 @@ function calcGarage(){
     kind: 'Garage', model: g[0]+' garage', units: units,
     design: design, engineering: 0, contract: g[2]*units + shipPer*units + customTotal, total: total,
     company: 'zipkit'
+  };
+  renderInvoiceStages();
+}
+
+/* ---------- HANGAR ---------- */
+var HANGAR_DESIGN = 2500;
+var HANGAR_SHIP_RATE = 12; // $/mile
+
+var HANGARS = [
+  // [name, dimensions, starting kit price]
+  ["64' × 50'", "64'×50' (3,200 sqft footprint)", 158700],
+  ["80' × 60'", "80'×60' (4,800 sqft footprint)", 179400]
+];
+
+(function initHangar(){
+  var sel=document.getElementById('h-model');
+  HANGARS.forEach(function(h,i){ var o=document.createElement('option'); o.value=i; o.textContent=h[0]+' · starting at '+fmt(h[2]); sel.appendChild(o); });
+  ['h-model','h-units','h-base-override','h-miles','h-disc'].forEach(function(id){ var el=document.getElementById(id); el.addEventListener('input',calcHangar); el.addEventListener('change',calcHangar); });
+  calcHangar();
+})();
+
+function resetHangar(){
+  document.getElementById('h-units').value=1;
+  document.getElementById('h-base-override').value='';
+  document.getElementById('h-miles').value=0;
+  document.getElementById('h-disc').value=0;
+  document.getElementById('h-custom').innerHTML='';
+  calcHangar();
+}
+
+function calcHangar(){
+  var h = HANGARS[+document.getElementById('h-model').value];
+  var units = Math.max(1, parseInt(document.getElementById('h-units').value)||1);
+  var miles = Math.max(0, parseFloat(document.getElementById('h-miles').value)||0);
+  var disc = parseInt(document.getElementById('h-disc').value)||0;
+  document.getElementById('h-disc-out').textContent = disc+'%';
+
+  var defaultBase = h[2];
+  var overrideRaw = (document.getElementById('h-base-override').value || '').trim();
+  var overrideBase = overrideRaw ? Math.max(0, parseFloat(overrideRaw)||0) : 0;
+  var base = overrideBase > 0 ? overrideBase : defaultBase;
+  var isOverride = overrideBase > 0 && overrideBase !== defaultBase;
+  document.getElementById('h-base-override-note').textContent = isOverride
+    ? 'Override active: using '+fmt(overrideBase)+'/unit instead of the starting '+fmt(defaultBase)+'. Clear to revert.'
+    : 'Optional — fill in if the negotiated price differs from the starting '+fmt(defaultBase)+'. Shipping and add-ons apply on top.';
+
+  document.getElementById('h-meta').textContent = h[1]+' · starting at '+fmt(defaultBase)+' per unit · multi-unit discounts available';
+
+  var shipPer = miles * HANGAR_SHIP_RATE;
+  document.getElementById('h-ship-note').textContent = miles>0
+    ? miles.toLocaleString('en-US')+' mi × $'+HANGAR_SHIP_RATE+'/mi = '+fmt(shipPer)+' per unit'
+    : 'Enter the miles to the job site. Hangar shipping is $'+HANGAR_SHIP_RATE+'/mile.';
+
+  var discPer = base*(disc/100);
+
+  function rowH(l,a,o){o=o||{};var s=o.sub?'<div class="sub">'+o.sub+'</div>':'';var c=o.d?' class="discount"':'';var sg=o.d?'−':'';return '<tr><td class="label">'+l+s+'</td><td class="amt"'+c+'>'+sg+fmt(a)+'</td></tr>';}
+  var rows = '';
+  var unitSub = isOverride
+    ? (units>1 ? fmt(base)+' × '+units+' units · negotiated' : 'negotiated price per unit')
+    : (units>1 ? fmt(base)+' × '+units+' units' : 'pre-framed hangar shell · structural dry-in');
+  rows += rowH('Hangar shell kit', base*units, {sub: unitSub});
+  if(disc>0) rows += rowH('Multi-unit discount', discPer*units, {d:true, sub:disc+'% off kit'});
+  rows += rowH('Design & engineering', HANGAR_DESIGN, {sub:'per project · from'});
+  if(shipPer>0) rows += rowH('Shipping', shipPer*units, {sub: units>1?fmt(shipPer)+' × '+units:'from Cedar City, UT'});
+  else rows += rowRate('Shipping', '$'+HANGAR_SHIP_RATE+'/mi', {sub:'from Cedar City, UT · enter distance'});
+
+  // Custom line items (add-ons / extras)
+  var customs = getCustomItems('h');
+  var customTotal = customs.reduce(function(a,c){return a+c.amt;}, 0);
+  customs.forEach(function(c){ rows += rowH(c.desc, c.amt, {sub: c.amt<0 ? 'credit' : 'add-on'}); });
+
+  document.getElementById('h-lines').innerHTML = rows;
+
+  var total = (base-discPer)*units + HANGAR_DESIGN + shipPer*units + customTotal;
+  document.getElementById('h-total').textContent = fmt(total);
+  document.getElementById('h-per-unit').textContent = units>1 ? fmt(total/units)+' per unit' : '';
+
+  // Contract = everything except design (incl. shipping + customs), after discount
+  var contract = (base-discPer)*units + shipPer*units + customTotal;
+  QUOTE = {
+    kind: 'Hangar', model: h[0]+' hangar', units: units,
+    design: HANGAR_DESIGN, engineering: 0, contract: contract, total: total,
+    company: 'zipkit'  // TODO: confirm brand for hangars — defaulting to ZipKit for now
   };
   renderInvoiceStages();
 }
