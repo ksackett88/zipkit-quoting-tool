@@ -149,6 +149,10 @@
           <span class="slider-out" id="s-disc-out">0%</span>
         </div>
 
+        <label style="margin-top:8px;">Already paid (remove from total &amp; payment schedule)</label>
+        <div class="checkrow"><input type="checkbox" id="s-design-paid"><label for="s-design-paid" style="margin:0;color:var(--ink);">Design retainer ($2,500)</label></div>
+        <div class="checkrow"><input type="checkbox" id="s-eng-paid"><label for="s-eng-paid" style="margin:0;color:var(--ink);">Engineering submittal</label></div>
+
         <label>Add-ons &amp; extras</label>
         <div id="s-custom"></div>
         <button type="button" class="btn-sm" onclick="addCustomItem('s')">+ Add line item</button>
@@ -256,6 +260,9 @@
         <input type="number" id="g-miles" min="0" max="2000" step="10" value="0">
         <p class="note" id="g-ship-note">Enter the miles to the job site. The rate depends on standalone vs. bundled above.</p>
 
+        <label style="margin-top:8px;">Already paid (remove from total &amp; payment schedule)</label>
+        <div class="checkrow"><input type="checkbox" id="g-design-paid"><label for="g-design-paid" style="margin:0;color:var(--ink);">Design &amp; engineering</label></div>
+
         <label>Add-ons &amp; extras</label>
         <div id="g-custom"></div>
         <button type="button" class="btn-sm" onclick="addCustomItem('g')">+ Add line item</button>
@@ -304,6 +311,9 @@
           <input type="range" id="h-disc" min="0" max="15" step="1" value="0">
           <span class="slider-out" id="h-disc-out">0%</span>
         </div>
+
+        <label style="margin-top:8px;">Already paid (remove from total &amp; payment schedule)</label>
+        <div class="checkrow"><input type="checkbox" id="h-design-paid"><label for="h-design-paid" style="margin:0;color:var(--ink);">Design retainer ($2,500)</label></div>
 
         <label>Add-ons &amp; extras</label>
         <div id="h-custom"></div>
@@ -359,6 +369,10 @@
         <label for="c-scope">Scope / description</label>
         <textarea id="c-scope" rows="6" placeholder="Describe what's included in this custom build. One line per item.&#10;&#10;e.g.&#10;Full panelized shell&#10;Custom roof line &amp; dormer windows&#10;Wraparound porch with metal roof"></textarea>
         <p class="note">Each line becomes a bullet on the proposal's "What's included" list.</p>
+
+        <label style="margin-top:8px;">Already paid (remove from total &amp; payment schedule)</label>
+        <div class="checkrow"><input type="checkbox" id="c-design-paid"><label for="c-design-paid" style="margin:0;color:var(--ink);">Design retainer ($3,500)</label></div>
+        <div class="checkrow"><input type="checkbox" id="c-eng-paid"><label for="c-eng-paid" style="margin:0;color:var(--ink);">Engineering</label></div>
 
         <div class="disclaimer">
           Heads up: custom homes have a $3,500 design retainer up front. Engineering is quoted per project — get a real number from the engineering team before sending. Confirm everything with Sven before this goes to a customer.
@@ -425,7 +439,7 @@
     </div>
   </div>
 
-  <footer>ZipKit Homes &amp; Mountain Valley Prefab · Sales Team Tool · 2026 · When a shipping range shows, this quote uses the high end to be safe — always confirm the real rate with the office before you send a quote.<br><span style="opacity:0.7;">Version 4.0.1 · updated May 26, 2026 · Supabase backend staged (login gate temporarily OFF while sales team is onboarded — flip ZK_REQUIRE_AUTH in lib/supabase.js to re-enable)</span></footer>
+  <footer>ZipKit Homes &amp; Mountain Valley Prefab · Sales Team Tool · 2026 · When a shipping range shows, this quote uses the high end to be safe — always confirm the real rate with the office before you send a quote.<br><span style="opacity:0.7;">Version 4.1 · updated May 26, 2026 · "Already paid" checkboxes for design / engineering (shell · garage · hangar · custom) — removes from total, proposal, and invoice schedule</span></footer>
 </div>
 
 <div id="invoice-print" style="display:none;"></div>
@@ -450,8 +464,8 @@ function invoiceStages(q){
     return stages;
   }
   // Shell kits & garages: design separate, engineering first, then 45/45/10 of the remainder
-  if(q.design>0) stages.push({key:'design', name:'Design', desc:'Architectural design fee · due at project start', amount:q.design});
-  if(q.engineering>0) stages.push({key:'engineering', name:'Engineering', desc:'Full submittal engineering · due after contract signing', amount:q.engineering});
+  if(q.design>0 && !q.designPaid) stages.push({key:'design', name:'Design', desc:'Architectural design fee · due at project start', amount:q.design});
+  if(q.engineering>0 && !q.engineeringPaid) stages.push({key:'engineering', name:'Engineering', desc:'Full submittal engineering · due after contract signing', amount:q.engineering});
   stages.push({key:'materials', name:'Materials (45%)', desc:'45% of contract · due after engineering', amount:Math.round(q.contract*0.45)});
   stages.push({key:'preship', name:'Pre-ship (45%)', desc:'45% of contract · due when kit ready to ship', amount:Math.round(q.contract*0.45)});
   var finalAmt = q.contract - Math.round(q.contract*0.45)*2;
@@ -967,7 +981,7 @@ function setBrand(which){
     var o=document.createElement('option'); o.value=i; o.textContent=m[0]+tag+' · '+m[1]+' sqft'; sel.appendChild(o);
   });
   sel.value = SHELL.findIndex(function(m){return m[0]==='Alpine';});
-  ['s-model','s-units','s-snow','s-win','s-miles','s-disc'].forEach(function(id){
+  ['s-model','s-units','s-snow','s-win','s-miles','s-disc','s-design-paid','s-eng-paid'].forEach(function(id){
     var el=document.getElementById(id); el.addEventListener('input',calcShell); el.addEventListener('change',calcShell);
   });
   calcShell();
@@ -976,6 +990,8 @@ function resetShell(){
   document.getElementById('s-units').value=1; document.getElementById('s-snow').value=0;
   document.getElementById('s-win').value=-1; document.getElementById('s-miles').value=0;
   document.getElementById('s-disc').value=0;
+  document.getElementById('s-design-paid').checked=false;
+  document.getElementById('s-eng-paid').checked=false;
   document.getElementById('s-custom').innerHTML='';
   calcShell();
 }
@@ -1034,10 +1050,15 @@ function calcShell(){
   var discPer = shell*(disc/100);
   var rows='';
   function row(l,a,o){o=o||{};var s=o.sub?'<div class="sub">'+o.sub+'</div>':'';var c=o.d?' class="discount"':'';var sg=o.d?'−':'';return '<tr><td class="label">'+l+s+'</td><td class="amt"'+c+'>'+sg+fmt(a)+'</td></tr>';}
+  var designPaid = document.getElementById('s-design-paid').checked;
+  var engPaid    = document.getElementById('s-eng-paid').checked;
+
   rows+=row('Panelized shell kit', shell*units, {sub: units>1?fmt(shell)+' × '+units+' units':'pre-framed + dry-in labor'});
   if(disc>0) rows+=row('Multi-unit discount', discPer*units, {d:true, sub:disc+'% off shell kits'});
-  rows+=row('Architectural design', SHELL_DESIGN, {sub:'per project · from'});
-  rows+=row('Engineering submittal', eng, {sub:'per project'});
+  if(designPaid) rows+=rowRate('Architectural design', 'PAID', {sub:'already received · was '+fmt(SHELL_DESIGN)});
+  else           rows+=row('Architectural design', SHELL_DESIGN, {sub:'per project · from'});
+  if(engPaid) rows+=rowRate('Engineering submittal', 'PAID', {sub:'already received · was '+fmt(eng)});
+  else        rows+=row('Engineering submittal', eng, {sub:'per project'});
   if(snow>0) rows+=row('Snow load upgrade', snow*units, {sub:units>1?fmt(snow)+' × '+units:'per unit'});
   if(win>0) rows+=row('Window & door package', win*units, {sub:units>1?fmt(win)+' × '+units:'incl. standard entry doors, shipping & install'});
   else rows+=rowRate('Windows & doors', 'not included', {sub:'select a package — doors come with it'});
@@ -1051,7 +1072,9 @@ function calcShell(){
 
   document.getElementById('s-lines').innerHTML=rows;
 
-  var total = (shell-discPer)*units + SHELL_DESIGN + eng + snow*units + win*units + shipPer*units + customTotal;
+  var designAmt = designPaid ? 0 : SHELL_DESIGN;
+  var engAmt    = engPaid    ? 0 : eng;
+  var total = (shell-discPer)*units + designAmt + engAmt + snow*units + win*units + shipPer*units + customTotal;
   document.getElementById('s-total').textContent=fmt(total);
   document.getElementById('s-per-unit').textContent = units>1?fmt(total/units)+' per unit':'';
 
@@ -1059,7 +1082,9 @@ function calcShell(){
   var contract = (shell-discPer)*units + snow*units + win*units + shipPer*units + customTotal;
   QUOTE = {
     kind: 'Shell Kit', model: m[0], units: units,
-    design: SHELL_DESIGN, engineering: eng, contract: contract, total: total,
+    design: SHELL_DESIGN, engineering: eng,
+    designPaid: designPaid, engineeringPaid: engPaid,
+    contract: contract, total: total,
     company: 'zipkit'
   };
   renderInvoiceStages();
@@ -1183,12 +1208,13 @@ function calcModular(){
 (function initGarage(){
   var sel=document.getElementById('g-model');
   GARAGES.forEach(function(g,i){ var o=document.createElement('option'); o.value=i; o.textContent=g[0]+' · '+g[1]; sel.appendChild(o); });
-  ['g-model','g-units','g-design','g-miles'].forEach(function(id){ var el=document.getElementById(id); el.addEventListener('input',calcGarage); el.addEventListener('change',calcGarage); });
+  ['g-model','g-units','g-design','g-miles','g-design-paid'].forEach(function(id){ var el=document.getElementById(id); el.addEventListener('input',calcGarage); el.addEventListener('change',calcGarage); });
   calcGarage();
 })();
 function resetGarage(){
   document.getElementById('g-units').value=1; document.getElementById('g-design').value=1125;
   document.getElementById('g-miles').value=0;
+  document.getElementById('g-design-paid').checked=false;
   document.getElementById('g-custom').innerHTML='';
   calcGarage();
 }
@@ -1209,10 +1235,13 @@ function calcGarage(){
     ? miles.toLocaleString('en-US')+' mi × $'+grate+'/mi = '+fmt(shipPer)+' per unit · '+rateDesc+'.'
     : (bundled ? 'Bundled with a home: $6/mi. Enter the miles to the job site.' : 'Standalone: $14/mi up to 600 mi, $16/mi over 600. Enter the miles to the job site.');
 
+  var designPaid = document.getElementById('g-design-paid').checked;
+
   function rowG(l,a,o){o=o||{};var s=o.sub?'<div class="sub">'+o.sub+'</div>':'';return '<tr><td class="label">'+l+s+'</td><td class="amt">'+fmt(a)+'</td></tr>';}
   var rows='';
   rows+=rowG('Garage shell kit', g[2]*units, {sub:units>1?fmt(g[2])+' × '+units+' units':'pre-framed 2×6 panel shell · structural dry-in'});
-  rows+=rowG('Design & engineering', design, {sub:design===562?'bundled with a home':'standalone'});
+  if(designPaid) rows+=rowRate('Design & engineering', 'PAID', {sub:'already received · was '+fmt(design)});
+  else           rows+=rowG('Design & engineering', design, {sub:design===562?'bundled with a home':'standalone'});
   if(shipPer>0) rows+=rowG('Shipping', shipPer*units, {sub:units>1?fmt(shipPer)+' × '+units:rateDesc});
   else rows+=rowRate('Shipping', '$'+grate+'/mi', {sub:bundled?'bundled with a home':'standalone · enter distance'});
 
@@ -1223,13 +1252,16 @@ function calcGarage(){
 
   document.getElementById('g-lines').innerHTML=rows;
 
-  var total=g[2]*units + design + shipPer*units + customTotal;
+  var designAmt = designPaid ? 0 : design;
+  var total=g[2]*units + designAmt + shipPer*units + customTotal;
   document.getElementById('g-total').textContent=fmt(total);
   document.getElementById('g-per-unit').textContent=units>1?fmt(total/units)+' per unit':'';
 
   QUOTE = {
     kind: 'Garage', model: g[0]+' garage', units: units,
-    design: design, engineering: 0, contract: g[2]*units + shipPer*units + customTotal, total: total,
+    design: design, engineering: 0,
+    designPaid: designPaid, engineeringPaid: false,
+    contract: g[2]*units + shipPer*units + customTotal, total: total,
     company: 'zipkit'
   };
   renderInvoiceStages();
@@ -1248,7 +1280,7 @@ var HANGARS = [
 (function initHangar(){
   var sel=document.getElementById('h-model');
   HANGARS.forEach(function(h,i){ var o=document.createElement('option'); o.value=i; o.textContent=h[0]+' · starting at '+fmt(h[2]); sel.appendChild(o); });
-  ['h-model','h-units','h-base-override','h-miles','h-disc'].forEach(function(id){ var el=document.getElementById(id); el.addEventListener('input',calcHangar); el.addEventListener('change',calcHangar); });
+  ['h-model','h-units','h-base-override','h-miles','h-disc','h-design-paid'].forEach(function(id){ var el=document.getElementById(id); el.addEventListener('input',calcHangar); el.addEventListener('change',calcHangar); });
   calcHangar();
 })();
 
@@ -1257,6 +1289,7 @@ function resetHangar(){
   document.getElementById('h-base-override').value='';
   document.getElementById('h-miles').value=0;
   document.getElementById('h-disc').value=0;
+  document.getElementById('h-design-paid').checked=false;
   document.getElementById('h-custom').innerHTML='';
   calcHangar();
 }
@@ -1291,9 +1324,12 @@ function calcHangar(){
   var unitSub = isOverride
     ? (units>1 ? fmt(base)+' × '+units+' units · negotiated' : 'negotiated price per unit')
     : (units>1 ? fmt(base)+' × '+units+' units' : 'pre-framed hangar shell · structural dry-in');
+  var designPaid = document.getElementById('h-design-paid').checked;
+
   rows += rowH('Hangar shell kit', base*units, {sub: unitSub});
   if(disc>0) rows += rowH('Multi-unit discount', discPer*units, {d:true, sub:disc+'% off kit'});
-  rows += rowH('Design & engineering', HANGAR_DESIGN, {sub:'per project · from'});
+  if(designPaid) rows += rowRate('Design & engineering', 'PAID', {sub:'already received · was '+fmt(HANGAR_DESIGN)});
+  else           rows += rowH('Design & engineering', HANGAR_DESIGN, {sub:'per project · from'});
   if(shipPer>0) rows += rowH('Shipping', shipPer*units, {sub: units>1?fmt(shipPer)+' × '+units:'from Cedar City, UT'});
   else rows += rowRate('Shipping', '$'+HANGAR_SHIP_RATE+'/mi', {sub:'from Cedar City, UT · enter distance'});
 
@@ -1304,7 +1340,8 @@ function calcHangar(){
 
   document.getElementById('h-lines').innerHTML = rows;
 
-  var total = (base-discPer)*units + HANGAR_DESIGN + shipPer*units + customTotal;
+  var designAmt = designPaid ? 0 : HANGAR_DESIGN;
+  var total = (base-discPer)*units + designAmt + shipPer*units + customTotal;
   document.getElementById('h-total').textContent = fmt(total);
   document.getElementById('h-per-unit').textContent = units>1 ? fmt(total/units)+' per unit' : '';
 
@@ -1312,8 +1349,10 @@ function calcHangar(){
   var contract = (base-discPer)*units + shipPer*units + customTotal;
   QUOTE = {
     kind: 'Hangar', model: h[0]+' hangar', units: units,
-    design: HANGAR_DESIGN, engineering: 0, contract: contract, total: total,
-    company: 'zipkit'  // TODO: confirm brand for hangars — defaulting to ZipKit for now
+    design: HANGAR_DESIGN, engineering: 0,
+    designPaid: designPaid, engineeringPaid: false,
+    contract: contract, total: total,
+    company: 'zipkit'
   };
   renderInvoiceStages();
 }
@@ -1322,7 +1361,7 @@ function calcHangar(){
 var CUSTOM_DESIGN = 3500;
 
 (function initCustom(){
-  var ids = ['c-name','c-sqft','c-build','c-eng','c-miles','c-rate','c-scope'];
+  var ids = ['c-name','c-sqft','c-build','c-eng','c-miles','c-rate','c-scope','c-design-paid','c-eng-paid'];
   ids.forEach(function(id){
     var el = document.getElementById(id); if(!el) return;
     el.addEventListener('input', calcCustom);
@@ -1355,16 +1394,23 @@ function calcCustom(){
     ? miles.toLocaleString('en-US')+' mi × $'+rate+' = '+fmt(ship)
     : 'Default $18/mi. Adjust as needed.';
 
+  var designPaid = document.getElementById('c-design-paid').checked;
+  var engPaid    = document.getElementById('c-eng-paid').checked;
+
   function row(l,a,o){o=o||{};var s=o.sub?'<div class="sub">'+o.sub+'</div>':'';return '<tr><td class="label">'+l+s+'</td><td class="amt">'+fmt(a)+'</td></tr>';}
   var rows = '';
   if(build>0) rows += row('Custom build', build, {sub: name || 'negotiated construction price'});
-  rows += row('Architectural design', CUSTOM_DESIGN, {sub:'per project · custom retainer'});
-  if(eng>0) rows += row('Engineering submittal', eng, {sub:'quoted per project'});
-  else      rows += rowRate('Engineering submittal', 'TBD', {sub:'enter project-specific amount'});
+  if(designPaid) rows += rowRate('Architectural design', 'PAID', {sub:'already received · was '+fmt(CUSTOM_DESIGN)});
+  else           rows += row('Architectural design', CUSTOM_DESIGN, {sub:'per project · custom retainer'});
+  if(engPaid && eng>0) rows += rowRate('Engineering submittal', 'PAID', {sub:'already received · was '+fmt(eng)});
+  else if(eng>0)       rows += row('Engineering submittal', eng, {sub:'quoted per project'});
+  else                 rows += rowRate('Engineering submittal', 'TBD', {sub:'enter project-specific amount'});
   if(ship>0) rows += row('Shipping', ship, {sub:miles+' mi × $'+rate+'/mi'});
   document.getElementById('c-lines').innerHTML = rows;
 
-  var total = build + CUSTOM_DESIGN + eng + ship;
+  var designAmt = designPaid ? 0 : CUSTOM_DESIGN;
+  var engAmt    = engPaid    ? 0 : eng;
+  var total = build + designAmt + engAmt + ship;
   document.getElementById('c-total').textContent = fmt(total);
   document.getElementById('c-per-sqft').textContent = (sqft>0 && total>0) ? fmt(total/sqft)+' / sqft' : '';
 
@@ -1380,6 +1426,7 @@ function calcCustom(){
     units: 1,
     design: CUSTOM_DESIGN,
     engineering: eng,
+    designPaid: designPaid, engineeringPaid: engPaid,
     contract: contract,
     total: total,
     company: 'zipkit',
