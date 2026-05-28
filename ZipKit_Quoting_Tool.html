@@ -425,7 +425,7 @@
     </div>
   </div>
 
-  <footer>ZipKit Homes &amp; Mountain Valley Prefab · Sales Team Tool · 2026 · When a shipping range shows, this quote uses the high end to be safe — always confirm the real rate with the office before you send a quote.<br><span style="opacity:0.7;">Version 4.0 · updated May 26, 2026 · Supabase backend (Phase 1): auth login + Save Quote + My Quotes list with reopen + per-rep quote IDs</span></footer>
+  <footer>ZipKit Homes &amp; Mountain Valley Prefab · Sales Team Tool · 2026 · When a shipping range shows, this quote uses the high end to be safe — always confirm the real rate with the office before you send a quote.<br><span style="opacity:0.7;">Version 4.0.1 · updated May 26, 2026 · Supabase backend staged (login gate temporarily OFF while sales team is onboarded — flip ZK_REQUIRE_AUTH in lib/supabase.js to re-enable)</span></footer>
 </div>
 
 <div id="invoice-print" style="display:none;"></div>
@@ -1391,7 +1391,7 @@ function calcCustom(){
 </script>
 
 <!-- ============ AUTH GATE ============ -->
-<div id="zk-auth-overlay" style="display:flex;position:fixed;inset:0;background:rgba(28,28,26,0.92);z-index:9999;align-items:center;justify-content:center;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+<div id="zk-auth-overlay" style="display:none;position:fixed;inset:0;background:rgba(28,28,26,0.92);z-index:9999;align-items:center;justify-content:center;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
   <div style="background:#fff;border-radius:14px;padding:36px 40px;max-width:380px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.4);">
     <div style="font-size:13px;color:#888;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px;">ZipKit Sales Tool</div>
     <h2 style="margin:0 0 22px;font-size:24px;font-weight:600;color:#1c1c1a;">Sign in</h2>
@@ -1446,6 +1446,9 @@ function zkToast(msg, isError){
 }
 
 (async function initAuth(){
+  if(!window.ZK_REQUIRE_AUTH) return; // login gate disabled — see lib/supabase.js
+  if(!window.zkAuth) return;          // supabase-js failed to load — fail open
+
   var overlay  = document.getElementById('zk-auth-overlay');
   var toolbar  = document.getElementById('zk-toolbar');
   var emailLbl = document.getElementById('zk-user-email');

@@ -1368,7 +1368,7 @@ function generateCustomContract(){
 </script>
 
 <!-- ============ AUTH GATE ============ -->
-<div id="zk-auth-overlay" style="display:flex;position:fixed;inset:0;background:rgba(28,28,26,0.92);z-index:9999;align-items:center;justify-content:center;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+<div id="zk-auth-overlay" style="display:none;position:fixed;inset:0;background:rgba(28,28,26,0.92);z-index:9999;align-items:center;justify-content:center;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
   <div style="background:#fff;border-radius:14px;padding:36px 40px;max-width:380px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.4);">
     <div style="font-size:13px;color:#888;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px;">ZipKit Sales Tool</div>
     <h2 style="margin:0 0 22px;font-size:24px;font-weight:600;color:#1c1c1a;">Sign in</h2>
@@ -1393,6 +1393,9 @@ function generateCustomContract(){
 <script src="lib/supabase.js"></script>
 <script>
 (async function initAuth(){
+  if(!window.ZK_REQUIRE_AUTH) return; // login gate disabled — see lib/supabase.js
+  if(!window.zkAuth) return;          // supabase-js failed to load — fail open
+
   var overlay  = document.getElementById('zk-auth-overlay');
   var toolbar  = document.getElementById('zk-toolbar');
   var emailLbl = document.getElementById('zk-user-email');
