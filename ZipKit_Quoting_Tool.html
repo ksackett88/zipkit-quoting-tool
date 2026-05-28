@@ -548,8 +548,9 @@ function generateInvoice(){
   var schedTotal = stages.reduce(function(a,s){return a+s.amount;},0);
   var remaining = schedTotal - priorPaid - stage.amount;
 
+  var logoH = (QUOTE.company === 'mvp') ? 96 : 68;
   var brandHead = co.logo
-    ? '<img src="'+co.logo+'" alt="'+co.name+'" style="height:68px;">'
+    ? '<img src="'+co.logo+'" alt="'+co.name+'" style="height:'+logoH+'px;">'
     : '<div style="font-size:24px; font-weight:700;">'+co.name+'</div>';
 
   var scheduleRows = stages.map(function(s){
@@ -799,7 +800,7 @@ function generateProposal(){
     +'<div style="max-width:780px; margin:0 auto; font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif; color:#1c1c1a;">'
     +'<div style="page-break-after:always; padding:32px;">'
     +'<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px;">'
-    +'<img src="'+co.logo+'" alt="'+co.name+'" style="height:72px;">'
+    +'<img src="'+co.logo+'" alt="'+co.name+'" style="height:'+(QUOTE.company==='mvp'?100:72)+'px;">'
     +'<div style="text-align:right; font-size:11px; color:#888; text-transform:uppercase; letter-spacing:0.08em;">Proposal · '+num+'</div>'
     +'</div>'
     // Hero photo area — 16:9 banner, tries multiple filename variants, gradient fallback if all 404
@@ -965,7 +966,7 @@ function setBrand(which){
   var brandSub = document.getElementById('brand-sub');
   var contact = document.getElementById('contact');
   if(which==='mvp'){
-    document.getElementById('brand').innerHTML = '<a href="index.html" title="Back to sales tools" style="display:inline-block;"><img id="brand-logo" src="' + MVP_LOGO + '" alt="Mountain Valley Prefab"></a><small id="brand-sub">Sales Quoting Tool</small>';
+    document.getElementById('brand').innerHTML = '<a href="index.html" title="Back to sales tools" style="display:inline-block;"><img id="brand-logo" src="' + MVP_LOGO + '" alt="Mountain Valley Prefab" style="height:92px;"></a><small id="brand-sub">Sales Quoting Tool</small>';
     contact.innerHTML = MVP_CONTACT;
   } else {
     document.getElementById('brand').innerHTML = '<a href="index.html" title="Back to sales tools" style="display:inline-block;"><img id="brand-logo" src="' + ZIPKIT_LOGO + '" alt="Zip Kit Homes"></a><small id="brand-sub">Sales Quoting Tool</small>';
