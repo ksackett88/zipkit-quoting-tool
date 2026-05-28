@@ -233,7 +233,7 @@
     </div>
   </div>
 
-  <footer>ZipKit Homes &amp; Mountain Valley Prefab · Contract Generator · Version 3.1 · 2026 · Custom Home tab added (uses panelized shell kit legal body + $3,500 design retainer + free-form pricing) · Always have a contract approved by Sven before it goes to a customer.</footer>
+  <footer>ZipKit Homes &amp; Mountain Valley Prefab · Contract Generator · Version 4.0 · 2026 · Supabase auth (sign-in required) · Always have a contract approved by Sven before it goes to a customer.</footer>
 </div>
 
 <script>
@@ -1365,6 +1365,72 @@ function generateCustomContract(){
   }
 })();
 
+</script>
+
+<!-- ============ AUTH GATE ============ -->
+<div id="zk-auth-overlay" style="display:flex;position:fixed;inset:0;background:rgba(28,28,26,0.92);z-index:9999;align-items:center;justify-content:center;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+  <div style="background:#fff;border-radius:14px;padding:36px 40px;max-width:380px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.4);">
+    <div style="font-size:13px;color:#888;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px;">ZipKit Sales Tool</div>
+    <h2 style="margin:0 0 22px;font-size:24px;font-weight:600;color:#1c1c1a;">Sign in</h2>
+    <form id="zk-login-form">
+      <label style="display:block;font-size:13px;color:#5f5e5a;margin-bottom:4px;">Email</label>
+      <input type="email" id="zk-login-email" required autocomplete="email" style="width:100%;height:42px;padding:0 12px;font-size:14px;border:1px solid #c9c7bd;border-radius:8px;background:#fff;margin-bottom:14px;box-sizing:border-box;">
+      <label style="display:block;font-size:13px;color:#5f5e5a;margin-bottom:4px;">Password</label>
+      <input type="password" id="zk-login-password" required autocomplete="current-password" style="width:100%;height:42px;padding:0 12px;font-size:14px;border:1px solid #c9c7bd;border-radius:8px;background:#fff;margin-bottom:14px;box-sizing:border-box;">
+      <p id="zk-login-error" style="display:none;font-size:12px;color:#993c1d;margin:0 0 12px;"></p>
+      <button type="submit" id="zk-login-submit" style="width:100%;height:44px;background:#d85a30;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;">Sign in</button>
+    </form>
+    <p style="margin:20px 0 0;font-size:11px;color:#888;text-align:center;">Need an account? Ask Kelsey or Sven to add you.</p>
+  </div>
+</div>
+
+<div id="zk-toolbar" style="display:none;position:fixed;top:14px;right:18px;z-index:100;gap:8px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+  <span id="zk-user-email" style="font-size:12px;color:#5f5e5a;align-self:center;margin-right:6px;"></span>
+  <button onclick="zkSignOut()" style="height:34px;padding:0 14px;font-size:12px;border:1px solid #c9c7bd;background:#fff;border-radius:8px;cursor:pointer;font-family:inherit;color:#5f5e5a;">Sign out</button>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="lib/supabase.js"></script>
+<script>
+(async function initAuth(){
+  var overlay  = document.getElementById('zk-auth-overlay');
+  var toolbar  = document.getElementById('zk-toolbar');
+  var emailLbl = document.getElementById('zk-user-email');
+  var form     = document.getElementById('zk-login-form');
+  var errEl    = document.getElementById('zk-login-error');
+  var subBtn   = document.getElementById('zk-login-submit');
+
+  function showOverlay(){ overlay.style.display='flex'; toolbar.style.display='none'; document.body.style.overflow='hidden'; }
+  function hideOverlay(user){
+    overlay.style.display='none';
+    toolbar.style.display='flex';
+    emailLbl.textContent = (user && user.email) || '';
+    document.body.style.overflow='';
+  }
+
+  var user = await zkAuth.getCurrentUser();
+  if(user){ hideOverlay(user); } else { showOverlay(); }
+
+  zkAuth.onAuthChange(function(u){ if(u) hideOverlay(u); else showOverlay(); });
+
+  form.addEventListener('submit', async function(e){
+    e.preventDefault();
+    errEl.style.display='none'; subBtn.disabled=true; subBtn.textContent='Signing in…';
+    try {
+      await zkAuth.signIn(
+        document.getElementById('zk-login-email').value.trim(),
+        document.getElementById('zk-login-password').value
+      );
+    } catch(err){
+      errEl.textContent = (err && err.message) || 'Sign in failed.';
+      errEl.style.display='block';
+    } finally {
+      subBtn.disabled=false; subBtn.textContent='Sign in';
+    }
+  });
+})();
+
+async function zkSignOut(){ await zkAuth.signOut(); }
 </script>
 </body>
 </html>

@@ -56,5 +56,63 @@
   </div>
 </div>
 <footer>ZipKit Homes &amp; Mountain Valley Prefab · Sales Tools · 2026 · For internal use only.</footer>
+
+<!-- ============ AUTH GATE ============ -->
+<div id="zk-auth-overlay" style="display:flex;position:fixed;inset:0;background:rgba(28,28,26,0.92);z-index:9999;align-items:center;justify-content:center;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+  <div style="background:#fff;border-radius:14px;padding:36px 40px;max-width:380px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.4);">
+    <div style="font-size:13px;color:#888;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px;">ZipKit Sales Tool</div>
+    <h2 style="margin:0 0 22px;font-size:24px;font-weight:600;color:#1c1c1a;">Sign in</h2>
+    <form id="zk-login-form">
+      <label style="display:block;font-size:13px;color:#5f5e5a;margin-bottom:4px;">Email</label>
+      <input type="email" id="zk-login-email" required autocomplete="email" style="width:100%;height:42px;padding:0 12px;font-size:14px;border:1px solid #c9c7bd;border-radius:8px;background:#fff;margin-bottom:14px;box-sizing:border-box;">
+      <label style="display:block;font-size:13px;color:#5f5e5a;margin-bottom:4px;">Password</label>
+      <input type="password" id="zk-login-password" required autocomplete="current-password" style="width:100%;height:42px;padding:0 12px;font-size:14px;border:1px solid #c9c7bd;border-radius:8px;background:#fff;margin-bottom:14px;box-sizing:border-box;">
+      <p id="zk-login-error" style="display:none;font-size:12px;color:#993c1d;margin:0 0 12px;"></p>
+      <button type="submit" id="zk-login-submit" style="width:100%;height:44px;background:#d85a30;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;">Sign in</button>
+    </form>
+    <p style="margin:20px 0 0;font-size:11px;color:#888;text-align:center;">Need an account? Ask Kelsey or Sven to add you in the Supabase dashboard.</p>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="lib/supabase.js"></script>
+<script>
+(async function(){
+  var overlay = document.getElementById('zk-auth-overlay');
+  var form = document.getElementById('zk-login-form');
+  var errEl = document.getElementById('zk-login-error');
+  var submitBtn = document.getElementById('zk-login-submit');
+
+  function showOverlay(){ overlay.style.display = 'flex'; document.body.style.overflow = 'hidden'; }
+  function hideOverlay(){ overlay.style.display = 'none'; document.body.style.overflow = ''; }
+
+  // Check session on page load
+  var user = await zkAuth.getCurrentUser();
+  if(user){ hideOverlay(); } else { showOverlay(); }
+
+  // React to sign-in / sign-out events from any tab
+  zkAuth.onAuthChange(function(u){ if(u) hideOverlay(); else showOverlay(); });
+
+  form.addEventListener('submit', async function(e){
+    e.preventDefault();
+    errEl.style.display = 'none';
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Signing in…';
+    try {
+      await zkAuth.signIn(
+        document.getElementById('zk-login-email').value.trim(),
+        document.getElementById('zk-login-password').value
+      );
+      // onAuthChange will hide the overlay
+    } catch(err){
+      errEl.textContent = (err && err.message) || 'Sign in failed.';
+      errEl.style.display = 'block';
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Sign in';
+    }
+  });
+})();
+</script>
 </body>
 </html>

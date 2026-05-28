@@ -425,7 +425,7 @@
     </div>
   </div>
 
-  <footer>ZipKit Homes &amp; Mountain Valley Prefab · Sales Team Tool · 2026 · When a shipping range shows, this quote uses the high end to be safe — always confirm the real rate with the office before you send a quote.<br><span style="opacity:0.7;">Version 3.1 · updated May 26, 2026 · Airplane Hangars tab added (64'×50' from $158,700 · 80'×60' from $179,400 · $2,500 design · $12/mi shipping · negotiated-price override · custom line items)</span></footer>
+  <footer>ZipKit Homes &amp; Mountain Valley Prefab · Sales Team Tool · 2026 · When a shipping range shows, this quote uses the high end to be safe — always confirm the real rate with the office before you send a quote.<br><span style="opacity:0.7;">Version 4.0 · updated May 26, 2026 · Supabase backend (Phase 1): auth login + Save Quote + My Quotes list with reopen + per-rep quote IDs</span></footer>
 </div>
 
 <div id="invoice-print" style="display:none;"></div>
@@ -1387,6 +1387,302 @@ function calcCustom(){
     customScope: scopeLines   // consumed by generateProposal when present
   };
   renderInvoiceStages();
+}
+</script>
+
+<!-- ============ AUTH GATE ============ -->
+<div id="zk-auth-overlay" style="display:flex;position:fixed;inset:0;background:rgba(28,28,26,0.92);z-index:9999;align-items:center;justify-content:center;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+  <div style="background:#fff;border-radius:14px;padding:36px 40px;max-width:380px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.4);">
+    <div style="font-size:13px;color:#888;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px;">ZipKit Sales Tool</div>
+    <h2 style="margin:0 0 22px;font-size:24px;font-weight:600;color:#1c1c1a;">Sign in</h2>
+    <form id="zk-login-form">
+      <label style="display:block;font-size:13px;color:#5f5e5a;margin-bottom:4px;">Email</label>
+      <input type="email" id="zk-login-email" required autocomplete="email" style="width:100%;height:42px;padding:0 12px;font-size:14px;border:1px solid #c9c7bd;border-radius:8px;background:#fff;margin-bottom:14px;box-sizing:border-box;">
+      <label style="display:block;font-size:13px;color:#5f5e5a;margin-bottom:4px;">Password</label>
+      <input type="password" id="zk-login-password" required autocomplete="current-password" style="width:100%;height:42px;padding:0 12px;font-size:14px;border:1px solid #c9c7bd;border-radius:8px;background:#fff;margin-bottom:14px;box-sizing:border-box;">
+      <p id="zk-login-error" style="display:none;font-size:12px;color:#993c1d;margin:0 0 12px;"></p>
+      <button type="submit" id="zk-login-submit" style="width:100%;height:44px;background:#d85a30;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;">Sign in</button>
+    </form>
+    <p style="margin:20px 0 0;font-size:11px;color:#888;text-align:center;">Need an account? Ask Kelsey or Sven to add you.</p>
+  </div>
+</div>
+
+<!-- ============ TOP TOOLBAR (visible once signed in) ============ -->
+<div id="zk-toolbar" style="display:none;position:fixed;top:14px;right:18px;z-index:100;gap:8px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+  <span id="zk-user-email" style="font-size:12px;color:#5f5e5a;align-self:center;margin-right:6px;"></span>
+  <button onclick="zkShowMyQuotes()" style="height:34px;padding:0 14px;font-size:12px;border:1px solid #c9c7bd;background:#fff;border-radius:8px;cursor:pointer;font-family:inherit;color:#1c1c1a;">My Quotes</button>
+  <button onclick="zkSaveCurrentQuote()" style="height:34px;padding:0 14px;font-size:12px;border:1px solid #d85a30;background:#d85a30;color:#fff;border-radius:8px;cursor:pointer;font-family:inherit;font-weight:600;">Save Quote</button>
+  <button onclick="zkSignOut()" style="height:34px;padding:0 14px;font-size:12px;border:1px solid #c9c7bd;background:#fff;border-radius:8px;cursor:pointer;font-family:inherit;color:#5f5e5a;">Sign out</button>
+</div>
+
+<!-- ============ MY QUOTES MODAL ============ -->
+<div id="zk-quotes-overlay" style="display:none;position:fixed;inset:0;background:rgba(28,28,26,0.6);z-index:9998;align-items:flex-start;justify-content:center;padding:60px 20px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;overflow-y:auto;">
+  <div style="background:#fff;border-radius:14px;padding:28px 32px;max-width:920px;width:100%;max-height:80vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.4);">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;">
+      <h2 style="margin:0;font-size:20px;font-weight:600;color:#1c1c1a;">My quotes</h2>
+      <button id="zk-quotes-close" style="background:none;border:none;cursor:pointer;font-size:28px;color:#5f5e5a;line-height:1;">×</button>
+    </div>
+    <div id="zk-quotes-list" style="min-height:80px;"></div>
+  </div>
+</div>
+
+<!-- ============ TOAST ============ -->
+<div id="zk-toast" style="display:none;position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:10000;background:#1c1c1a;color:#fff;padding:12px 20px;border-radius:8px;font-size:13px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;box-shadow:0 6px 20px rgba(0,0,0,0.3);"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="lib/supabase.js"></script>
+<script>
+/* ============================================================================
+   AUTH WIRING + SAVE/LOAD QUOTES
+   ============================================================================ */
+
+function zkToast(msg, isError){
+  var el = document.getElementById('zk-toast');
+  el.textContent = msg;
+  el.style.background = isError ? '#993c1d' : '#1c1c1a';
+  el.style.display = 'block';
+  clearTimeout(zkToast._t);
+  zkToast._t = setTimeout(function(){ el.style.display = 'none'; }, 3500);
+}
+
+(async function initAuth(){
+  var overlay  = document.getElementById('zk-auth-overlay');
+  var toolbar  = document.getElementById('zk-toolbar');
+  var emailLbl = document.getElementById('zk-user-email');
+  var form     = document.getElementById('zk-login-form');
+  var errEl    = document.getElementById('zk-login-error');
+  var subBtn   = document.getElementById('zk-login-submit');
+
+  function showOverlay(){ overlay.style.display='flex'; toolbar.style.display='none'; document.body.style.overflow='hidden'; }
+  function hideOverlay(user){
+    overlay.style.display='none';
+    toolbar.style.display='flex';
+    emailLbl.textContent = (user && user.email) || '';
+    document.body.style.overflow='';
+  }
+
+  var user = await zkAuth.getCurrentUser();
+  if(user){ hideOverlay(user); } else { showOverlay(); }
+
+  zkAuth.onAuthChange(function(u){ if(u) hideOverlay(u); else showOverlay(); });
+
+  form.addEventListener('submit', async function(e){
+    e.preventDefault();
+    errEl.style.display='none'; subBtn.disabled=true; subBtn.textContent='Signing in…';
+    try {
+      await zkAuth.signIn(
+        document.getElementById('zk-login-email').value.trim(),
+        document.getElementById('zk-login-password').value
+      );
+    } catch(err){
+      errEl.textContent = (err && err.message) || 'Sign in failed.';
+      errEl.style.display='block';
+    } finally {
+      subBtn.disabled=false; subBtn.textContent='Sign in';
+    }
+  });
+})();
+
+async function zkSignOut(){
+  await zkAuth.signOut();
+}
+
+document.getElementById('zk-quotes-close').addEventListener('click', function(){
+  document.getElementById('zk-quotes-overlay').style.display='none';
+});
+
+/* ---------- Capture / restore current mode state ---------- */
+
+var ZK_MODE_FIELDS = {
+  shell:   ['s-model','s-units','s-snow','s-win','s-miles','s-disc'],
+  modular: ['m-model','m-units','m-base-override','m-snow','m-win','m-miles','m-disc'],
+  garage:  ['g-model','g-units','g-design','g-miles'],
+  hangar:  ['h-model','h-units','h-base-override','h-miles','h-disc'],
+  custom:  ['c-name','c-sqft','c-build','c-eng','c-miles','c-rate','c-scope']
+};
+
+var ZK_BUYER_FIELDS = ['prop-buyer','prop-project','prop-location','prop-email','prop-phone','prop-num','prop-date'];
+
+function zkActiveMode(){
+  var t = document.querySelector('.tab.active');
+  return t ? t.dataset.mode : 'shell';
+}
+
+function zkCaptureConfig(mode){
+  var config = { mode: mode, fields: {}, buyer: {}, customs: [], addons: {} };
+  (ZK_MODE_FIELDS[mode] || []).forEach(function(id){
+    var el = document.getElementById(id); if(el) config.fields[id] = el.value;
+  });
+  ZK_BUYER_FIELDS.forEach(function(id){
+    var el = document.getElementById(id); if(el) config.buyer[id] = el.value;
+  });
+  var customId = mode.charAt(0) + '-custom';
+  var box = document.getElementById(customId);
+  if(box){
+    box.querySelectorAll('.lineitem').forEach(function(row){
+      var d = row.querySelector('[data-cust="desc"]');
+      var a = row.querySelector('[data-cust="amt"]');
+      if(d && a) config.customs.push({ desc: d.value, amt: a.value });
+    });
+  }
+  if(mode === 'modular'){
+    document.querySelectorAll('#m-addons input[type="checkbox"]').forEach(function(c){
+      config.addons[c.id] = c.checked;
+    });
+  }
+  return config;
+}
+
+async function zkSaveCurrentQuote(){
+  if(!window.QUOTE){
+    zkToast('Configure a quote first — pick a model and any options.', true);
+    return;
+  }
+  var mode = zkActiveMode();
+  var config = zkCaptureConfig(mode);
+  var data = {
+    product_kind: mode,
+    model: QUOTE.model || null,
+    brand: QUOTE.company || 'zipkit',
+    units: QUOTE.units || 1,
+    buyer_name:       (document.getElementById('prop-buyer')||{}).value || null,
+    buyer_email:      (document.getElementById('prop-email')||{}).value || null,
+    buyer_phone:      (document.getElementById('prop-phone')||{}).value || null,
+    project_name:     (document.getElementById('prop-project')||{}).value || null,
+    project_location: (document.getElementById('prop-location')||{}).value || null,
+    total:            QUOTE.total || 0,
+    contract_amount:  QUOTE.contract || 0,
+    config:           config,
+    quote_data:       QUOTE
+  };
+  try {
+    var row = await zkQuotes.save(data);
+    zkToast('Saved as ' + row.quote_number);
+  } catch(e){
+    console.error(e);
+    zkToast('Save failed: ' + (e.message || e), true);
+  }
+}
+
+async function zkShowMyQuotes(){
+  var overlay = document.getElementById('zk-quotes-overlay');
+  var listDiv = document.getElementById('zk-quotes-list');
+  overlay.style.display = 'flex';
+  listDiv.innerHTML = '<p style="text-align:center;color:#888;padding:30px 0;">Loading…</p>';
+  try {
+    var quotes = await zkQuotes.list();
+    if(!quotes.length){
+      listDiv.innerHTML = '<p style="text-align:center;color:#888;padding:30px 0;">No saved quotes yet. Configure a quote and click <b>Save Quote</b>.</p>';
+      return;
+    }
+    var html = '<table style="width:100%;border-collapse:collapse;font-size:13px;">'
+      +'<thead><tr style="border-bottom:2px solid #1c1c1a;color:#888;text-transform:uppercase;font-size:11px;letter-spacing:0.05em;">'
+      +'<th style="text-align:left;padding:10px 8px;">Quote #</th>'
+      +'<th style="text-align:left;padding:10px 8px;">Buyer / Project</th>'
+      +'<th style="text-align:left;padding:10px 8px;">Product</th>'
+      +'<th style="text-align:right;padding:10px 8px;">Total</th>'
+      +'<th style="text-align:left;padding:10px 8px;">Updated</th>'
+      +'<th></th>'
+      +'</tr></thead><tbody>';
+    quotes.forEach(function(q){
+      var d = new Date(q.updated_at);
+      var dateStr = d.toLocaleDateString('en-US') + ' ' + d.toLocaleTimeString('en-US', {hour:'2-digit',minute:'2-digit'});
+      var totalStr = q.total ? '$' + Number(q.total).toLocaleString('en-US') : '—';
+      var kind = q.product_kind ? q.product_kind.charAt(0).toUpperCase() + q.product_kind.slice(1) : '';
+      var modelStr = kind + (q.model ? ' · ' + q.model : '') + (q.units > 1 ? ' × ' + q.units : '');
+      var buyerStr = (q.buyer_name || '—') + (q.project_name ? '<div style="color:#888;font-size:11px;">'+q.project_name+'</div>' : '');
+      html += '<tr style="border-bottom:1px solid #e2e0d8;">'
+        +'<td style="padding:10px 8px;font-weight:500;font-family:Menlo,Consolas,monospace;font-size:12px;">'+q.quote_number+'</td>'
+        +'<td style="padding:10px 8px;">'+buyerStr+'</td>'
+        +'<td style="padding:10px 8px;">'+modelStr+'</td>'
+        +'<td style="padding:10px 8px;text-align:right;font-weight:500;">'+totalStr+'</td>'
+        +'<td style="padding:10px 8px;color:#888;font-size:12px;">'+dateStr+'</td>'
+        +'<td style="padding:10px 8px;text-align:right;white-space:nowrap;">'
+        +'<button onclick="zkOpenQuote(\''+q.id+'\')" style="height:30px;padding:0 12px;font-size:12px;border:1px solid #d85a30;background:#d85a30;color:#fff;border-radius:6px;cursor:pointer;font-family:inherit;margin-right:4px;">Open</button>'
+        +'<button onclick="zkDeleteQuote(\''+q.id+'\',\''+q.quote_number+'\')" style="height:30px;padding:0 10px;font-size:12px;border:1px solid #c9c7bd;background:#fff;color:#993c1d;border-radius:6px;cursor:pointer;font-family:inherit;">Delete</button>'
+        +'</td></tr>';
+    });
+    html += '</tbody></table>';
+    listDiv.innerHTML = html;
+  } catch(e){
+    console.error(e);
+    listDiv.innerHTML = '<p style="color:#993c1d;padding:20px;">Failed to load: '+ (e.message || e) +'</p>';
+  }
+}
+
+async function zkOpenQuote(id){
+  try {
+    var q = await zkQuotes.get(id);
+    var cfg = q.config || {};
+    var mode = cfg.mode || q.product_kind || 'shell';
+
+    // Switch to the right mode (this triggers the mode's calc as a side effect)
+    if(typeof setMode === 'function') setMode(mode);
+
+    // Restore field values for the mode
+    if(cfg.fields){
+      Object.keys(cfg.fields).forEach(function(id){
+        var el = document.getElementById(id); if(el) el.value = cfg.fields[id];
+      });
+    }
+
+    // Restore buyer / proposal info
+    if(cfg.buyer){
+      Object.keys(cfg.buyer).forEach(function(id){
+        var el = document.getElementById(id); if(el) el.value = cfg.buyer[id];
+      });
+      // Persist into localStorage so the proposal panel sees it on reload too
+      try { if(typeof saveProposalFields === 'function') saveProposalFields(); } catch(e){}
+    }
+
+    // Rebuild custom line items
+    var customId = mode.charAt(0) + '-custom';
+    var box = document.getElementById(customId);
+    if(box && Array.isArray(cfg.customs)){
+      box.innerHTML = '';
+      cfg.customs.forEach(function(item){
+        if(typeof addCustomItem === 'function'){
+          addCustomItem(mode.charAt(0));
+          var last = box.querySelector('.lineitem:last-child');
+          if(last){
+            var d = last.querySelector('[data-cust="desc"]');
+            var a = last.querySelector('[data-cust="amt"]');
+            if(d) d.value = item.desc || '';
+            if(a) a.value = item.amt || '';
+          }
+        }
+      });
+    }
+
+    // Modular addons checkboxes
+    if(mode === 'modular' && cfg.addons){
+      Object.keys(cfg.addons).forEach(function(addonId){
+        var c = document.getElementById(addonId); if(c) c.checked = cfg.addons[addonId];
+      });
+    }
+
+    // Recompute
+    var calcMap = { shell:'calcShell', modular:'calcModular', garage:'calcGarage', hangar:'calcHangar', custom:'calcCustom' };
+    var fnName = calcMap[mode];
+    if(fnName && typeof window[fnName] === 'function') window[fnName]();
+
+    document.getElementById('zk-quotes-overlay').style.display = 'none';
+    zkToast('Opened ' + q.quote_number);
+  } catch(e){
+    console.error(e);
+    zkToast('Failed to open: ' + (e.message || e), true);
+  }
+}
+
+async function zkDeleteQuote(id, num){
+  if(!confirm('Delete ' + num + '? This cannot be undone.')) return;
+  try {
+    await zkQuotes.remove(id);
+    zkToast('Deleted ' + num);
+    zkShowMyQuotes();
+  } catch(e){
+    zkToast('Delete failed: ' + (e.message || e), true);
+  }
 }
 </script>
 </body>
