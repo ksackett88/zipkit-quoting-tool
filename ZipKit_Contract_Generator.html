@@ -120,6 +120,13 @@
         <div id="c-custom"></div>
         <button class="btn sm" onclick="addCustom()">+ Add custom line</button>
         <p class="note" style="margin-top:10px;">Use this for anything not in the standard kit — for example, "Basement structural framing — $7,500." It'll flow into the total and the payments.</p>
+
+        <label style="margin-top:14px;">Already paid (remove from payment schedule)</label>
+        <div style="display:flex; flex-direction:column; gap:8px; margin-bottom:6px; font-size:13px;">
+          <label style="display:flex; align-items:center; gap:8px; margin:0; cursor:pointer; color:var(--ink);"><input type="checkbox" id="c-design-paid" style="accent-color:var(--accent); width:16px; height:16px;"> Design retainer ($2,500)</label>
+          <label style="display:flex; align-items:center; gap:8px; margin:0; cursor:pointer; color:var(--ink);"><input type="checkbox" id="c-eng-paid" style="accent-color:var(--accent); width:16px; height:16px;"> Engineering submittal</label>
+        </div>
+        <p class="note">Check these if the customer already paid them up-front. Each checked item is marked PAID on the contract and dropped from the payment schedule.</p>
       </div>
 
       <div class="card">
@@ -197,6 +204,13 @@
         <label style="margin-top:8px;">Custom line items</label>
         <div id="cu-custom"></div>
         <button class="btn sm" onclick="addCuCustom()">+ Add custom line</button>
+
+        <label style="margin-top:14px;">Already paid (remove from payment schedule)</label>
+        <div style="display:flex; flex-direction:column; gap:8px; margin-bottom:6px; font-size:13px;">
+          <label style="display:flex; align-items:center; gap:8px; margin:0; cursor:pointer; color:var(--ink);"><input type="checkbox" id="cu-design-paid" style="accent-color:var(--accent); width:16px; height:16px;"> Design retainer ($3,500)</label>
+          <label style="display:flex; align-items:center; gap:8px; margin:0; cursor:pointer; color:var(--ink);"><input type="checkbox" id="cu-eng-paid" style="accent-color:var(--accent); width:16px; height:16px;"> Engineering</label>
+        </div>
+        <p class="note">Check these if the customer already paid them up-front. Each checked item is marked PAID on the contract and dropped from the payment schedule.</p>
       </div>
 
       <div class="card">
@@ -233,7 +247,7 @@
     </div>
   </div>
 
-  <footer>ZipKit Homes &amp; Mountain Valley Prefab · Contract Generator · Version 4.0 · 2026 · Supabase auth (sign-in required) · Always have a contract approved by Sven before it goes to a customer.</footer>
+  <footer>ZipKit Homes &amp; Mountain Valley Prefab · Contract Generator · Version 4.1 · 2026 · "Already paid" checkboxes for design / engineering on shell + custom (PAID line on contract, stage removed from payment schedule) · Always have a contract approved by Sven before it goes to a customer.</footer>
 </div>
 
 <script>
@@ -399,7 +413,7 @@ function addCustom(val){
   var sel=document.getElementById('c-model');
   SHELL.forEach(function(m,i){var o=document.createElement('option');o.value=i;o.textContent=m[0]+' · '+m[1]+' sqft';sel.appendChild(o);});
   sel.value=SHELL.findIndex(function(m){return m[0]==='Cedar';});
-  ['c-model','c-snow','c-win','c-miles'].forEach(function(id){var el=document.getElementById(id);el.addEventListener('input',calc);el.addEventListener('change',calc);});
+  ['c-model','c-snow','c-win','c-miles','c-design-paid','c-eng-paid'].forEach(function(id){var el=document.getElementById(id);el.addEventListener('input',calc);el.addEventListener('change',calc);});
   buildScopeUI();
   calc();
 })();
@@ -428,10 +442,15 @@ function calc(){
   document.getElementById('c-ship-note').textContent=miles>0?miles.toLocaleString()+' mi × $'+rate+' = '+fmt(ship):'Enter distance · $'+rate+'/mi';
   var customs=getCustomItems();
 
+  var designPaid = !!(document.getElementById('c-design-paid') && document.getElementById('c-design-paid').checked);
+  var engPaid    = !!(document.getElementById('c-eng-paid')    && document.getElementById('c-eng-paid').checked);
+
   // Build summary lines
   var rows='';
   function row(l,a,o){o=o||{};var s=o.sub?'<div class="sub">'+o.sub+'</div>':'';return '<tr><td class="label">'+l+s+'</td><td class="amt">'+fmt(a)+'</td></tr>';}
-  rows+=row('Engineered plans',eng,{sub:'payment 1 of contract'});
+  function rowPaid(l,a){return '<tr><td class="label">'+l+'<div class="sub">PAID — already received · was '+fmt(a)+'</div></td><td class="amt" style="color:var(--hint);">PAID</td></tr>';}
+  if(engPaid) rows+=rowPaid('Engineered plans', eng);
+  else        rows+=row('Engineered plans',eng,{sub:'payment 1 of contract'});
   rows+=row('Framed panelized kit',shell,{sub:m[0]+' shell'});
   if(snow>0) rows+=row('Snow load upgrade',snow);
   if(win>0) rows+=row('Window & exterior door package',win,{sub:'incl. standard entry doors'});
@@ -447,22 +466,23 @@ function calc(){
   var dRow=document.getElementById('c-design-row');
   if(dRow) dRow.style.display='';
   var dVal=document.getElementById('c-design');
-  if(dVal) dVal.textContent='$2,500';
+  if(dVal) dVal.textContent = designPaid ? 'PAID' : '$2,500';
 
-  // Payments: engineering first, then 45/45/10 of remainder
+  // Payments: engineering first (if not paid), then 45/45/10 of remainder
   var remainder=contract-eng;
   var p2=Math.round(remainder*0.45), p3=Math.round(remainder*0.45);
   var p4=remainder-p2-p3; // final absorbs rounding (the 10%)
   var prows='';
   function prow(l,a,o){o=o||{};var s=o.sub?'<div class="sub">'+o.sub+'</div>':'';return '<tr><td class="label">'+l+s+'</td><td class="amt">'+fmt(a)+'</td></tr>';}
-  prows+=prow('Payment 1 — Engineering',eng,{sub:'engineer-stamped plans · secures production slot'});
-  prows+=prow('Payment 2 — 45%',p2,{sub:'45% of remainder · long-lead materials, begins production'});
-  prows+=prow('Payment 3 — 45%',p3,{sub:'45% of remainder · before shipment'});
+  if(!engPaid) prows+=prow('Payment 1 — Engineering',eng,{sub:'engineer-stamped plans · secures production slot'});
+  prows+=prow((engPaid?'Payment 1':'Payment 2')+' — 45%',p2,{sub:'45% of remainder · long-lead materials, begins production'});
+  prows+=prow((engPaid?'Payment 2':'Payment 3')+' — 45%',p3,{sub:'45% of remainder · before shipment'});
   prows+=prow('Final Payment — 10%',p4,{sub:'10% of remainder · at completion'});
-  prows+='<tr><td class="label" style="border-top:1px solid var(--line);padding-top:8px;font-weight:500;color:var(--ink);">Sum of payments</td><td class="amt" style="border-top:1px solid var(--line);padding-top:8px;font-weight:500;">'+fmt(eng+p2+p3+p4)+'</td></tr>';
+  var paymentSum = (engPaid ? 0 : eng) + p2 + p3 + p4;
+  prows+='<tr><td class="label" style="border-top:1px solid var(--line);padding-top:8px;font-weight:500;color:var(--ink);">Sum of payments</td><td class="amt" style="border-top:1px solid var(--line);padding-top:8px;font-weight:500;">'+fmt(paymentSum)+'</td></tr>';
   document.getElementById('c-payments').innerHTML=prows;
 
-  CURRENT={m:m,eng:eng,shell:shell,snow:snow,win:win,winLabel:winSel>=0?['Cascade WinPro Vinyl — Clay/White','Cascade WinPro Vinyl — Black/White','Amsco Studios','Andersen 100 Series'][winSel]:'',ship:ship,miles:miles,rate:rate,customs:customs,contract:contract,p1:eng,p2:p2,p3:p3,p4:p4};
+  CURRENT={m:m,eng:eng,shell:shell,snow:snow,win:win,winLabel:winSel>=0?['Cascade WinPro Vinyl — Clay/White','Cascade WinPro Vinyl — Black/White','Amsco Studios','Andersen 100 Series'][winSel]:'',ship:ship,miles:miles,rate:rate,customs:customs,contract:contract,p1:eng,p2:p2,p3:p3,p4:p4,designPaid:designPaid,engPaid:engPaid};
 }
 
 function generateContract(){
@@ -482,7 +502,9 @@ function generateContract(){
   // Cost summary rows
   var sumRows='';
   function sr(l,a,comment){return '<tr><td style="padding:5px 8px;border:1px solid #ccc;">'+l+'</td><td style="padding:5px 8px;border:1px solid #ccc;text-align:right;white-space:nowrap;">'+fmt(a)+'</td><td style="padding:5px 8px;border:1px solid #ccc;font-size:11px;color:#555;">'+(comment||'')+'</td></tr>';}
-  sumRows+=sr('Engineered plans',c.eng,'payment 1 of contract');
+  function srPaid(l,a){return '<tr><td style="padding:5px 8px;border:1px solid #ccc;">'+l+'</td><td style="padding:5px 8px;border:1px solid #ccc;text-align:right;white-space:nowrap;color:#888;">PAID</td><td style="padding:5px 8px;border:1px solid #ccc;font-size:11px;color:#555;">already received · was '+fmt(a)+'</td></tr>';}
+  if(c.engPaid) sumRows+=srPaid('Engineered plans', c.eng);
+  else          sumRows+=sr('Engineered plans',c.eng,'payment 1 of contract');
   sumRows+=sr('Framed Panelized Kit',c.shell,c.m[1]+' sqft livable');
   if(c.snow>0) sumRows+=sr('Snow load upgrade',c.snow,'');
   if(c.win>0) sumRows+=sr('Window and Exterior Door Package',c.win,c.winLabel);
@@ -543,7 +565,9 @@ function generateContract(){
   // Design retainer (separate)
   +'<table style="width:100%;border-collapse:collapse;margin-top:18px;font-size:12px;">'
   +'<tr><td style="padding:5px 8px;border:1px solid #ccc;background:#f5f3ec;font-weight:600;">Design (separate from contract)</td><td style="padding:5px 8px;border:1px solid #ccc;background:#f5f3ec;font-weight:600;text-align:right;">Price</td><td style="padding:5px 8px;border:1px solid #ccc;background:#f5f3ec;font-weight:600;">Comments</td></tr>'
-  +'<tr><td style="padding:5px 8px;border:1px solid #ccc;">Design Retainer</td><td style="padding:5px 8px;border:1px solid #ccc;text-align:right;">'+fmt(SHELL_DESIGN)+'</td><td style="padding:5px 8px;border:1px solid #ccc;font-size:11px;">Separate retainer · paid up front · not part of contract</td></tr>'
+  +(c.designPaid
+    ? '<tr><td style="padding:5px 8px;border:1px solid #ccc;">Design Retainer</td><td style="padding:5px 8px;border:1px solid #ccc;text-align:right;color:#888;">PAID</td><td style="padding:5px 8px;border:1px solid #ccc;font-size:11px;">Already received · was '+fmt(SHELL_DESIGN)+' · separate from contract</td></tr>'
+    : '<tr><td style="padding:5px 8px;border:1px solid #ccc;">Design Retainer</td><td style="padding:5px 8px;border:1px solid #ccc;text-align:right;">'+fmt(SHELL_DESIGN)+'</td><td style="padding:5px 8px;border:1px solid #ccc;font-size:11px;">Separate retainer · paid up front · not part of contract</td></tr>')
   +'</table>'
   // Contract cost summary
   +'<table style="width:100%;border-collapse:collapse;margin-top:14px;font-size:12px;">'
@@ -554,7 +578,9 @@ function generateContract(){
   // Payment schedule
   +'<table style="width:100%;border-collapse:collapse;margin-top:14px;font-size:12px;">'
   +'<tr><td style="padding:5px 8px;border:1px solid #ccc;background:#f5f3ec;font-weight:600;" colspan="3">Estimated Timing &amp; Payment Schedule</td></tr>'
-  +'<tr><td style="padding:6px 8px;border:1px solid #ccc;">Payment 1 (engineering)</td><td style="padding:6px 8px;border:1px solid #ccc;text-align:right;">'+fmt(c.p1)+'</td><td style="padding:6px 8px;border:1px solid #ccc;font-size:11px;">Full submit-ready, engineer-stamped plans, delivered within 4 weeks of execution. Secures the project on the production schedule.</td></tr>'
+  +(c.engPaid
+    ? '<tr><td style="padding:6px 8px;border:1px solid #ccc;">Payment 1 (engineering)</td><td style="padding:6px 8px;border:1px solid #ccc;text-align:right;color:#888;">PAID</td><td style="padding:6px 8px;border:1px solid #ccc;font-size:11px;">Already received · was '+fmt(c.p1)+'</td></tr>'
+    : '<tr><td style="padding:6px 8px;border:1px solid #ccc;">Payment 1 (engineering)</td><td style="padding:6px 8px;border:1px solid #ccc;text-align:right;">'+fmt(c.p1)+'</td><td style="padding:6px 8px;border:1px solid #ccc;font-size:11px;">Full submit-ready, engineer-stamped plans, delivered within 4 weeks of execution. Secures the project on the production schedule.</td></tr>')
   +'<tr><td style="padding:6px 8px;border:1px solid #ccc;">Payment 2 (45%)</td><td style="padding:6px 8px;border:1px solid #ccc;text-align:right;">'+fmt(c.p2)+'</td><td style="padding:6px 8px;border:1px solid #ccc;font-size:11px;">45% of remainder after engineering. Covers long-lead-time materials (lumber, windows, etc.) and begins production.</td></tr>'
   +'<tr><td style="padding:6px 8px;border:1px solid #ccc;">Payment 3 (45%)</td><td style="padding:6px 8px;border:1px solid #ccc;text-align:right;">'+fmt(c.p3)+'</td><td style="padding:6px 8px;border:1px solid #ccc;font-size:11px;">45% of remainder. Due before the kit ships, unless agreed otherwise in writing.</td></tr>'
   +'<tr><td style="padding:6px 8px;border:1px solid #ccc;">Final Payment (10%)</td><td style="padding:6px 8px;border:1px solid #ccc;text-align:right;">'+fmt(c.p4)+'</td><td style="padding:6px 8px;border:1px solid #ccc;font-size:11px;">10% of remainder. Due when framing and Zip Kit Homes scope of work is completed onsite.</td></tr>'
@@ -1095,7 +1121,7 @@ function initCustomContract(){
   // Default to the generic Custom Home photo
   sel.value = 'Custom Home';
 
-  ['cu-name','cu-sqft','cu-build','cu-eng','cu-miles','cu-rate','cu-photo'].forEach(function(id){
+  ['cu-name','cu-sqft','cu-build','cu-eng','cu-miles','cu-rate','cu-photo','cu-design-paid','cu-eng-paid'].forEach(function(id){
     var el = document.getElementById(id);
     el.addEventListener('input', calcCustom);
     el.addEventListener('change', calcCustom);
@@ -1192,37 +1218,41 @@ function calcCustom(){
 
   var customs = getCuCustoms();
   var customTotal = customs.reduce(function(a,c){return a+c.amt;}, 0);
+  var designPaid = !!(document.getElementById('cu-design-paid') && document.getElementById('cu-design-paid').checked);
+  var engPaid    = !!(document.getElementById('cu-eng-paid')    && document.getElementById('cu-eng-paid').checked);
 
   var rows = '';
   function row(l,a,sub){var s=sub?'<div class="sub">'+sub+'</div>':''; return '<tr><td class="label">'+l+s+'</td><td class="amt">'+fmt(a)+'</td></tr>';}
-  rows += row('Engineering', eng, 'payment 1 of contract');
+  function rowPaid(l,a){return '<tr><td class="label">'+l+'<div class="sub">PAID — already received · was '+fmt(a)+'</div></td><td class="amt" style="color:var(--hint);">PAID</td></tr>';}
+  if(engPaid && eng>0) rows += rowPaid('Engineering', eng);
+  else                 rows += row('Engineering', eng, 'payment 1 of contract');
   rows += row('Custom build', build, (sqft>0 ? sqft.toLocaleString()+' sqft livable' : 'negotiated build cost'));
   customs.forEach(function(c){ rows += row(c.desc, c.amt, c.amt<0?'credit':'add-on'); });
   if(ship>0) rows += row('Shipping', ship, miles+' mi @ $'+rate+'/mi');
   document.getElementById('c-lines').innerHTML = rows;
 
-  // Show & set the design retainer for custom homes ($3,500)
+  // Show & set the design retainer for custom homes ($3,500) — PAID if checked
   var dRow = document.getElementById('c-design-row');
   if(dRow) dRow.style.display = '';
   var dVal = document.getElementById('c-design');
-  if(dVal) dVal.textContent = fmt(CUSTOM_DESIGN);
+  if(dVal) dVal.textContent = designPaid ? 'PAID' : fmt(CUSTOM_DESIGN);
 
   var contract = eng + build + customTotal + ship;
   document.getElementById('c-total').textContent = fmt(contract);
 
-  // Payments: engineering first, then 45/45/10 of remainder
+  // Payments: engineering first (if not paid), then 45/45/10 of remainder
   var remainder = contract - eng;
   var p2 = Math.round(remainder*0.45), p3 = Math.round(remainder*0.45);
   var p4 = remainder - p2 - p3;
   var prows = '';
   function prow(l,a,sub){var s=sub?'<div class="sub">'+sub+'</div>':''; return '<tr><td class="label">'+l+s+'</td><td class="amt">'+fmt(a)+'</td></tr>';}
-  prows += prow('Engineering', eng, 'payment 1 · due at contract signing');
+  if(!engPaid) prows += prow('Engineering', eng, 'payment 1 · due at contract signing');
   prows += prow('Materials (45%)', p2, '45% of remainder · due after engineering');
-  prows += prow('Pre-ship (45%)', p3, '45% of remainder · due before shipment');
+  prows += prow('Pre-ship (45%)', p3, '45% of remainder · before shipment');
   prows += prow('Final set (10%)', p4, '10% of remainder · due on set');
   document.getElementById('c-payments').innerHTML = prows;
 
-  CURRENT_CUSTOM = {name:name, sqft:sqft, build:build, eng:eng, miles:miles, rate:rate, ship:ship, photo:photo, customs:customs, contract:contract, p1:eng, p2:p2, p3:p3, p4:p4};
+  CURRENT_CUSTOM = {name:name, sqft:sqft, build:build, eng:eng, miles:miles, rate:rate, ship:ship, photo:photo, customs:customs, contract:contract, p1:eng, p2:p2, p3:p3, p4:p4, designPaid:designPaid, engPaid:engPaid};
 }
 
 function generateCustomContract(){
@@ -1243,7 +1273,9 @@ function generateCustomContract(){
   // Custom homes always go through ZipKit (panelized shell kit purchase agreement)
   var sumRows = '';
   function sr(l,a,comment){return '<tr><td style="padding:5px 8px;border:1px solid #ccc;">'+l+'</td><td style="padding:5px 8px;border:1px solid #ccc;text-align:right;white-space:nowrap;">'+fmt(a)+'</td><td style="padding:5px 8px;border:1px solid #ccc;font-size:11px;color:#555;">'+(comment||'')+'</td></tr>';}
-  sumRows += sr('Engineered plans', c.eng, 'payment 1 of contract');
+  function srPaid(l,a){return '<tr><td style="padding:5px 8px;border:1px solid #ccc;">'+l+'</td><td style="padding:5px 8px;border:1px solid #ccc;text-align:right;white-space:nowrap;color:#888;">PAID</td><td style="padding:5px 8px;border:1px solid #ccc;font-size:11px;color:#555;">already received · was '+fmt(a)+'</td></tr>';}
+  if(c.engPaid) sumRows += srPaid('Engineered plans', c.eng);
+  else          sumRows += sr('Engineered plans', c.eng, 'payment 1 of contract');
   sumRows += sr('Custom build', c.build, c.sqft>0 ? c.sqft.toLocaleString()+' sqft livable' : 'negotiated build cost');
   c.customs.forEach(function(x){ sumRows += sr(x.desc, x.amt, ''); });
   if(c.ship>0) sumRows += sr('Shipping', c.ship, c.miles+' miles at $'+c.rate+'/mile');
@@ -1295,7 +1327,9 @@ function generateCustomContract(){
   // Design retainer
   +'<table style="width:100%;border-collapse:collapse;margin-top:18px;font-size:12px;">'
   +'<tr><td style="padding:5px 8px;border:1px solid #ccc;background:#5f5e5a;color:#fff;font-weight:600;" colspan="3">DESIGN RETAINER (separate from contract)</td></tr>'
-  +'<tr><td style="padding:5px 8px;border:1px solid #ccc;">Architectural design retainer</td><td style="padding:5px 8px;border:1px solid #ccc;text-align:right;">'+fmt(CUSTOM_DESIGN)+'</td><td style="padding:5px 8px;border:1px solid #ccc;font-size:11px;color:#555;">paid up front · separate from contract</td></tr>'
+  +(c.designPaid
+    ? '<tr><td style="padding:5px 8px;border:1px solid #ccc;">Architectural design retainer</td><td style="padding:5px 8px;border:1px solid #ccc;text-align:right;color:#888;">PAID</td><td style="padding:5px 8px;border:1px solid #ccc;font-size:11px;color:#555;">Already received · was '+fmt(CUSTOM_DESIGN)+'</td></tr>'
+    : '<tr><td style="padding:5px 8px;border:1px solid #ccc;">Architectural design retainer</td><td style="padding:5px 8px;border:1px solid #ccc;text-align:right;">'+fmt(CUSTOM_DESIGN)+'</td><td style="padding:5px 8px;border:1px solid #ccc;font-size:11px;color:#555;">paid up front · separate from contract</td></tr>')
   +'</table>'
   // Contract cost summary
   +'<table style="width:100%;border-collapse:collapse;margin-top:14px;font-size:12px;">'
@@ -1306,7 +1340,9 @@ function generateCustomContract(){
   // Payment schedule
   +'<table style="width:100%;border-collapse:collapse;margin-top:14px;font-size:12px;">'
   +'<tr><td style="padding:5px 8px;border:1px solid #ccc;background:#f5f3ec;font-weight:600;" colspan="3">Estimated Timing &amp; Payment Schedule</td></tr>'
-  +'<tr><td style="padding:5px 8px;border:1px solid #ccc;">Payment 1 — Engineering</td><td style="padding:5px 8px;border:1px solid #ccc;text-align:right;">'+fmt(c.p1)+'</td><td style="padding:5px 8px;border:1px solid #ccc;font-size:11px;color:#555;">due at contract signing</td></tr>'
+  +(c.engPaid
+    ? '<tr><td style="padding:5px 8px;border:1px solid #ccc;">Payment 1 — Engineering</td><td style="padding:5px 8px;border:1px solid #ccc;text-align:right;color:#888;">PAID</td><td style="padding:5px 8px;border:1px solid #ccc;font-size:11px;color:#555;">Already received · was '+fmt(c.p1)+'</td></tr>'
+    : '<tr><td style="padding:5px 8px;border:1px solid #ccc;">Payment 1 — Engineering</td><td style="padding:5px 8px;border:1px solid #ccc;text-align:right;">'+fmt(c.p1)+'</td><td style="padding:5px 8px;border:1px solid #ccc;font-size:11px;color:#555;">due at contract signing</td></tr>')
   +'<tr><td style="padding:5px 8px;border:1px solid #ccc;">Payment 2 — Materials (45%)</td><td style="padding:5px 8px;border:1px solid #ccc;text-align:right;">'+fmt(c.p2)+'</td><td style="padding:5px 8px;border:1px solid #ccc;font-size:11px;color:#555;">45% of remainder · due after engineering</td></tr>'
   +'<tr><td style="padding:5px 8px;border:1px solid #ccc;">Payment 3 — Pre-ship (45%)</td><td style="padding:5px 8px;border:1px solid #ccc;text-align:right;">'+fmt(c.p3)+'</td><td style="padding:5px 8px;border:1px solid #ccc;font-size:11px;color:#555;">45% of remainder · due before shipment</td></tr>'
   +'<tr><td style="padding:5px 8px;border:1px solid #ccc;">Final — Set (10%)</td><td style="padding:5px 8px;border:1px solid #ccc;text-align:right;">'+fmt(c.p4)+'</td><td style="padding:5px 8px;border:1px solid #ccc;font-size:11px;color:#555;">10% of remainder · due on set</td></tr>'
