@@ -107,6 +107,7 @@
     <button class="tab" data-mode="modular" onclick="setMode('modular')">Modular Units</button>
     <button class="tab" data-mode="garage" onclick="setMode('garage')">Garages</button>
     <button class="tab" data-mode="hangar" onclick="setMode('hangar')">Airplane Hangars</button>
+    <button class="tab" data-mode="steel" onclick="setMode('steel')">Steel Frame</button>
     <button class="tab" data-mode="custom" onclick="setMode('custom')">Custom Home</button>
   </div>
 
@@ -338,6 +339,68 @@
     </div>
   </div>
 
+  <!-- STEEL FRAME MODE -->
+  <div class="mode" id="mode-steel">
+    <div class="grid">
+      <div class="card inputs">
+        <h2>Configure light-gauge steel frame quote</h2>
+        <p class="note" style="margin-top:0;">Free-form pricing — fill in what you've negotiated for the project. Pricing structure and scope will firm up over time.</p>
+
+        <label for="st-name">Project name</label>
+        <input type="text" id="st-name" placeholder="e.g. Jensen Steel Frame · Lot 22">
+
+        <label for="st-sqft">Square footage</label>
+        <input type="number" id="st-sqft" min="0" step="1" placeholder="e.g. 1850">
+        <p class="note">Display only — doesn't affect the calculated total.</p>
+
+        <label for="st-build">Frame package cost ($)</label>
+        <input type="number" id="st-build" min="0" step="100" placeholder="e.g. 92000">
+        <p class="note">Negotiated price for the light-gauge steel frame package. Design and engineering are billed separately.</p>
+
+        <label for="st-eng">Engineering ($)</label>
+        <input type="number" id="st-eng" min="0" step="100" placeholder="varies by project — confirm with engineering">
+        <p class="note">Quoted per project. Steel framing typically requires stamped engineering.</p>
+
+        <label for="st-miles">Shipping distance (miles)</label>
+        <input type="number" id="st-miles" min="0" max="2000" step="10" value="0">
+
+        <label for="st-rate">Shipping rate ($/mile)</label>
+        <input type="number" id="st-rate" min="0" step="1" value="14">
+        <p class="note" id="st-ship-note">Default $14/mi. Adjust as needed.</p>
+
+        <label for="st-scope">Scope / description</label>
+        <textarea id="st-scope" rows="6" placeholder="Describe what's included in this steel frame package. One line per item.&#10;&#10;e.g.&#10;Light-gauge steel wall, floor, and roof framing&#10;Engineered steel joists &amp; rafters&#10;Hardware, fasteners, and steel connectors&#10;Stamped engineering for jurisdiction"></textarea>
+        <p class="note">Each line becomes a bullet on the proposal's "What's included" list.</p>
+
+        <label style="margin-top:8px;">Already paid (remove from total &amp; payment schedule)</label>
+        <div class="checkrow"><input type="checkbox" id="st-design-paid"><label for="st-design-paid" style="margin:0;color:var(--ink);">Design retainer ($2,500)</label></div>
+        <div class="checkrow"><input type="checkbox" id="st-eng-paid"><label for="st-eng-paid" style="margin:0;color:var(--ink);">Engineering</label></div>
+
+        <label>Add-ons &amp; extras</label>
+        <div id="st-custom"></div>
+        <button type="button" class="btn-sm" onclick="addCustomItem('st')">+ Add line item</button>
+        <p class="custom-help">For extras not covered in the base steel package — premium connectors, custom fabrication, etc. Use a negative amount for a credit.</p>
+
+        <div class="disclaimer">
+          Heads up: steel framing has a $2,500 design retainer up front. Engineering is quoted per project — get a real number from the engineering team before sending. Pricing structure for steel is still being firmed up — confirm everything with Sven before this goes to a customer.
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Quote summary</h2>
+        <table><tbody id="st-lines"></tbody></table>
+        <div class="total-row">
+          <div class="total-flex"><span class="lbl">Total project price</span><span class="val" id="st-total">$0</span></div>
+          <p class="per-unit" id="st-per-sqft"></p>
+        </div>
+        <div class="actions">
+          <button class="act" onclick="window.print()">Print / Save as PDF</button>
+          <button class="act primary" onclick="resetSteel()">Reset</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- CUSTOM HOME MODE -->
   <div class="mode" id="mode-custom">
     <div class="grid">
@@ -439,7 +502,7 @@
     </div>
   </div>
 
-  <footer>ZipKit Homes &amp; Mountain Valley Prefab · Sales Team Tool · 2026 · When a shipping range shows, this quote uses the high end to be safe — always confirm the real rate with the office before you send a quote.<br><span style="opacity:0.7;">Version 4.1 · updated May 26, 2026 · "Already paid" checkboxes for design / engineering (shell · garage · hangar · custom) — removes from total, proposal, and invoice schedule</span></footer>
+  <footer>ZipKit Homes &amp; Mountain Valley Prefab · Sales Team Tool · 2026 · When a shipping range shows, this quote uses the high end to be safe — always confirm the real rate with the office before you send a quote.<br><span style="opacity:0.7;">Version 4.2 · updated May 26, 2026 · Steel Frame tab added (light-gauge steel framing, free-form pricing like Custom Home, ZipKit Steel branding) · fixed Hangar proposal pulling wrong line items</span></footer>
 </div>
 
 <div id="invoice-print" style="display:none;"></div>
@@ -521,6 +584,21 @@ var PAYMENT_INFO = {
       bankAddress: [],
       businessAddress: ['3791 East 49th North', 'Idaho Falls, ID 83401']
     }
+  },
+  // ZipKit Steel is the same legal entity as ZipKit Homes, so wire + mailing
+  // are identical. Only the displayed brand on the doc differs.
+  zksteel: {
+    payable: 'Zip Kit Homes, LLC',
+    mailing: ['3665 W 2700 S', 'Cedar City, UT 84720'],
+    wire: {
+      accountName: 'ZipKit USA LLC',
+      accountNumber: '501019237956',
+      routingNumber: '324079555',
+      bank: 'Mountain America Credit Union',
+      bankBranch: 'Royal Hunt Drive UT Branch',
+      bankAddress: ['1701 Royal Hunte Dr.', 'Cedar City, UT 84720'],
+      businessAddress: ['3665 W 2700 S', 'Cedar City, UT 84720']
+    }
   }
 };
 
@@ -536,9 +614,11 @@ function generateInvoice(){
   var repEmail = (document.getElementById('rep-email').value || '').trim();
   var repPhone = (document.getElementById('rep-phone').value || '').trim();
 
-  var co = QUOTE.company==='mvp'
+  var co = (QUOTE.company==='mvp')
     ? {name:'Mountain Valley Prefab', addr:'3791 East 49th North, Idaho Falls ID 83401', tel:'(435) 592·3596', email:'sales@mountainvalleyprefab.com', logo:MVP_LOGO}
-    : {name:'Zip Kit Homes', addr:'3665 West 2700 South, Cedar City UT 84720', tel:'(435) 340·1171', email:'sales@zipkithomes.com', logo:ZIPKIT_LOGO};
+    : (QUOTE.company==='zksteel')
+      ? {name:'Zip Kit Steel', addr:'3665 West 2700 South, Cedar City UT 84720', tel:'(435) 340·1171', email:'sales@zipkitsteel.com', logo:zkImageUrl('zksteel-logo.png')}
+      : {name:'Zip Kit Homes', addr:'3665 West 2700 South, Cedar City UT 84720', tel:'(435) 340·1171', email:'sales@zipkithomes.com', logo:ZIPKIT_LOGO};
 
   var pay = PAYMENT_INFO[QUOTE.company] || PAYMENT_INFO.zipkit;
 
@@ -754,19 +834,24 @@ function generateProposal(){
   var repEmail=g('rep-email')||'';
   var repPhone=g('rep-phone')||'';
 
-  var co = QUOTE.company==='mvp'
+  var co = (QUOTE.company==='mvp')
     ? {name:'Mountain Valley Prefab', addr:'3791 East 49th North, Idaho Falls ID 83401', tel:'(435) 592·3596', email:'sales@mountainvalleyprefab.com', logo:MVP_LOGO}
-    : {name:'Zip Kit Homes', addr:'3665 West 2700 South, Cedar City UT 84720', tel:'(435) 340·1171', email:'sales@zipkithomes.com', logo:ZIPKIT_LOGO};
+    : (QUOTE.company==='zksteel')
+      ? {name:'Zip Kit Steel', addr:'3665 West 2700 South, Cedar City UT 84720', tel:'(435) 340·1171', email:'sales@zipkitsteel.com', logo:zkImageUrl('zksteel-logo.png')}
+      : {name:'Zip Kit Homes', addr:'3665 West 2700 South, Cedar City UT 84720', tel:'(435) 340·1171', email:'sales@zipkithomes.com', logo:ZIPKIT_LOGO};
 
   var photoUrls=modelPhotoUrls(QUOTE.model);
   var stages=invoiceStages(QUOTE);
   var schedTotal=stages.reduce(function(a,s){return a+s.amount;},0);
-  // Custom homes use the rep-typed scope from the textarea; everything else uses the canned scope.
+  // Custom Home + Steel Frame use the rep-typed scope from the textarea; everything else uses the canned scope.
   var scope;
-  if(QUOTE.kind==='Custom Home'){
+  if(QUOTE.kind==='Custom Home' || QUOTE.kind==='Steel Frame'){
+    var defaultLine = QUOTE.kind==='Steel Frame'
+      ? 'Light-gauge steel frame package per design specifications (fill in the scope field for project-specific bullets)'
+      : 'Full custom build per design specifications (fill in the scope field for project-specific bullets)';
     var included = (QUOTE.customScope && QUOTE.customScope.length>0)
       ? QUOTE.customScope
-      : ['Full custom build per design specifications (fill in the scope field for project-specific bullets)'];
+      : [defaultLine];
     scope = {
       included: included,
       notIncluded: ['Anything not specifically listed above','Site prep and foundation','Utility connections','Building permits and inspections','Sales tax']
@@ -777,10 +862,12 @@ function generateProposal(){
 
   // Pull pricing rows from the active mode's table (already calculated)
   var modeId =
-    QUOTE.kind==='Modular' ? 'm-lines' :
-    QUOTE.kind==='Garage'  ? 'g-lines' :
-    QUOTE.kind==='Custom Home' ? 'c-lines' :
-                                 's-lines';
+    QUOTE.kind==='Modular'      ? 'm-lines' :
+    QUOTE.kind==='Garage'       ? 'g-lines' :
+    QUOTE.kind==='Hangar'       ? 'h-lines' :
+    QUOTE.kind==='Steel Frame'  ? 'st-lines' :
+    QUOTE.kind==='Custom Home'  ? 'c-lines' :
+                                  's-lines';
   var pricingRows = document.getElementById(modeId).innerHTML;
 
   var scheduleRows = stages.map(function(s){
@@ -959,15 +1046,24 @@ function setMode(mode){
   if(mode==='modular') { updateModularBrand(); calcModular(); }
   else if(mode==='garage') { setBrand('zipkit'); calcGarage(); }
   else if(mode==='hangar') { setBrand('zipkit'); calcHangar(); }
+  else if(mode==='steel')  { setBrand('zksteel'); calcSteel(); }
   else if(mode==='custom') { setBrand('zipkit'); calcCustom(); }
   else { setBrand('zipkit'); calcShell(); }
 }
+// Absolute URL for image files referenced from popups (and the header).
+function zkImageUrl(name){
+  return window.location.href.split('/').slice(0,-1).join('/') + '/images/' + name;
+}
+
 function setBrand(which){
   var brandSub = document.getElementById('brand-sub');
   var contact = document.getElementById('contact');
   if(which==='mvp'){
     document.getElementById('brand').innerHTML = '<a href="index.html" title="Back to sales tools" style="display:inline-block;"><img id="brand-logo" src="' + MVP_LOGO + '" alt="Mountain Valley Prefab" style="height:92px;"></a><small id="brand-sub">Sales Quoting Tool</small>';
     contact.innerHTML = MVP_CONTACT;
+  } else if(which==='zksteel'){
+    document.getElementById('brand').innerHTML = '<a href="index.html" title="Back to sales tools" style="display:inline-block;"><img id="brand-logo" src="' + zkImageUrl('zksteel-logo.png') + '" alt="ZipKit Steel" style="height:60px;" onerror="this.src=\'' + ZIPKIT_LOGO + '\';this.alt=\'Zip Kit Homes\';"></a><small id="brand-sub">Sales Quoting Tool</small>';
+    contact.innerHTML = ZIPKIT_CONTACT;  // same legal entity as ZipKit Homes
   } else {
     document.getElementById('brand').innerHTML = '<a href="index.html" title="Back to sales tools" style="display:inline-block;"><img id="brand-logo" src="' + ZIPKIT_LOGO + '" alt="Zip Kit Homes"></a><small id="brand-sub">Sales Quoting Tool</small>';
     contact.innerHTML = ZIPKIT_CONTACT;
@@ -1007,7 +1103,7 @@ function addCustomItem(prefix){
     +'<input type="number" placeholder="0" data-cust="amt" step="1">'
     +'<button type="button" class="remove" title="Remove">×</button>';
   container.appendChild(div);
-  var fn = prefix==='s' ? calcShell : (prefix==='m' ? calcModular : (prefix==='h' ? calcHangar : calcGarage));
+  var fn = prefix==='s' ? calcShell : (prefix==='m' ? calcModular : (prefix==='h' ? calcHangar : (prefix==='st' ? calcSteel : calcGarage)));
   div.querySelectorAll('input').forEach(function(i){ i.addEventListener('input', fn); });
   div.querySelector('.remove').addEventListener('click', function(){ div.remove(); fn(); });
   fn();
@@ -1436,6 +1532,88 @@ function calcCustom(){
   };
   renderInvoiceStages();
 }
+
+/* ---------- STEEL FRAME ---------- */
+var STEEL_DESIGN = 2500;
+
+(function initSteel(){
+  var ids = ['st-name','st-sqft','st-build','st-eng','st-miles','st-rate','st-scope','st-design-paid','st-eng-paid'];
+  ids.forEach(function(id){
+    var el = document.getElementById(id);
+    if(el){ el.addEventListener('input', calcSteel); el.addEventListener('change', calcSteel); }
+  });
+  calcSteel();
+})();
+
+function resetSteel(){
+  ['st-name','st-sqft','st-build','st-eng','st-scope'].forEach(function(id){ document.getElementById(id).value=''; });
+  document.getElementById('st-miles').value=0;
+  document.getElementById('st-rate').value=14;
+  document.getElementById('st-design-paid').checked=false;
+  document.getElementById('st-eng-paid').checked=false;
+  document.getElementById('st-custom').innerHTML='';
+  calcSteel();
+}
+
+function calcSteel(){
+  var name  = (document.getElementById('st-name').value || '').trim();
+  var sqft  = parseInt(document.getElementById('st-sqft').value) || 0;
+  var build = parseFloat(document.getElementById('st-build').value) || 0;
+  var eng   = parseFloat(document.getElementById('st-eng').value) || 0;
+  var miles = Math.max(0, parseFloat(document.getElementById('st-miles').value) || 0);
+  var rate  = Math.max(0, parseFloat(document.getElementById('st-rate').value) || 0);
+  var scopeText = (document.getElementById('st-scope').value || '').trim();
+  var ship  = miles * rate;
+  var designPaid = document.getElementById('st-design-paid').checked;
+  var engPaid    = document.getElementById('st-eng-paid').checked;
+
+  document.getElementById('st-ship-note').textContent = miles>0 && rate>0
+    ? miles.toLocaleString('en-US')+' mi × $'+rate+' = '+fmt(ship)
+    : 'Default $14/mi. Adjust as needed.';
+
+  function row(l,a,o){o=o||{};var s=o.sub?'<div class="sub">'+o.sub+'</div>':'';return '<tr><td class="label">'+l+s+'</td><td class="amt">'+fmt(a)+'</td></tr>';}
+  var rows = '';
+  if(build>0) rows += row('Light-gauge steel frame package', build, {sub: name || 'negotiated package price'});
+  if(designPaid) rows += rowRate('Architectural design', 'PAID', {sub:'already received · was '+fmt(STEEL_DESIGN)});
+  else           rows += row('Architectural design', STEEL_DESIGN, {sub:'per project · steel retainer'});
+  if(engPaid && eng>0) rows += rowRate('Engineering submittal', 'PAID', {sub:'already received · was '+fmt(eng)});
+  else if(eng>0)       rows += row('Engineering submittal', eng, {sub:'stamped engineering · quoted per project'});
+  else                 rows += rowRate('Engineering submittal', 'TBD', {sub:'enter project-specific amount'});
+  if(ship>0) rows += row('Shipping', ship, {sub:miles+' mi × $'+rate+'/mi'});
+
+  // Custom line items (add-ons / extras)
+  var customs = getCustomItems('st');
+  var customTotal = customs.reduce(function(a,c){return a+c.amt;}, 0);
+  customs.forEach(function(c){ rows += row(c.desc, c.amt, {sub: c.amt<0?'credit':'add-on'}); });
+
+  document.getElementById('st-lines').innerHTML = rows;
+
+  var designAmt = designPaid ? 0 : STEEL_DESIGN;
+  var engAmt    = engPaid    ? 0 : eng;
+  var total = build + designAmt + engAmt + ship + customTotal;
+  document.getElementById('st-total').textContent = fmt(total);
+  document.getElementById('st-per-sqft').textContent = (sqft>0 && total>0) ? fmt(total/sqft)+' / sqft' : '';
+
+  // Contract excludes design + engineering (billed as their own stages); matches shell-kit pattern
+  var contract = build + ship + customTotal;
+
+  var scopeLines = scopeText.split(/\r?\n/).map(function(s){return s.trim();}).filter(function(s){return s.length>0;});
+
+  QUOTE = {
+    kind: 'Steel Frame',
+    model: name || 'Light-gauge steel frame',
+    units: 1,
+    design: STEEL_DESIGN,
+    engineering: eng,
+    designPaid: designPaid, engineeringPaid: engPaid,
+    contract: contract,
+    total: total,
+    company: 'zksteel',
+    sqft: sqft,
+    customScope: scopeLines
+  };
+  renderInvoiceStages();
+}
 </script>
 
 <!-- ============ AUTH GATE ============ -->
@@ -1545,11 +1723,12 @@ document.getElementById('zk-quotes-close').addEventListener('click', function(){
 /* ---------- Capture / restore current mode state ---------- */
 
 var ZK_MODE_FIELDS = {
-  shell:   ['s-model','s-units','s-snow','s-win','s-miles','s-disc'],
+  shell:   ['s-model','s-units','s-snow','s-win','s-miles','s-disc','s-design-paid','s-eng-paid'],
   modular: ['m-model','m-units','m-base-override','m-snow','m-win','m-miles','m-disc'],
-  garage:  ['g-model','g-units','g-design','g-miles'],
-  hangar:  ['h-model','h-units','h-base-override','h-miles','h-disc'],
-  custom:  ['c-name','c-sqft','c-build','c-eng','c-miles','c-rate','c-scope']
+  garage:  ['g-model','g-units','g-design','g-miles','g-design-paid'],
+  hangar:  ['h-model','h-units','h-base-override','h-miles','h-disc','h-design-paid'],
+  steel:   ['st-name','st-sqft','st-build','st-eng','st-miles','st-rate','st-scope','st-design-paid','st-eng-paid'],
+  custom:  ['c-name','c-sqft','c-build','c-eng','c-miles','c-rate','c-scope','c-design-paid','c-eng-paid']
 };
 
 var ZK_BUYER_FIELDS = ['prop-buyer','prop-project','prop-location','prop-email','prop-phone','prop-num','prop-date'];
@@ -1713,7 +1892,7 @@ async function zkOpenQuote(id){
     }
 
     // Recompute
-    var calcMap = { shell:'calcShell', modular:'calcModular', garage:'calcGarage', hangar:'calcHangar', custom:'calcCustom' };
+    var calcMap = { shell:'calcShell', modular:'calcModular', garage:'calcGarage', hangar:'calcHangar', steel:'calcSteel', custom:'calcCustom' };
     var fnName = calcMap[mode];
     if(fnName && typeof window[fnName] === 'function') window[fnName]();
 
