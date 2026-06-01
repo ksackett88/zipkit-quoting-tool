@@ -648,10 +648,10 @@ function generateInvoice(){
   var schedTotal = stages.reduce(function(a,s){return a+s.amount;},0);
   var remaining = schedTotal - priorPaid - stage.amount;
 
-  var logoH = (QUOTE.company === 'mvp') ? 96 : 68;
+  var logoH = (QUOTE.company === 'mvp') ? 76 : 54;
   var brandHead = co.logo
     ? '<img src="'+co.logo+'" alt="'+co.name+'" style="height:'+logoH+'px;">'
-    : '<div style="font-size:24px; font-weight:700;">'+co.name+'</div>';
+    : '<div style="font-size:22px; font-weight:700;">'+co.name+'</div>';
 
   var scheduleRows = stages.map(function(s){
     var isThis = s.key===stage.key;
@@ -661,60 +661,60 @@ function generateInvoice(){
   }).join('');
 
   var html = ''
-    +'<div style="max-width:760px; margin:0 auto; font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif; color:#1c1c1a; padding:32px;">'
-    +'<div style="display:flex; justify-content:space-between; align-items:flex-start; border-bottom:2px solid #1c1c1a; padding-bottom:20px;">'
-    +'<div>'+brandHead+'<div style="font-size:12px; color:#5f5e5a; margin-top:10px; line-height:1.6;">'+co.addr+'<br>'+co.tel+' &nbsp;|&nbsp; '+co.email+'</div></div>'
-    +'<div style="text-align:right;"><div style="font-size:30px; font-weight:700; letter-spacing:-0.02em;">INVOICE</div>'
-    +'<div style="font-size:13px; color:#5f5e5a; margin-top:8px; line-height:1.8;">Invoice #: <b>'+num+'</b><br>Date: '+date+'<br>Stage: <b>'+stage.name+'</b></div></div>'
+    +'<div class="invoice-page" style="max-width:760px; margin:0 auto; font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif; color:#1c1c1a; padding:22px 24px;">'
+    +'<div style="display:flex; justify-content:space-between; align-items:flex-start; border-bottom:2px solid #1c1c1a; padding-bottom:12px;">'
+    +'<div>'+brandHead+'<div style="font-size:11px; color:#5f5e5a; margin-top:6px; line-height:1.5;">'+co.addr+'<br>'+co.tel+' &nbsp;|&nbsp; '+co.email+'</div></div>'
+    +'<div style="text-align:right;"><div style="font-size:26px; font-weight:700; letter-spacing:-0.02em;">INVOICE</div>'
+    +'<div style="font-size:12px; color:#5f5e5a; margin-top:4px; line-height:1.6;">Invoice #: <b>'+num+'</b><br>Date: '+date+'<br>Stage: <b>'+stage.name+'</b></div></div>'
     +'</div>'
-    +'<div style="display:flex; justify-content:space-between; margin-top:24px; font-size:13px;">'
-    +'<div><div style="color:#888; text-transform:uppercase; font-size:11px; letter-spacing:0.05em;">Bill to</div><div style="font-size:15px; font-weight:500; margin-top:4px;">'+cust+'</div></div>'
-    +'<div style="text-align:right;"><div style="color:#888; text-transform:uppercase; font-size:11px; letter-spacing:0.05em;">Project</div><div style="font-size:15px; font-weight:500; margin-top:4px;">'+QUOTE.kind+' · '+QUOTE.model+(QUOTE.units>1?' ×'+QUOTE.units:'')+'</div></div>'
+    +'<div style="display:flex; justify-content:space-between; margin-top:14px; font-size:12px;">'
+    +'<div><div style="color:#888; text-transform:uppercase; font-size:10px; letter-spacing:0.05em;">Bill to</div><div style="font-size:14px; font-weight:500; margin-top:2px;">'+cust+'</div></div>'
+    +'<div style="text-align:right;"><div style="color:#888; text-transform:uppercase; font-size:10px; letter-spacing:0.05em;">Project</div><div style="font-size:14px; font-weight:500; margin-top:2px;">'+QUOTE.kind+' · '+QUOTE.model+(QUOTE.units>1?' ×'+QUOTE.units:'')+'</div></div>'
     +'</div>'
-    +(rep ? '<div style="margin-top:14px; padding-top:14px; border-top:1px solid #e2e0d8; display:flex; justify-content:space-between; font-size:12px;"><div><span style="color:#888; text-transform:uppercase; font-size:11px; letter-spacing:0.05em;">Sales rep</span> &nbsp;<b>'+rep+'</b></div><div style="color:#5f5e5a;">'+[repEmail, repPhone].filter(function(x){return x;}).join(' &nbsp;·&nbsp; ')+'</div></div>' : '')
-    +'<table style="width:100%; border-collapse:collapse; margin-top:28px; font-size:14px;">'
-    +'<tr style="border-bottom:2px solid #1c1c1a;"><td style="padding:8px 0; text-transform:uppercase; font-size:11px; letter-spacing:0.05em; color:#888;">Description</td><td style="padding:8px 0; text-align:right; text-transform:uppercase; font-size:11px; letter-spacing:0.05em; color:#888;">Amount</td></tr>'
-    +'<tr style="border-bottom:1px solid #e2e0d8;"><td style="padding:14px 0;"><b>'+stage.name+'</b><div style="font-size:12px; color:#5f5e5a; margin-top:3px;">'+stage.desc+'</div></td><td style="padding:14px 0; text-align:right; font-size:18px; font-weight:600;">'+fmt(stage.amount)+'</td></tr>'
+    +(rep ? '<div style="margin-top:8px; padding-top:8px; border-top:1px solid #e2e0d8; display:flex; justify-content:space-between; font-size:11px;"><div><span style="color:#888; text-transform:uppercase; font-size:10px; letter-spacing:0.05em;">Sales rep</span> &nbsp;<b>'+rep+'</b></div><div style="color:#5f5e5a;">'+[repEmail, repPhone].filter(function(x){return x;}).join(' &nbsp;·&nbsp; ')+'</div></div>' : '')
+    +'<table style="width:100%; border-collapse:collapse; margin-top:16px; font-size:13px;">'
+    +'<tr style="border-bottom:2px solid #1c1c1a;"><td style="padding:6px 0; text-transform:uppercase; font-size:10px; letter-spacing:0.05em; color:#888;">Description</td><td style="padding:6px 0; text-align:right; text-transform:uppercase; font-size:10px; letter-spacing:0.05em; color:#888;">Amount</td></tr>'
+    +'<tr style="border-bottom:1px solid #e2e0d8;"><td style="padding:10px 0;"><b>'+stage.name+'</b><div style="font-size:11px; color:#5f5e5a; margin-top:2px; line-height:1.45;">'+stage.desc+'</div></td><td style="padding:10px 0; text-align:right; font-size:16px; font-weight:600; white-space:nowrap;">'+fmt(stage.amount)+'</td></tr>'
     +'</table>'
-    +'<div style="display:flex; justify-content:flex-end; margin-top:18px;">'
-    +'<table style="font-size:14px; min-width:280px;">'
-    +'<tr><td style="padding:4px 0; color:#5f5e5a;">Amount due this invoice</td><td style="padding:4px 0; text-align:right; font-size:20px; font-weight:700;">'+fmt(stage.amount)+'</td></tr>'
+    +'<div style="display:flex; justify-content:flex-end; margin-top:10px;">'
+    +'<table style="font-size:13px; min-width:260px;">'
+    +'<tr><td style="padding:2px 0; color:#5f5e5a;">Amount due this invoice</td><td style="padding:2px 0; text-align:right; font-size:18px; font-weight:700;">'+fmt(stage.amount)+'</td></tr>'
     +'</table></div>'
-    +'<div style="margin-top:34px; background:#f5f3ec; border-radius:10px; padding:18px 20px;">'
-    +'<div style="font-size:12px; text-transform:uppercase; letter-spacing:0.05em; color:#888; margin-bottom:10px;">Payment schedule — full project</div>'
-    +'<table style="width:100%; border-collapse:collapse; font-size:13px;">'+scheduleRows
-    +'<tr style="border-top:1px solid #c9c7bd;"><td style="padding:8px 10px; font-weight:600;">Project total</td><td style="padding:8px 10px; text-align:right; font-weight:600;">'+fmt(schedTotal)+'</td></tr>'
+    +'<div style="margin-top:16px; background:#f5f3ec; border-radius:8px; padding:10px 14px; page-break-inside:avoid; break-inside:avoid;">'
+    +'<div style="font-size:11px; text-transform:uppercase; letter-spacing:0.05em; color:#888; margin-bottom:4px;">Payment schedule — full project</div>'
+    +'<table style="width:100%; border-collapse:collapse; font-size:12px;">'+scheduleRows
+    +'<tr style="border-top:1px solid #c9c7bd;"><td style="padding:5px 8px; font-weight:600;">Project total</td><td style="padding:5px 8px; text-align:right; font-weight:600;">'+fmt(schedTotal)+'</td></tr>'
     +'</table>'
-    +'<div style="font-size:12px; color:#5f5e5a; margin-top:10px;">Previously invoiced: '+fmt(priorPaid)+' &nbsp;·&nbsp; Remaining after this invoice: '+fmt(remaining)+'</div>'
+    +'<div style="font-size:11px; color:#5f5e5a; margin-top:4px;">Previously invoiced: '+fmt(priorPaid)+' &nbsp;·&nbsp; Remaining after this invoice: '+fmt(remaining)+'</div>'
     +'</div>'
-    +'<div style="margin-top:26px; page-break-inside:avoid; break-inside:avoid;">'
-    +'<div style="font-size:13px; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; border-bottom:2px solid #1c1c1a; padding-bottom:6px; margin-bottom:14px;">How to pay</div>'
-    +'<div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">'
+    +'<div style="margin-top:14px; page-break-inside:avoid; break-inside:avoid;">'
+    +'<div style="font-size:12px; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; border-bottom:2px solid #1c1c1a; padding-bottom:4px; margin-bottom:8px;">How to pay</div>'
+    +'<div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">'
     // CHECK
-    +'<div style="border:1px solid #e2e0d8; border-radius:8px; padding:16px; font-size:12px; line-height:1.55;">'
-    +'<div style="font-weight:600; font-size:13px; margin-bottom:10px;">Check</div>'
-    +'<div style="color:#888; text-transform:uppercase; font-size:10px; letter-spacing:0.06em; margin-bottom:2px;">Make payable to</div>'
-    +'<div style="margin-bottom:10px;">'+pay.payable+'</div>'
-    +'<div style="color:#888; text-transform:uppercase; font-size:10px; letter-spacing:0.06em; margin-bottom:2px;">Mail to</div>'
+    +'<div style="border:1px solid #e2e0d8; border-radius:6px; padding:10px 12px; font-size:11px; line-height:1.45;">'
+    +'<div style="font-weight:600; font-size:12px; margin-bottom:6px;">Check</div>'
+    +'<div style="color:#888; text-transform:uppercase; font-size:9px; letter-spacing:0.05em;">Make payable to</div>'
+    +'<div style="margin-bottom:6px;">'+pay.payable+'</div>'
+    +'<div style="color:#888; text-transform:uppercase; font-size:9px; letter-spacing:0.05em;">Mail to</div>'
     +'<div>'+pay.mailing.join('<br>')+'</div>'
     +'</div>'
     // WIRE
-    +'<div style="border:1px solid #e2e0d8; border-radius:8px; padding:16px; font-size:12px; line-height:1.55;">'
-    +'<div style="font-weight:600; font-size:13px; margin-bottom:10px;">Wire transfer</div>'
+    +'<div style="border:1px solid #e2e0d8; border-radius:6px; padding:10px 12px; font-size:11px; line-height:1.45;">'
+    +'<div style="font-weight:600; font-size:12px; margin-bottom:6px;">Wire transfer</div>'
     +(pay.wire
-      ? '<table style="width:100%; font-size:12px; border-collapse:collapse;">'
-        +'<tr><td style="color:#888; padding:2px 8px 2px 0; vertical-align:top; white-space:nowrap;">Account name</td><td style="padding:2px 0; vertical-align:top;">'+pay.wire.accountName+'</td></tr>'
-        +'<tr><td style="color:#888; padding:2px 8px 2px 0; vertical-align:top; white-space:nowrap;">Account #</td><td style="padding:2px 0; vertical-align:top;">'+pay.wire.accountNumber+'</td></tr>'
-        +'<tr><td style="color:#888; padding:2px 8px 2px 0; vertical-align:top; white-space:nowrap;">Routing #</td><td style="padding:2px 0; vertical-align:top;">'+pay.wire.routingNumber+'</td></tr>'
-        +'<tr><td style="color:#888; padding:2px 8px 2px 0; vertical-align:top; white-space:nowrap;">Bank</td><td style="padding:2px 0; vertical-align:top;">'+pay.wire.bank+(pay.wire.bankBranch?'<br>'+pay.wire.bankBranch:'')+(pay.wire.bankAddress && pay.wire.bankAddress.length?'<br>'+pay.wire.bankAddress.join('<br>'):'')+'</td></tr>'
-        +(pay.wire.businessAddress?'<tr><td style="color:#888; padding:2px 8px 2px 0; vertical-align:top; white-space:nowrap;">Business addr</td><td style="padding:2px 0; vertical-align:top;">'+pay.wire.businessAddress.join('<br>')+'</td></tr>':'')
+      ? '<table style="width:100%; font-size:11px; border-collapse:collapse;">'
+        +'<tr><td style="color:#888; padding:1px 6px 1px 0; vertical-align:top; white-space:nowrap;">Account name</td><td style="padding:1px 0; vertical-align:top;">'+pay.wire.accountName+'</td></tr>'
+        +'<tr><td style="color:#888; padding:1px 6px 1px 0; vertical-align:top; white-space:nowrap;">Account #</td><td style="padding:1px 0; vertical-align:top;">'+pay.wire.accountNumber+'</td></tr>'
+        +'<tr><td style="color:#888; padding:1px 6px 1px 0; vertical-align:top; white-space:nowrap;">Routing #</td><td style="padding:1px 0; vertical-align:top;">'+pay.wire.routingNumber+'</td></tr>'
+        +'<tr><td style="color:#888; padding:1px 6px 1px 0; vertical-align:top; white-space:nowrap;">Bank</td><td style="padding:1px 0; vertical-align:top;">'+pay.wire.bank+(pay.wire.bankBranch?'<br>'+pay.wire.bankBranch:'')+(pay.wire.bankAddress && pay.wire.bankAddress.length?'<br>'+pay.wire.bankAddress.join('<br>'):'')+'</td></tr>'
+        +(pay.wire.businessAddress?'<tr><td style="color:#888; padding:1px 6px 1px 0; vertical-align:top; white-space:nowrap;">Business addr</td><td style="padding:1px 0; vertical-align:top;">'+pay.wire.businessAddress.join('<br>')+'</td></tr>':'')
         +'</table>'
       : '<div style="color:#5f5e5a;">Contact '+co.email+' for wire details.</div>')
     +'</div>'
     +'</div>'
-    +'<div style="font-size:12px; color:#5f5e5a; margin-top:12px;">QuickBooks online payment also available — reply to this invoice and we\'ll send a payment link.</div>'
+    +'<div style="font-size:10px; color:#5f5e5a; margin-top:6px;">QuickBooks online payment also available — reply to this invoice and we\'ll send a payment link.</div>'
     +'</div>'
-    +'<div style="margin-top:26px; font-size:11px; color:#888; line-height:1.6; border-top:1px solid #e2e0d8; padding-top:16px;">'
+    +'<div style="margin-top:14px; font-size:10px; color:#888; line-height:1.5; border-top:1px solid #e2e0d8; padding-top:8px;">'
     +'Design and engineering are billed separately and are not part of the 45/45/10 contract split. Shipping is included in the contract. No sales tax applied. Pricing subject to change and correction. This invoice reflects one stage of a multi-stage billing schedule.'
     +'</div>'
     +'</div>';
@@ -723,7 +723,7 @@ function generateInvoice(){
   if(!w){ alert('Please allow pop-ups to generate the invoice.'); return; }
   w.document.write('<!DOCTYPE html><html><head><meta charset="utf-8"><title>Invoice '+num+' — '+stage.name+'</title></head><body style="margin:0; background:#fff;">'+html
     +'<div style="text-align:center; padding:20px;" class="noprint"><button onclick="window.print()" style="padding:10px 24px; font-size:14px; background:#d85a30; color:#fff; border:none; border-radius:8px; cursor:pointer;">Print / Save as PDF</button></div>'
-    +'<style>@media print{.noprint{display:none;} body{-webkit-print-color-adjust:exact; print-color-adjust:exact;}}</style></body></html>');
+    +'<style>@page{size:letter;margin:0.35in;}@media print{.noprint{display:none;}.invoice-page{padding:0!important;}body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}}</style></body></html>');
   w.document.close();
 }
 
