@@ -1069,7 +1069,7 @@ function setMode(mode){
   document.querySelectorAll('.mode').forEach(function(m){ m.classList.toggle('active', m.id==='mode-'+mode); });
   if(mode==='modular') { updateModularBrand(); calcModular(); }
   else if(mode==='garage') { setBrand('zipkit'); calcGarage(); }
-  else if(mode==='hangar') { setBrand('zipkit'); calcHangar(); }
+  else if(mode==='hangar') { setBrand('zksteel'); calcHangar(); }
   else if(mode==='steel')  { setBrand('zksteel'); calcSteel(); }
   else if(mode==='custom') { setBrand('zipkit'); calcCustom(); }
   else { setBrand('zipkit'); calcShell(); }
@@ -1479,7 +1479,7 @@ function calcHangar(){
     design: HANGAR_DESIGN, engineering: 0,
     designPaid: designPaid, engineeringPaid: false,
     contract: contract, total: total,
-    company: 'zipkit'
+    company: 'zksteel'
   };
   renderInvoiceStages();
 }
