@@ -642,10 +642,16 @@ function generateInvoice(){
 
   var pay = PAYMENT_INFO[QUOTE.company] || PAYMENT_INFO.zipkit;
 
-  // running balance context
-  var idx = stages.indexOf(stage);
-  var priorPaid = stages.slice(0,idx).reduce(function(a,s){return a+s.amount;},0);
-  var schedTotal = stages.reduce(function(a,s){return a+s.amount;},0);
+  // Design retainer is a standalone document — separate from the contract.
+  // For contract invoices, the displayed schedule excludes design.
+  var isDesignInvoice = (stage.key === 'design');
+  var contractStages = stages.filter(function(s){ return s.key !== 'design'; });
+
+  // running balance context (against the schedule shown on THIS invoice)
+  var scheduleStages = isDesignInvoice ? [stage] : contractStages;
+  var idx = scheduleStages.indexOf(stage);
+  var priorPaid = idx > 0 ? scheduleStages.slice(0, idx).reduce(function(a,s){return a+s.amount;},0) : 0;
+  var schedTotal = scheduleStages.reduce(function(a,s){return a+s.amount;},0);
   var remaining = schedTotal - priorPaid - stage.amount;
 
   var logoH = (QUOTE.company === 'mvp') ? 76 : 54;
@@ -653,12 +659,13 @@ function generateInvoice(){
     ? '<img src="'+co.logo+'" alt="'+co.name+'" style="height:'+logoH+'px;">'
     : '<div style="font-size:22px; font-weight:700;">'+co.name+'</div>';
 
-  var scheduleRows = stages.map(function(s){
+  var scheduleRows = contractStages.map(function(s){
     var isThis = s.key===stage.key;
     return '<tr style="'+(isThis?'background:#faeeda;':'')+'">'
       +'<td style="padding:7px 10px;">'+s.name+(isThis?' &nbsp;<b style="color:#993c1d;">← this invoice</b>':'')+'</td>'
       +'<td style="padding:7px 10px; text-align:right;">'+fmt(s.amount)+'</td></tr>';
   }).join('');
+  var contractTotal = contractStages.reduce(function(a,s){return a+s.amount;}, 0);
 
   var html = ''
     +'<div class="invoice-page" style="max-width:760px; margin:0 auto; font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif; color:#1c1c1a; padding:22px 24px;">'
@@ -680,13 +687,20 @@ function generateInvoice(){
     +'<table style="font-size:13px; min-width:260px;">'
     +'<tr><td style="padding:2px 0; color:#5f5e5a;">Amount due this invoice</td><td style="padding:2px 0; text-align:right; font-size:18px; font-weight:700;">'+fmt(stage.amount)+'</td></tr>'
     +'</table></div>'
-    +'<div style="margin-top:16px; background:#f5f3ec; border-radius:8px; padding:10px 14px; page-break-inside:avoid; break-inside:avoid;">'
-    +'<div style="font-size:11px; text-transform:uppercase; letter-spacing:0.05em; color:#888; margin-bottom:4px;">Payment schedule — full project</div>'
-    +'<table style="width:100%; border-collapse:collapse; font-size:12px;">'+scheduleRows
-    +'<tr style="border-top:1px solid #c9c7bd;"><td style="padding:5px 8px; font-weight:600;">Project total</td><td style="padding:5px 8px; text-align:right; font-weight:600;">'+fmt(schedTotal)+'</td></tr>'
-    +'</table>'
-    +'<div style="font-size:11px; color:#5f5e5a; margin-top:4px;">Previously invoiced: '+fmt(priorPaid)+' &nbsp;·&nbsp; Remaining after this invoice: '+fmt(remaining)+'</div>'
-    +'</div>'
+    +(isDesignInvoice
+      // Design invoice — standalone, no contract schedule. Just a "what comes next" note.
+      ? '<div style="margin-top:16px; background:#f5f3ec; border-radius:8px; padding:10px 14px; page-break-inside:avoid; break-inside:avoid; font-size:11px; color:#5f5e5a; line-height:1.55;">'
+        +'<div style="font-size:11px; text-transform:uppercase; letter-spacing:0.05em; color:#888; margin-bottom:4px;">What\'s next</div>'
+        +'This is the architectural design retainer — paid up front and separate from the contract. Once received, we\'ll prepare a contract for signature. The contract\'s full payment schedule (engineering first, then 45% / 45% / 10% of the remainder) will be invoiced separately as the project moves through production.'
+        +'</div>'
+      // Contract invoice — show the full contract payment schedule (design excluded; it\'s its own document).
+      : '<div style="margin-top:16px; background:#f5f3ec; border-radius:8px; padding:10px 14px; page-break-inside:avoid; break-inside:avoid;">'
+        +'<div style="font-size:11px; text-transform:uppercase; letter-spacing:0.05em; color:#888; margin-bottom:4px;">Contract payment schedule</div>'
+        +'<table style="width:100%; border-collapse:collapse; font-size:12px;">'+scheduleRows
+        +'<tr style="border-top:1px solid #c9c7bd;"><td style="padding:5px 8px; font-weight:600;">Contract total</td><td style="padding:5px 8px; text-align:right; font-weight:600;">'+fmt(contractTotal)+'</td></tr>'
+        +'</table>'
+        +'<div style="font-size:11px; color:#5f5e5a; margin-top:4px;">Previously invoiced: '+fmt(priorPaid)+' &nbsp;·&nbsp; Remaining after this invoice: '+fmt(remaining)+(QUOTE.design>0?' &nbsp;·&nbsp; Design retainer ('+fmt(QUOTE.design)+') billed separately':'')+'</div>'
+        +'</div>')
     +'<div style="margin-top:14px; page-break-inside:avoid; break-inside:avoid;">'
     +'<div style="font-size:12px; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; border-bottom:2px solid #1c1c1a; padding-bottom:4px; margin-bottom:8px;">How to pay</div>'
     +'<div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">'
@@ -715,7 +729,9 @@ function generateInvoice(){
     +'<div style="font-size:10px; color:#5f5e5a; margin-top:6px;">QuickBooks online payment also available — reply to this invoice and we\'ll send a payment link.</div>'
     +'</div>'
     +'<div style="margin-top:14px; font-size:10px; color:#888; line-height:1.5; border-top:1px solid #e2e0d8; padding-top:8px;">'
-    +'Design and engineering are billed separately and are not part of the 45/45/10 contract split. Shipping is included in the contract. No sales tax applied. Pricing subject to change and correction. This invoice reflects one stage of a multi-stage billing schedule.'
+    +(isDesignInvoice
+      ? 'Architectural design retainer · paid up front, separate from the contract. The contract document and its payment schedule (engineering first, then 45% / 45% / 10% of the remainder) will follow once the design retainer is received. Pricing subject to change and correction. No sales tax applied.'
+      : 'Design retainer is billed separately as its own invoice (not shown above). Contract is billed engineering first, then 45% / 45% / 10% of the remainder. Shipping is included in the contract. No sales tax applied. Pricing subject to change and correction. This invoice reflects one stage of a multi-stage billing schedule.')
     +'</div>'
     +'</div>';
 
