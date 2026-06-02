@@ -491,6 +491,12 @@
       <div><label for="prop-num">Proposal number</label><input type="text" id="prop-num" placeholder="e.g. ZK-Q-1042"></div>
       <div><label for="prop-date">Date</label><input type="text" id="prop-date" placeholder="MM/DD/YYYY"></div>
     </div>
+    <div style="margin-top:14px; padding:12px 14px; background:#fff7e6; border-left:3px solid #d85a30; border-radius:4px;">
+      <label style="display:flex; align-items:flex-start; gap:10px; font-size:13px; color:var(--ink); margin:0; cursor:pointer; line-height:1.45;">
+        <input type="checkbox" id="prop-promo-design-credit" style="margin:3px 0 0 0; flex-shrink:0;">
+        <span><b style="color:#d85a30; text-transform:uppercase; letter-spacing:0.04em; font-size:11px;">Promo</b> &nbsp;Credit design retainer toward engineering. When applied, the engineering invoice is reduced by the design retainer amount and a promo credit line appears on the proposal. Total project cost drops by the design retainer amount.</span>
+      </label>
+    </div>
     <div style="margin-top:14px;">
       <button class="act primary" style="width:auto; padding:0 22px;" onclick="generateProposal()">Generate proposal</button>
       <span class="sub" style="margin-left:14px;">Opens in a new tab — print or save as PDF to email the customer.</span>
@@ -548,7 +554,17 @@ function invoiceStages(q){
   }
   // Shell kits & garages: design separate, engineering first, then 45/45/10 of the remainder
   if(q.design>0 && !q.designPaid) stages.push({key:'design', name:'Design', desc:'Architectural design fee · due at project start', amount:q.design});
-  if(q.engineering>0 && !q.engineeringPaid) stages.push({key:'engineering', name:'Engineering', desc:'Full submittal engineering · due after contract signing', amount:q.engineering});
+  if(q.engineering>0 && !q.engineeringPaid){
+    // Promo: design retainer credited toward engineering — reduces the engineering invoice by q.design.
+    var engAmt = q.engineering;
+    var engDesc = 'Full submittal engineering · due after contract signing';
+    if(q.designCreditPromo && q.design>0){
+      engAmt = Math.max(0, q.engineering - q.design);
+      engDesc = 'Full submittal engineering ('+fmt(q.engineering)+' less '+fmt(q.design)+' design-retainer credit) · due after contract signing';
+    }
+    if(engAmt>0) stages.push({key:'engineering', name:'Engineering', desc:engDesc, amount:engAmt});
+    else stages.push({key:'engineering', name:'Engineering', desc:'Fully covered by '+fmt(q.design)+' design-retainer credit — no additional invoice', amount:0});
+  }
   stages.push({key:'materials', name:'Materials (45%)', desc:'45% of contract · due after engineering', amount:Math.round(q.contract*0.45)});
   stages.push({key:'preship', name:'Pre-ship (45%)', desc:'45% of contract · due when kit ready to ship', amount:Math.round(q.contract*0.45)});
   var finalAmt = q.contract - Math.round(q.contract*0.45)*2;
@@ -558,6 +574,7 @@ function invoiceStages(q){
 
 function renderInvoiceStages(){
   if(!QUOTE) return;
+  applyPromoFlagFromUI();
   var stages = invoiceStages(QUOTE);
   var sumEl = document.getElementById('inv-quote-summary');
   sumEl.textContent = QUOTE.model + ' · ' + QUOTE.units + ' unit' + (QUOTE.units>1?'s':'') + ' · contract (excl. design & engineering): ' + fmt(QUOTE.contract);
@@ -572,7 +589,8 @@ function renderInvoiceStages(){
 
   var sel = document.getElementById('inv-stage-sel');
   var cur = sel.value;
-  sel.innerHTML = stages.map(function(s){ return '<option value="'+s.key+'">'+s.name+' — '+fmt(s.amount)+'</option>'; }).join('');
+  // Skip $0 stages (e.g. engineering fully covered by promo credit) — nothing to invoice.
+  sel.innerHTML = stages.filter(function(s){return s.amount>0;}).map(function(s){ return '<option value="'+s.key+'">'+s.name+' — '+fmt(s.amount)+'</option>'; }).join('');
   if(cur && [].slice.call(sel.options).some(function(o){return o.value===cur;})) sel.value=cur;
   if(typeof updateProposalSummary==='function') updateProposalSummary();
 }
@@ -849,7 +867,25 @@ function loadRepFields(){
     var el=document.getElementById(id); if(!el) return;
     el.addEventListener('input', saveRepFields);
   });
+  // Promo: design retainer credited toward engineering. Toggling updates QUOTE
+  // and re-renders the live invoice schedule so the rep sees the effect immediately.
+  var promo=document.getElementById('prop-promo-design-credit');
+  if(promo){
+    try{ promo.checked = localStorage.getItem('zk_promo_design_credit')==='1'; }catch(e){}
+    promo.addEventListener('change', function(){
+      try{ localStorage.setItem('zk_promo_design_credit', promo.checked?'1':'0'); }catch(e){}
+      if(QUOTE){ QUOTE.designCreditPromo = promo.checked; renderInvoiceStages(); }
+    });
+  }
 })();
+
+// Read promo checkbox and apply to QUOTE — called after every mode rebuild so the
+// flag survives QUOTE = {...} reassignment in each build function.
+function applyPromoFlagFromUI(){
+  if(!QUOTE) return;
+  var el=document.getElementById('prop-promo-design-credit');
+  QUOTE.designCreditPromo = !!(el && el.checked);
+}
 
 function updateProposalSummary(){
   var el=document.getElementById('prop-quote-summary'); if(!el) return;
@@ -859,6 +895,7 @@ function updateProposalSummary(){
 
 function generateProposal(){
   if(!QUOTE){ alert('Configure a quote above first — pick a model and any options.'); return; }
+  applyPromoFlagFromUI();
   var g=function(id){return document.getElementById(id).value.trim();};
   var buyer=g('prop-buyer')||'__________';
   var project=g('prop-project')||(QUOTE.model+' project');
@@ -910,6 +947,16 @@ function generateProposal(){
                                   's-lines';
   var pricingRows = document.getElementById(modeId).innerHTML;
 
+  // Promo: design retainer credited toward engineering. Add a credit row to the
+  // pricing breakdown and reduce the displayed total by the credit amount. Works
+  // whether or not design has been paid yet — the credit always comes off engineering.
+  var promoCredit = (QUOTE.designCreditPromo && QUOTE.design>0 && QUOTE.engineering>0 && !QUOTE.engineeringPaid)
+    ? Math.min(QUOTE.design, QUOTE.engineering) : 0;
+  if(promoCredit>0){
+    pricingRows += '<tr><td class="label" style="color:#0f6e56;"><b>Promo: design retainer credited toward engineering</b><div class="sub" style="color:#0f6e56;">limited-time credit applied at proposal</div></td><td class="amt" style="color:#0f6e56; font-weight:600;">-'+fmt(promoCredit)+'</td></tr>';
+  }
+  var displayedTotal = QUOTE.total - promoCredit;
+
   var scheduleRows = stages.map(function(s){
     return '<tr><td style="padding:9px 12px; border-bottom:1px solid #eee;">'+s.name
       +'<div style="font-size:11px;color:#888;margin-top:2px;">'+s.desc+'</div></td>'
@@ -949,8 +996,9 @@ function generateProposal(){
     +(rep?'<div style="color:#555; margin-top:6px;">Sales rep: <b>'+rep+'</b></div>':'')
     +'</div>'
     +'<div style="text-align:right;"><div style="color:#888; text-transform:uppercase; font-size:11px; letter-spacing:0.05em;">Project total</div>'
-    +'<div style="font-size:32px; font-weight:700; color:'+brandColor+'; margin-top:4px;">'+fmt(QUOTE.total)+'</div>'
-    +(QUOTE.units>1?'<div style="color:#888; font-size:12px;">'+fmt(QUOTE.total/QUOTE.units)+' per '+(QUOTE.kind==='Modular'?'unit':'unit')+'</div>':'')
+    +'<div style="font-size:32px; font-weight:700; color:'+brandColor+'; margin-top:4px;">'+fmt(displayedTotal)+'</div>'
+    +(promoCredit>0?'<div style="color:#0f6e56; font-size:11px; margin-top:2px; font-weight:600;">includes '+fmt(promoCredit)+' promo credit</div>':'')
+    +(QUOTE.units>1?'<div style="color:#888; font-size:12px;">'+fmt(displayedTotal/QUOTE.units)+' per '+(QUOTE.kind==='Modular'?'unit':'unit')+'</div>':'')
     +'</div>'
     +'</div>'
     +'<div style="margin-top:26px; background:#f5f3ec; border-radius:8px; padding:16px 20px; font-size:13px; color:#5f5e5a; line-height:1.6;">'
@@ -985,7 +1033,7 @@ function generateProposal(){
     +'<tbody>'+pricingRows+'</tbody></table>'
     +'<div style="display:flex; justify-content:flex-end; border-top:2px solid #1c1c1a; padding-top:12px; margin-bottom:30px;">'
     +'<div style="font-size:14px; color:#555; margin-right:18px; align-self:center;">Project total</div>'
-    +'<div style="font-size:26px; font-weight:700; color:'+brandColor+';">'+fmt(QUOTE.total)+'</div>'
+    +'<div style="font-size:26px; font-weight:700; color:'+brandColor+';">'+fmt(displayedTotal)+'</div>'
     +'</div>'
 
     +'<div style="display:grid; grid-template-columns:1fr 1fr; gap:24px; margin-bottom:30px;">'
