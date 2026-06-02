@@ -121,9 +121,13 @@
         <button class="btn sm" onclick="addCustom()">+ Add custom line</button>
         <p class="note" style="margin-top:10px;">Use this for anything not in the standard kit — for example, "Basement structural framing — $7,500." It'll flow into the total and the payments.</p>
 
+        <label for="c-design-override" style="margin-top:14px;">Design retainer (override / discount)</label>
+        <input type="number" id="c-design-override" min="0" step="100" placeholder="leave blank for $2,500 standard">
+        <p class="note" id="c-design-override-note">Optional — type a custom amount (or 0 to waive) to discount or upcharge the design retainer for this customer. The contract reflects the amount you enter here.</p>
+
         <label style="margin-top:14px;">Already paid (remove from payment schedule)</label>
         <div style="display:flex; flex-direction:column; gap:8px; margin-bottom:6px; font-size:13px;">
-          <label style="display:flex; align-items:center; gap:8px; margin:0; cursor:pointer; color:var(--ink);"><input type="checkbox" id="c-design-paid" style="accent-color:var(--accent); width:16px; height:16px;"> Design retainer ($2,500)</label>
+          <label style="display:flex; align-items:center; gap:8px; margin:0; cursor:pointer; color:var(--ink);"><input type="checkbox" id="c-design-paid" style="accent-color:var(--accent); width:16px; height:16px;"> Design retainer</label>
           <label style="display:flex; align-items:center; gap:8px; margin:0; cursor:pointer; color:var(--ink);"><input type="checkbox" id="c-eng-paid" style="accent-color:var(--accent); width:16px; height:16px;"> Engineering submittal</label>
         </div>
         <p class="note">Check these if the customer already paid them up-front. Each checked item is marked PAID on the contract and dropped from the payment schedule.</p>
@@ -197,6 +201,20 @@
         <input type="number" id="cu-rate" min="0" step="1" value="18">
         <p class="note" id="cu-ship-note">Default $18/mi. Adjust if needed.</p>
 
+        <label for="cu-win-label">Window/door package</label>
+        <select id="cu-win-label">
+          <option value="">— None included —</option>
+          <option value="Cascade WinPro Vinyl — Clay/White">Cascade Clay/White</option>
+          <option value="Cascade WinPro Vinyl — Black/White">Cascade Black/White</option>
+          <option value="Amsco Studios">Amsco Studios</option>
+          <option value="Andersen 100 Series">Andersen 100 Series</option>
+          <option value="Andersen 400 Series">Andersen 400 Series</option>
+          <option value="Custom selection">Custom selection (describe in scope)</option>
+        </select>
+        <label for="cu-win-price">Window package price ($)</label>
+        <input type="number" id="cu-win-price" min="0" step="100" placeholder="leave blank for none">
+        <p class="note">Custom homes are bespoke — type the negotiated window/door price. Description above shows on the contract.</p>
+
         <label for="cu-photo">Cover photo</label>
         <select id="cu-photo"><option value="">— No photo (brand gradient) —</option></select>
         <p class="note">Pick any existing model photo to use as the contract cover image, or leave blank for the orange/red brand gradient.</p>
@@ -207,7 +225,11 @@
 
         <label style="margin-top:14px;">Already paid (remove from payment schedule)</label>
         <div style="display:flex; flex-direction:column; gap:8px; margin-bottom:6px; font-size:13px;">
-          <label style="display:flex; align-items:center; gap:8px; margin:0; cursor:pointer; color:var(--ink);"><input type="checkbox" id="cu-design-paid" style="accent-color:var(--accent); width:16px; height:16px;"> Design retainer ($3,500)</label>
+          <label for="cu-design-override" style="font-size:13px; color:var(--ink); margin:0;">Design retainer (override / discount)</label>
+          <input type="number" id="cu-design-override" min="0" step="100" placeholder="leave blank for $3,500 standard">
+          <p class="note" id="cu-design-override-note" style="margin-top:-4px;">Optional — type a custom amount (or 0 to waive) to discount or upcharge the design retainer.</p>
+
+          <label style="display:flex; align-items:center; gap:8px; margin:0; cursor:pointer; color:var(--ink);"><input type="checkbox" id="cu-design-paid" style="accent-color:var(--accent); width:16px; height:16px;"> Design retainer paid</label>
           <label style="display:flex; align-items:center; gap:8px; margin:0; cursor:pointer; color:var(--ink);"><input type="checkbox" id="cu-eng-paid" style="accent-color:var(--accent); width:16px; height:16px;"> Engineering</label>
         </div>
         <p class="note">Check these if the customer already paid them up-front. Each checked item is marked PAID on the contract and dropped from the payment schedule.</p>
@@ -414,7 +436,7 @@ function addCustom(val){
   var sel=document.getElementById('c-model');
   SHELL.forEach(function(m,i){var o=document.createElement('option');o.value=i;o.textContent=m[0]+' · '+m[1]+' sqft';sel.appendChild(o);});
   sel.value=SHELL.findIndex(function(m){return m[0]==='Cedar';});
-  ['c-model','c-snow','c-win','c-miles','c-design-paid','c-eng-paid'].forEach(function(id){var el=document.getElementById(id);el.addEventListener('input',calc);el.addEventListener('change',calc);});
+  ['c-model','c-snow','c-win','c-miles','c-design-override','c-design-paid','c-eng-paid'].forEach(function(id){var el=document.getElementById(id);el.addEventListener('input',calc);el.addEventListener('change',calc);});
   buildScopeUI();
   calc();
 })();
@@ -446,6 +468,15 @@ function calc(){
   var designPaid = !!(document.getElementById('c-design-paid') && document.getElementById('c-design-paid').checked);
   var engPaid    = !!(document.getElementById('c-eng-paid')    && document.getElementById('c-eng-paid').checked);
 
+  // Design retainer override — supersedes SHELL_DESIGN default when filled
+  var cDOvRaw = (document.getElementById('c-design-override').value || '').trim();
+  var cHasDOv = cDOvRaw !== '';
+  var cEffectiveDesign = cHasDOv ? Math.max(0, parseFloat(cDOvRaw) || 0) : SHELL_DESIGN;
+  var cDIsOverride = cHasDOv && cEffectiveDesign !== SHELL_DESIGN;
+  document.getElementById('c-design-override-note').textContent = cDIsOverride
+    ? 'Override active: contract will show '+fmt(cEffectiveDesign)+' design retainer instead of '+fmt(SHELL_DESIGN)+'. Clear to revert.'
+    : 'Optional — type a custom amount (or 0 to waive) to discount or upcharge the design retainer for this customer. Standard is '+fmt(SHELL_DESIGN)+'.';
+
   // Build summary lines
   var rows='';
   function row(l,a,o){o=o||{};var s=o.sub?'<div class="sub">'+o.sub+'</div>':'';return '<tr><td class="label">'+l+s+'</td><td class="amt">'+fmt(a)+'</td></tr>';}
@@ -467,7 +498,7 @@ function calc(){
   var dRow=document.getElementById('c-design-row');
   if(dRow) dRow.style.display='';
   var dVal=document.getElementById('c-design');
-  if(dVal) dVal.textContent = designPaid ? 'PAID' : '$2,500';
+  if(dVal) dVal.textContent = designPaid ? 'PAID' : fmt(cEffectiveDesign);
 
   // Payments: engineering first (if not paid), then 45/45/10 of remainder
   var remainder=contract-eng;
@@ -483,7 +514,7 @@ function calc(){
   prows+='<tr><td class="label" style="border-top:1px solid var(--line);padding-top:8px;font-weight:500;color:var(--ink);">Sum of payments</td><td class="amt" style="border-top:1px solid var(--line);padding-top:8px;font-weight:500;">'+fmt(paymentSum)+'</td></tr>';
   document.getElementById('c-payments').innerHTML=prows;
 
-  CURRENT={m:m,eng:eng,shell:shell,snow:snow,win:win,winLabel:winSel>=0?['Cascade WinPro Vinyl — Clay/White','Cascade WinPro Vinyl — Black/White','Amsco Studios','Andersen 100 Series'][winSel]:'',ship:ship,miles:miles,rate:rate,customs:customs,contract:contract,p1:eng,p2:p2,p3:p3,p4:p4,designPaid:designPaid,engPaid:engPaid};
+  CURRENT={m:m,eng:eng,shell:shell,snow:snow,win:win,winLabel:winSel>=0?['Cascade WinPro Vinyl — Clay/White','Cascade WinPro Vinyl — Black/White','Amsco Studios','Andersen 100 Series'][winSel]:'',ship:ship,miles:miles,rate:rate,customs:customs,contract:contract,p1:eng,p2:p2,p3:p3,p4:p4,designPaid:designPaid,engPaid:engPaid,designAmt:cEffectiveDesign};
 }
 
 function generateContract(){
@@ -567,8 +598,10 @@ function generateContract(){
   +'<table style="width:100%;border-collapse:collapse;margin-top:18px;font-size:12px;">'
   +'<tr><td style="padding:5px 8px;border:1px solid #ccc;background:#f5f3ec;font-weight:600;">Design (separate from contract)</td><td style="padding:5px 8px;border:1px solid #ccc;background:#f5f3ec;font-weight:600;text-align:right;">Price</td><td style="padding:5px 8px;border:1px solid #ccc;background:#f5f3ec;font-weight:600;">Comments</td></tr>'
   +(c.designPaid
-    ? '<tr><td style="padding:5px 8px;border:1px solid #ccc;">Design Retainer</td><td style="padding:5px 8px;border:1px solid #ccc;text-align:right;color:#888;">PAID</td><td style="padding:5px 8px;border:1px solid #ccc;font-size:11px;">Already received · was '+fmt(SHELL_DESIGN)+' · separate from contract</td></tr>'
-    : '<tr><td style="padding:5px 8px;border:1px solid #ccc;">Design Retainer</td><td style="padding:5px 8px;border:1px solid #ccc;text-align:right;">'+fmt(SHELL_DESIGN)+'</td><td style="padding:5px 8px;border:1px solid #ccc;font-size:11px;">Separate retainer · paid up front · not part of contract</td></tr>')
+    ? '<tr><td style="padding:5px 8px;border:1px solid #ccc;">Design Retainer</td><td style="padding:5px 8px;border:1px solid #ccc;text-align:right;color:#888;">PAID</td><td style="padding:5px 8px;border:1px solid #ccc;font-size:11px;">Already received · was '+fmt(c.designAmt)+(c.designAmt!==SHELL_DESIGN?' (custom amount)':'')+' · separate from contract</td></tr>'
+    : (c.designAmt>0
+      ? '<tr><td style="padding:5px 8px;border:1px solid #ccc;">Design Retainer</td><td style="padding:5px 8px;border:1px solid #ccc;text-align:right;">'+fmt(c.designAmt)+'</td><td style="padding:5px 8px;border:1px solid #ccc;font-size:11px;">Separate retainer · paid up front · not part of contract'+(c.designAmt!==SHELL_DESIGN?' · custom amount (standard '+fmt(SHELL_DESIGN)+')':'')+'</td></tr>'
+      : '<tr><td style="padding:5px 8px;border:1px solid #ccc;">Design Retainer</td><td style="padding:5px 8px;border:1px solid #ccc;text-align:right;color:#888;">WAIVED</td><td style="padding:5px 8px;border:1px solid #ccc;font-size:11px;">Design retainer waived for this customer</td></tr>'))
   +'</table>'
   // Contract cost summary
   +'<table style="width:100%;border-collapse:collapse;margin-top:14px;font-size:12px;">'
@@ -1122,7 +1155,7 @@ function initCustomContract(){
   // Default to the generic Custom Home photo
   sel.value = 'Custom Home';
 
-  ['cu-name','cu-sqft','cu-build','cu-eng','cu-miles','cu-rate','cu-photo','cu-design-paid','cu-eng-paid'].forEach(function(id){
+  ['cu-name','cu-sqft','cu-build','cu-eng','cu-miles','cu-rate','cu-photo','cu-win-label','cu-win-price','cu-design-override','cu-design-paid','cu-eng-paid'].forEach(function(id){
     var el = document.getElementById(id);
     el.addEventListener('input', calcCustom);
     el.addEventListener('change', calcCustom);
@@ -1222,23 +1255,37 @@ function calcCustom(){
   var designPaid = !!(document.getElementById('cu-design-paid') && document.getElementById('cu-design-paid').checked);
   var engPaid    = !!(document.getElementById('cu-eng-paid')    && document.getElementById('cu-eng-paid').checked);
 
+  // Window package (custom homes are bespoke — rep types label + price)
+  var winLabel = (document.getElementById('cu-win-label').value || '').trim();
+  var winPrice = Math.max(0, parseFloat(document.getElementById('cu-win-price').value) || 0);
+
+  // Design retainer override
+  var cuDOvRaw = (document.getElementById('cu-design-override').value || '').trim();
+  var cuHasDOv = cuDOvRaw !== '';
+  var cuEffectiveDesign = cuHasDOv ? Math.max(0, parseFloat(cuDOvRaw) || 0) : CUSTOM_DESIGN;
+  var cuDIsOverride = cuHasDOv && cuEffectiveDesign !== CUSTOM_DESIGN;
+  document.getElementById('cu-design-override-note').textContent = cuDIsOverride
+    ? 'Override active: contract will show '+fmt(cuEffectiveDesign)+' design retainer instead of '+fmt(CUSTOM_DESIGN)+'. Clear to revert.'
+    : 'Optional — type a custom amount (or 0 to waive) to discount or upcharge the design retainer. Standard is '+fmt(CUSTOM_DESIGN)+'.';
+
   var rows = '';
   function row(l,a,sub){var s=sub?'<div class="sub">'+sub+'</div>':''; return '<tr><td class="label">'+l+s+'</td><td class="amt">'+fmt(a)+'</td></tr>';}
   function rowPaid(l,a){return '<tr><td class="label">'+l+'<div class="sub">PAID — already received · was '+fmt(a)+'</div></td><td class="amt" style="color:var(--hint);">PAID</td></tr>';}
   if(engPaid && eng>0) rows += rowPaid('Engineering', eng);
   else                 rows += row('Engineering', eng, 'payment 1 of contract');
   rows += row('Custom build', build, (sqft>0 ? sqft.toLocaleString()+' sqft livable' : 'negotiated build cost'));
+  if(winPrice>0) rows += row('Window & door package', winPrice, winLabel || 'custom selection');
   customs.forEach(function(c){ rows += row(c.desc, c.amt, c.amt<0?'credit':'add-on'); });
   if(ship>0) rows += row('Shipping', ship, miles+' mi @ $'+rate+'/mi');
   document.getElementById('c-lines').innerHTML = rows;
 
-  // Show & set the design retainer for custom homes ($3,500) — PAID if checked
+  // Show & set the design retainer row — reflects override when active, PAID if checked
   var dRow = document.getElementById('c-design-row');
   if(dRow) dRow.style.display = '';
   var dVal = document.getElementById('c-design');
-  if(dVal) dVal.textContent = designPaid ? 'PAID' : fmt(CUSTOM_DESIGN);
+  if(dVal) dVal.textContent = designPaid ? 'PAID' : fmt(cuEffectiveDesign);
 
-  var contract = eng + build + customTotal + ship;
+  var contract = eng + build + winPrice + customTotal + ship;
   document.getElementById('c-total').textContent = fmt(contract);
 
   // Payments: engineering first (if not paid), then 45/45/10 of remainder
@@ -1253,7 +1300,7 @@ function calcCustom(){
   prows += prow('Final set (10%)', p4, '10% of remainder · due on set');
   document.getElementById('c-payments').innerHTML = prows;
 
-  CURRENT_CUSTOM = {name:name, sqft:sqft, build:build, eng:eng, miles:miles, rate:rate, ship:ship, photo:photo, customs:customs, contract:contract, p1:eng, p2:p2, p3:p3, p4:p4, designPaid:designPaid, engPaid:engPaid};
+  CURRENT_CUSTOM = {name:name, sqft:sqft, build:build, eng:eng, miles:miles, rate:rate, ship:ship, photo:photo, customs:customs, contract:contract, p1:eng, p2:p2, p3:p3, p4:p4, designPaid:designPaid, engPaid:engPaid, designAmt:cuEffectiveDesign, winLabel:winLabel, winPrice:winPrice};
 }
 
 function generateCustomContract(){
@@ -1278,6 +1325,7 @@ function generateCustomContract(){
   if(c.engPaid) sumRows += srPaid('Engineered plans', c.eng);
   else          sumRows += sr('Engineered plans', c.eng, 'payment 1 of contract');
   sumRows += sr('Custom build', c.build, c.sqft>0 ? c.sqft.toLocaleString()+' sqft livable' : 'negotiated build cost');
+  if(c.winPrice>0) sumRows += sr('Window & door package', c.winPrice, c.winLabel || 'custom selection');
   c.customs.forEach(function(x){ sumRows += sr(x.desc, x.amt, ''); });
   if(c.ship>0) sumRows += sr('Shipping', c.ship, c.miles+' miles at $'+c.rate+'/mile');
 
@@ -1329,8 +1377,10 @@ function generateCustomContract(){
   +'<table style="width:100%;border-collapse:collapse;margin-top:18px;font-size:12px;">'
   +'<tr><td style="padding:5px 8px;border:1px solid #ccc;background:#5f5e5a;color:#fff;font-weight:600;" colspan="3">DESIGN RETAINER (separate from contract)</td></tr>'
   +(c.designPaid
-    ? '<tr><td style="padding:5px 8px;border:1px solid #ccc;">Architectural design retainer</td><td style="padding:5px 8px;border:1px solid #ccc;text-align:right;color:#888;">PAID</td><td style="padding:5px 8px;border:1px solid #ccc;font-size:11px;color:#555;">Already received · was '+fmt(CUSTOM_DESIGN)+'</td></tr>'
-    : '<tr><td style="padding:5px 8px;border:1px solid #ccc;">Architectural design retainer</td><td style="padding:5px 8px;border:1px solid #ccc;text-align:right;">'+fmt(CUSTOM_DESIGN)+'</td><td style="padding:5px 8px;border:1px solid #ccc;font-size:11px;color:#555;">paid up front · separate from contract</td></tr>')
+    ? '<tr><td style="padding:5px 8px;border:1px solid #ccc;">Architectural design retainer</td><td style="padding:5px 8px;border:1px solid #ccc;text-align:right;color:#888;">PAID</td><td style="padding:5px 8px;border:1px solid #ccc;font-size:11px;color:#555;">Already received · was '+fmt(c.designAmt)+(c.designAmt!==CUSTOM_DESIGN?' (custom amount)':'')+'</td></tr>'
+    : (c.designAmt>0
+      ? '<tr><td style="padding:5px 8px;border:1px solid #ccc;">Architectural design retainer</td><td style="padding:5px 8px;border:1px solid #ccc;text-align:right;">'+fmt(c.designAmt)+'</td><td style="padding:5px 8px;border:1px solid #ccc;font-size:11px;color:#555;">paid up front · separate from contract'+(c.designAmt!==CUSTOM_DESIGN?' · custom amount (standard '+fmt(CUSTOM_DESIGN)+')':'')+'</td></tr>'
+      : '<tr><td style="padding:5px 8px;border:1px solid #ccc;">Architectural design retainer</td><td style="padding:5px 8px;border:1px solid #ccc;text-align:right;color:#888;">WAIVED</td><td style="padding:5px 8px;border:1px solid #ccc;font-size:11px;color:#555;">Design retainer waived for this customer</td></tr>'))
   +'</table>'
   // Contract cost summary
   +'<table style="width:100%;border-collapse:collapse;margin-top:14px;font-size:12px;">'
@@ -1348,7 +1398,7 @@ function generateCustomContract(){
   +'<tr><td style="padding:5px 8px;border:1px solid #ccc;">Payment 3 — Pre-ship (45%)</td><td style="padding:5px 8px;border:1px solid #ccc;text-align:right;">'+fmt(c.p3)+'</td><td style="padding:5px 8px;border:1px solid #ccc;font-size:11px;color:#555;">45% of remainder · due before shipment</td></tr>'
   +'<tr><td style="padding:5px 8px;border:1px solid #ccc;">Final — Set (10%)</td><td style="padding:5px 8px;border:1px solid #ccc;text-align:right;">'+fmt(c.p4)+'</td><td style="padding:5px 8px;border:1px solid #ccc;font-size:11px;color:#555;">10% of remainder · due on set</td></tr>'
   +'</table>'
-  +'<div style="font-size:11px;color:#555;margin-top:6px;font-style:italic;">Design retainer ('+fmt(CUSTOM_DESIGN)+') is separate and paid up front. Contract is billed engineering first, then 45% / 45% / 10% of the remainder. Sums to the contract total.</div>'
+  +'<div style="font-size:11px;color:#555;margin-top:6px;font-style:italic;">Design retainer ('+fmt(c.designAmt)+') is separate and paid up front. Contract is billed engineering first, then 45% / 45% / 10% of the remainder. Sums to the contract total.</div>'
   +'<div style="margin-top:36px;display:flex;justify-content:space-between;font-size:12px;">'
   +'<div style="width:45%;">Seller: ______________________ Date: __________</div>'
   +'<div style="width:45%;">Buyer: ______________________ Date: __________</div>'

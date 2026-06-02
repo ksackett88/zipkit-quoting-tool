@@ -159,8 +159,12 @@
           <span class="slider-out" id="s-disc-out">0%</span>
         </div>
 
+        <label for="s-design-override" style="margin-top:8px;">Design retainer (override / discount)</label>
+        <input type="number" id="s-design-override" min="0" step="100" placeholder="leave blank for $2,500 standard">
+        <p class="note" id="s-design-override-note">Optional — type a custom amount (or 0 to waive) to discount or upcharge the design retainer for this customer.</p>
+
         <label style="margin-top:8px;">Already paid (remove from total &amp; payment schedule)</label>
-        <div class="checkrow"><input type="checkbox" id="s-design-paid"><label for="s-design-paid" style="margin:0;color:var(--ink);">Design retainer ($2,500)</label></div>
+        <div class="checkrow"><input type="checkbox" id="s-design-paid"><label for="s-design-paid" style="margin:0;color:var(--ink);">Design retainer</label></div>
         <div class="checkrow"><input type="checkbox" id="s-eng-paid"><label for="s-eng-paid" style="margin:0;color:var(--ink);">Engineering submittal</label></div>
 
         <label>Add-ons &amp; extras</label>
@@ -169,7 +173,7 @@
         <p class="custom-help">For anything not in the standard kit — garage, patio, deck, extra room, basement, premium upgrades, etc. Each line flows into the total, proposal, contract, and payment schedule. Use a negative amount for a credit.</p>
 
         <div class="disclaimer">
-          Heads up: the $2,500 design fee and engineering are quoted per project. The shell kit does not include foundation, mechanical/electrical/plumbing, or interior finishing — make sure the customer knows that. Prices can change, so confirm before you commit anything in writing.
+          Heads up: the design fee and engineering are quoted per project — standard design retainer is $2,500 (override above to discount or upcharge). The shell kit does not include foundation, mechanical/electrical/plumbing, or interior finishing — make sure the customer knows that. Prices can change, so confirm before you commit anything in writing.
         </div>
       </div>
 
@@ -273,6 +277,10 @@
         <input type="number" id="g-miles" min="0" max="2000" step="10" value="0">
         <p class="note" id="g-ship-note">Enter the miles to the job site. The rate depends on standalone vs. bundled above.</p>
 
+        <label for="g-design-override" style="margin-top:8px;">Design &amp; engineering (override / discount)</label>
+        <input type="number" id="g-design-override" min="0" step="50" placeholder="leave blank to use standalone/bundled default">
+        <p class="note" id="g-design-override-note">Optional — type a custom amount (or 0 to waive) to discount or upcharge the design &amp; engineering fee.</p>
+
         <label style="margin-top:8px;">Already paid (remove from total &amp; payment schedule)</label>
         <div class="checkrow"><input type="checkbox" id="g-design-paid"><label for="g-design-paid" style="margin:0;color:var(--ink);">Design &amp; engineering</label></div>
 
@@ -325,8 +333,12 @@
           <span class="slider-out" id="h-disc-out">0%</span>
         </div>
 
+        <label for="h-design-override" style="margin-top:8px;">Design retainer (override / discount)</label>
+        <input type="number" id="h-design-override" min="0" step="100" placeholder="leave blank for $2,500 standard">
+        <p class="note" id="h-design-override-note">Optional — type a custom amount (or 0 to waive) to discount or upcharge the design retainer.</p>
+
         <label style="margin-top:8px;">Already paid (remove from total &amp; payment schedule)</label>
-        <div class="checkrow"><input type="checkbox" id="h-design-paid"><label for="h-design-paid" style="margin:0;color:var(--ink);">Design retainer ($2,500)</label></div>
+        <div class="checkrow"><input type="checkbox" id="h-design-paid"><label for="h-design-paid" style="margin:0;color:var(--ink);">Design retainer</label></div>
 
         <label>Add-ons &amp; extras</label>
         <div id="h-custom"></div>
@@ -384,8 +396,12 @@
         <textarea id="st-scope" rows="6" placeholder="Describe what's included in this steel frame package. One line per item.&#10;&#10;e.g.&#10;Light-gauge steel wall, floor, and roof framing&#10;Engineered steel joists &amp; rafters&#10;Hardware, fasteners, and steel connectors&#10;Stamped engineering for jurisdiction"></textarea>
         <p class="note">Each line becomes a bullet on the proposal's "What's included" list.</p>
 
+        <label for="st-design-override" style="margin-top:8px;">Design retainer (override / discount)</label>
+        <input type="number" id="st-design-override" min="0" step="100" placeholder="leave blank for $2,500 standard">
+        <p class="note" id="st-design-override-note">Optional — type a custom amount (or 0 to waive) to discount or upcharge the design retainer.</p>
+
         <label style="margin-top:8px;">Already paid (remove from total &amp; payment schedule)</label>
-        <div class="checkrow"><input type="checkbox" id="st-design-paid"><label for="st-design-paid" style="margin:0;color:var(--ink);">Design retainer ($2,500)</label></div>
+        <div class="checkrow"><input type="checkbox" id="st-design-paid"><label for="st-design-paid" style="margin:0;color:var(--ink);">Design retainer</label></div>
         <div class="checkrow"><input type="checkbox" id="st-eng-paid"><label for="st-eng-paid" style="margin:0;color:var(--ink);">Engineering</label></div>
 
         <label>Add-ons &amp; extras</label>
@@ -435,7 +451,11 @@
           <option value="2500">$2,500 — Standard tier</option>
           <option value="3500" selected>$3,500 — Custom tier</option>
         </select>
-        <p class="note">Pick the right tier for this project. More tiers and engineering-credit options coming as the design pricing is finalized.</p>
+        <p class="note">Pick the right tier for this project. Use the override below to discount or upcharge from the tier amount.</p>
+
+        <label for="c-design-override">Design retainer (override / discount)</label>
+        <input type="number" id="c-design-override" min="0" step="100" placeholder="leave blank to use tier amount above">
+        <p class="note" id="c-design-override-note">Optional — type a custom amount (or 0 to waive) to discount or upcharge the design retainer for this customer.</p>
 
         <label for="c-eng">Engineering ($)</label>
         <input type="number" id="c-eng" min="0" step="100" placeholder="varies by project — confirm with engineering">
@@ -1179,7 +1199,7 @@ function setBrand(which){
     var o=document.createElement('option'); o.value=i; o.textContent=m[0]+tag+' · '+m[1]+' sqft'; sel.appendChild(o);
   });
   sel.value = SHELL.findIndex(function(m){return m[0]==='Alpine';});
-  ['s-model','s-units','s-snow','s-win','s-win-override','s-miles','s-disc','s-design-paid','s-eng-paid'].forEach(function(id){
+  ['s-model','s-units','s-snow','s-win','s-win-override','s-miles','s-disc','s-design-override','s-design-paid','s-eng-paid'].forEach(function(id){
     var el=document.getElementById(id); el.addEventListener('input',calcShell); el.addEventListener('change',calcShell);
   });
   calcShell();
@@ -1189,6 +1209,7 @@ function resetShell(){
   document.getElementById('s-win').value=-1; document.getElementById('s-miles').value=0;
   document.getElementById('s-disc').value=0;
   document.getElementById('s-win-override').value='';
+  document.getElementById('s-design-override').value='';
   document.getElementById('s-design-paid').checked=false;
   document.getElementById('s-eng-paid').checked=false;
   document.getElementById('s-custom').innerHTML='';
@@ -1264,10 +1285,20 @@ function calcShell(){
   var designPaid = document.getElementById('s-design-paid').checked;
   var engPaid    = document.getElementById('s-eng-paid').checked;
 
+  // Design retainer override — empty = use SHELL_DESIGN default; "0" valid (waive entirely)
+  var sDOvRaw = (document.getElementById('s-design-override').value || '').trim();
+  var sHasDOv = sDOvRaw !== '';
+  var effectiveDesign = sHasDOv ? Math.max(0, parseFloat(sDOvRaw) || 0) : SHELL_DESIGN;
+  var sDIsOverride = sHasDOv && effectiveDesign !== SHELL_DESIGN;
+  document.getElementById('s-design-override-note').textContent = sDIsOverride
+    ? 'Override active: using '+fmt(effectiveDesign)+' instead of the standard '+fmt(SHELL_DESIGN)+'. Clear to revert.'
+    : 'Optional — type a custom amount (or 0 to waive) to discount or upcharge the design retainer for this customer. Standard is '+fmt(SHELL_DESIGN)+'.';
+
   rows+=row('Panelized shell kit', shell*units, {sub: units>1?fmt(shell)+' × '+units+' units':'pre-framed + dry-in labor'});
   if(disc>0) rows+=row('Multi-unit discount', discPer*units, {d:true, sub:disc+'% off shell kits'});
-  if(designPaid) rows+=rowRate('Architectural design', 'PAID', {sub:'already received · was '+fmt(SHELL_DESIGN)});
-  else           rows+=row('Architectural design', SHELL_DESIGN, {sub:'per project · from'});
+  if(designPaid) rows+=rowRate('Architectural design', 'PAID', {sub:'already received · was '+fmt(effectiveDesign)+(sDIsOverride?' (custom amount)':'')});
+  else if(effectiveDesign>0) rows+=row('Architectural design', effectiveDesign, {sub: sDIsOverride ? 'per project · custom amount (standard '+fmt(SHELL_DESIGN)+')' : 'per project · from'});
+  else rows+=rowRate('Architectural design', 'WAIVED', {sub:'design retainer waived for this customer'});
   if(engPaid) rows+=rowRate('Engineering submittal', 'PAID', {sub:'already received · was '+fmt(eng)});
   else        rows+=row('Engineering submittal', eng, {sub:'per project'});
   if(snow>0) rows+=row('Snow load upgrade', snow*units, {sub:units>1?fmt(snow)+' × '+units:'per unit'});
@@ -1286,7 +1317,7 @@ function calcShell(){
 
   document.getElementById('s-lines').innerHTML=rows;
 
-  var designAmt = designPaid ? 0 : SHELL_DESIGN;
+  var designAmt = designPaid ? 0 : effectiveDesign;
   var engAmt    = engPaid    ? 0 : eng;
   var total = (shell-discPer)*units + designAmt + engAmt + snow*units + win*units + shipPer*units + customTotal;
   document.getElementById('s-total').textContent=fmt(total);
@@ -1296,7 +1327,7 @@ function calcShell(){
   var contract = (shell-discPer)*units + snow*units + win*units + shipPer*units + customTotal;
   QUOTE = {
     kind: 'Shell Kit', model: m[0], units: units,
-    design: SHELL_DESIGN, engineering: eng,
+    design: effectiveDesign, engineering: eng,
     designPaid: designPaid, engineeringPaid: engPaid,
     contract: contract, total: total,
     company: 'zipkit'
@@ -1435,11 +1466,12 @@ function calcModular(){
 (function initGarage(){
   var sel=document.getElementById('g-model');
   GARAGES.forEach(function(g,i){ var o=document.createElement('option'); o.value=i; o.textContent=g[0]+' · '+g[1]; sel.appendChild(o); });
-  ['g-model','g-units','g-design','g-miles','g-design-paid'].forEach(function(id){ var el=document.getElementById(id); el.addEventListener('input',calcGarage); el.addEventListener('change',calcGarage); });
+  ['g-model','g-units','g-design','g-design-override','g-miles','g-design-paid'].forEach(function(id){ var el=document.getElementById(id); el.addEventListener('input',calcGarage); el.addEventListener('change',calcGarage); });
   calcGarage();
 })();
 function resetGarage(){
   document.getElementById('g-units').value=1; document.getElementById('g-design').value=1125;
+  document.getElementById('g-design-override').value='';
   document.getElementById('g-miles').value=0;
   document.getElementById('g-design-paid').checked=false;
   document.getElementById('g-custom').innerHTML='';
@@ -1448,11 +1480,20 @@ function resetGarage(){
 function calcGarage(){
   var g=GARAGES[+document.getElementById('g-model').value];
   var units=Math.max(1,parseInt(document.getElementById('g-units').value)||1);
-  var design=parseFloat(document.getElementById('g-design').value)||0;
+  var stdDesign=parseFloat(document.getElementById('g-design').value)||0;
+  var gDOvRaw = (document.getElementById('g-design-override').value || '').trim();
+  var gHasDOv = gDOvRaw !== '';
+  var design = gHasDOv ? Math.max(0, parseFloat(gDOvRaw) || 0) : stdDesign;
+  var gDIsOverride = gHasDOv && design !== stdDesign;
+  document.getElementById('g-design-override-note').textContent = gDIsOverride
+    ? 'Override active: using '+fmt(design)+' instead of the standard '+fmt(stdDesign)+'. Clear to revert.'
+    : 'Optional — type a custom amount (or 0 to waive) to discount or upcharge. Standard for this selection is '+fmt(stdDesign)+'.';
   var miles=Math.max(0,parseFloat(document.getElementById('g-miles').value)||0);
   document.getElementById('g-meta').textContent=g[0]+' garage · '+g[1]+' · shell kit '+fmt(g[2]);
 
-  var bundled = (design===562);
+  // Bundled-vs-standalone routing comes from the original dropdown (controls shipping rate).
+  // The design override only changes the dollar amount, not which shipping bracket applies.
+  var bundled = (stdDesign===562);
   var grate, rateDesc;
   if(bundled){ grate=6; rateDesc='$6/mi (bundled with a home)'; }
   else if(miles>600){ grate=16; rateDesc='$16/mi (standalone, over 600 mi)'; }
@@ -1467,8 +1508,9 @@ function calcGarage(){
   function rowG(l,a,o){o=o||{};var s=o.sub?'<div class="sub">'+o.sub+'</div>':'';return '<tr><td class="label">'+l+s+'</td><td class="amt">'+fmt(a)+'</td></tr>';}
   var rows='';
   rows+=rowG('Garage shell kit', g[2]*units, {sub:units>1?fmt(g[2])+' × '+units+' units':'pre-framed 2×6 panel shell · structural dry-in'});
-  if(designPaid) rows+=rowRate('Design & engineering', 'PAID', {sub:'already received · was '+fmt(design)});
-  else           rows+=rowG('Design & engineering', design, {sub:design===562?'bundled with a home':'standalone'});
+  if(designPaid) rows+=rowRate('Design & engineering', 'PAID', {sub:'already received · was '+fmt(design)+(gDIsOverride?' (custom amount)':'')});
+  else if(design>0) rows+=rowG('Design & engineering', design, {sub: gDIsOverride ? 'custom amount (standard '+fmt(stdDesign)+')' : (stdDesign===562?'bundled with a home':'standalone')});
+  else rows+=rowRate('Design & engineering', 'WAIVED', {sub:'fee waived for this customer'});
   if(shipPer>0) rows+=rowG('Shipping', shipPer*units, {sub:units>1?fmt(shipPer)+' × '+units:rateDesc});
   else rows+=rowRate('Shipping', '$'+grate+'/mi', {sub:bundled?'bundled with a home':'standalone · enter distance'});
 
@@ -1507,13 +1549,14 @@ var HANGARS = [
 (function initHangar(){
   var sel=document.getElementById('h-model');
   HANGARS.forEach(function(h,i){ var o=document.createElement('option'); o.value=i; o.textContent=h[0]+' · starting at '+fmt(h[2]); sel.appendChild(o); });
-  ['h-model','h-units','h-base-override','h-miles','h-disc','h-design-paid'].forEach(function(id){ var el=document.getElementById(id); el.addEventListener('input',calcHangar); el.addEventListener('change',calcHangar); });
+  ['h-model','h-units','h-base-override','h-miles','h-disc','h-design-override','h-design-paid'].forEach(function(id){ var el=document.getElementById(id); el.addEventListener('input',calcHangar); el.addEventListener('change',calcHangar); });
   calcHangar();
 })();
 
 function resetHangar(){
   document.getElementById('h-units').value=1;
   document.getElementById('h-base-override').value='';
+  document.getElementById('h-design-override').value='';
   document.getElementById('h-miles').value=0;
   document.getElementById('h-disc').value=0;
   document.getElementById('h-design-paid').checked=false;
@@ -1553,10 +1596,20 @@ function calcHangar(){
     : (units>1 ? fmt(base)+' × '+units+' units' : 'pre-framed hangar shell · structural dry-in');
   var designPaid = document.getElementById('h-design-paid').checked;
 
+  // Design retainer override
+  var hDOvRaw = (document.getElementById('h-design-override').value || '').trim();
+  var hHasDOv = hDOvRaw !== '';
+  var hEffectiveDesign = hHasDOv ? Math.max(0, parseFloat(hDOvRaw) || 0) : HANGAR_DESIGN;
+  var hDIsOverride = hHasDOv && hEffectiveDesign !== HANGAR_DESIGN;
+  document.getElementById('h-design-override-note').textContent = hDIsOverride
+    ? 'Override active: using '+fmt(hEffectiveDesign)+' instead of the standard '+fmt(HANGAR_DESIGN)+'. Clear to revert.'
+    : 'Optional — type a custom amount (or 0 to waive) to discount or upcharge. Standard is '+fmt(HANGAR_DESIGN)+'.';
+
   rows += rowH('Hangar shell kit', base*units, {sub: unitSub});
   if(disc>0) rows += rowH('Multi-unit discount', discPer*units, {d:true, sub:disc+'% off kit'});
-  if(designPaid) rows += rowRate('Design & engineering', 'PAID', {sub:'already received · was '+fmt(HANGAR_DESIGN)});
-  else           rows += rowH('Design & engineering', HANGAR_DESIGN, {sub:'per project · from'});
+  if(designPaid) rows += rowRate('Design & engineering', 'PAID', {sub:'already received · was '+fmt(hEffectiveDesign)+(hDIsOverride?' (custom amount)':'')});
+  else if(hEffectiveDesign>0) rows += rowH('Design & engineering', hEffectiveDesign, {sub: hDIsOverride ? 'custom amount (standard '+fmt(HANGAR_DESIGN)+')' : 'per project · from'});
+  else rows += rowRate('Design & engineering', 'WAIVED', {sub:'fee waived for this customer'});
   if(shipPer>0) rows += rowH('Shipping', shipPer*units, {sub: units>1?fmt(shipPer)+' × '+units:'from Cedar City, UT'});
   else rows += rowRate('Shipping', '$'+HANGAR_SHIP_RATE+'/mi', {sub:'from Cedar City, UT · enter distance'});
 
@@ -1567,7 +1620,7 @@ function calcHangar(){
 
   document.getElementById('h-lines').innerHTML = rows;
 
-  var designAmt = designPaid ? 0 : HANGAR_DESIGN;
+  var designAmt = designPaid ? 0 : hEffectiveDesign;
   var total = (base-discPer)*units + designAmt + shipPer*units + customTotal;
   document.getElementById('h-total').textContent = fmt(total);
   document.getElementById('h-per-unit').textContent = units>1 ? fmt(total/units)+' per unit' : '';
@@ -1576,7 +1629,7 @@ function calcHangar(){
   var contract = (base-discPer)*units + shipPer*units + customTotal;
   QUOTE = {
     kind: 'Hangar', model: h[0]+' hangar', units: units,
-    design: HANGAR_DESIGN, engineering: 0,
+    design: hEffectiveDesign, engineering: 0,
     designPaid: designPaid, engineeringPaid: false,
     contract: contract, total: total,
     company: 'zksteel'
@@ -1588,7 +1641,7 @@ function calcHangar(){
 var CUSTOM_DESIGN = 3500;
 
 (function initCustom(){
-  var ids = ['c-name','c-sqft','c-build','c-design-tier','c-eng','c-miles','c-rate','c-scope','c-design-paid','c-eng-paid'];
+  var ids = ['c-name','c-sqft','c-build','c-design-tier','c-design-override','c-eng','c-miles','c-rate','c-scope','c-design-paid','c-eng-paid'];
   ids.forEach(function(id){
     var el = document.getElementById(id); if(!el) return;
     el.addEventListener('input', calcCustom);
@@ -1601,6 +1654,7 @@ function resetCustom(){
   document.getElementById('c-sqft').value = '';
   document.getElementById('c-build').value = '';
   document.getElementById('c-design-tier').value = '3500';
+  document.getElementById('c-design-override').value = '';
   document.getElementById('c-eng').value = '';
   document.getElementById('c-miles').value = 0;
   document.getElementById('c-rate').value = 18;
@@ -1629,18 +1683,28 @@ function calcCustom(){
   var designTier = parseFloat(document.getElementById('c-design-tier').value) || CUSTOM_DESIGN;
   var designLabel = designTier === 2500 ? 'Standard tier' : (designTier === 3500 ? 'Custom tier' : 'per project');
 
+  // Design retainer override — supersedes the tier dropdown when filled
+  var cDOvRaw = (document.getElementById('c-design-override').value || '').trim();
+  var cHasDOv = cDOvRaw !== '';
+  var cEffectiveDesign = cHasDOv ? Math.max(0, parseFloat(cDOvRaw) || 0) : designTier;
+  var cDIsOverride = cHasDOv && cEffectiveDesign !== designTier;
+  document.getElementById('c-design-override-note').textContent = cDIsOverride
+    ? 'Override active: using '+fmt(cEffectiveDesign)+' instead of the tier amount '+fmt(designTier)+'. Clear to revert.'
+    : 'Optional — type a custom amount (or 0 to waive) to discount or upcharge. Tier amount is '+fmt(designTier)+'.';
+
   function row(l,a,o){o=o||{};var s=o.sub?'<div class="sub">'+o.sub+'</div>':'';return '<tr><td class="label">'+l+s+'</td><td class="amt">'+fmt(a)+'</td></tr>';}
   var rows = '';
   if(build>0) rows += row('Custom build', build, {sub: name || 'negotiated construction price'});
-  if(designPaid) rows += rowRate('Architectural design', 'PAID', {sub:'already received · was '+fmt(designTier)});
-  else           rows += row('Architectural design', designTier, {sub:'per project · '+designLabel});
+  if(designPaid) rows += rowRate('Architectural design', 'PAID', {sub:'already received · was '+fmt(cEffectiveDesign)+(cDIsOverride?' (custom amount)':'')});
+  else if(cEffectiveDesign>0) rows += row('Architectural design', cEffectiveDesign, {sub: cDIsOverride ? 'custom amount (tier '+fmt(designTier)+')' : 'per project · '+designLabel});
+  else rows += rowRate('Architectural design', 'WAIVED', {sub:'design retainer waived for this customer'});
   if(engPaid && eng>0) rows += rowRate('Engineering submittal', 'PAID', {sub:'already received · was '+fmt(eng)});
   else if(eng>0)       rows += row('Engineering submittal', eng, {sub:'quoted per project'});
   else                 rows += rowRate('Engineering submittal', 'TBD', {sub:'enter project-specific amount'});
   if(ship>0) rows += row('Shipping', ship, {sub:miles+' mi × $'+rate+'/mi'});
   document.getElementById('c-lines').innerHTML = rows;
 
-  var designAmt = designPaid ? 0 : designTier;
+  var designAmt = designPaid ? 0 : cEffectiveDesign;
   var engAmt    = engPaid    ? 0 : eng;
   var total = build + designAmt + engAmt + ship;
   document.getElementById('c-total').textContent = fmt(total);
@@ -1656,7 +1720,7 @@ function calcCustom(){
     kind: 'Custom Home',
     model: name || 'Custom home',
     units: 1,
-    design: designTier,
+    design: cEffectiveDesign,
     engineering: eng,
     designPaid: designPaid, engineeringPaid: engPaid,
     contract: contract,
@@ -1672,7 +1736,7 @@ function calcCustom(){
 var STEEL_DESIGN = 2500;
 
 (function initSteel(){
-  var ids = ['st-name','st-sqft','st-build','st-eng','st-miles','st-rate','st-scope','st-design-paid','st-eng-paid'];
+  var ids = ['st-name','st-sqft','st-build','st-eng','st-miles','st-rate','st-scope','st-design-override','st-design-paid','st-eng-paid'];
   ids.forEach(function(id){
     var el = document.getElementById(id);
     if(el){ el.addEventListener('input', calcSteel); el.addEventListener('change', calcSteel); }
@@ -1681,7 +1745,7 @@ var STEEL_DESIGN = 2500;
 })();
 
 function resetSteel(){
-  ['st-name','st-sqft','st-build','st-eng','st-scope'].forEach(function(id){ document.getElementById(id).value=''; });
+  ['st-name','st-sqft','st-build','st-eng','st-scope','st-design-override'].forEach(function(id){ document.getElementById(id).value=''; });
   document.getElementById('st-miles').value=0;
   document.getElementById('st-rate').value=14;
   document.getElementById('st-design-paid').checked=false;
@@ -1702,6 +1766,15 @@ function calcSteel(){
   var designPaid = document.getElementById('st-design-paid').checked;
   var engPaid    = document.getElementById('st-eng-paid').checked;
 
+  // Design retainer override
+  var stDOvRaw = (document.getElementById('st-design-override').value || '').trim();
+  var stHasDOv = stDOvRaw !== '';
+  var stEffectiveDesign = stHasDOv ? Math.max(0, parseFloat(stDOvRaw) || 0) : STEEL_DESIGN;
+  var stDIsOverride = stHasDOv && stEffectiveDesign !== STEEL_DESIGN;
+  document.getElementById('st-design-override-note').textContent = stDIsOverride
+    ? 'Override active: using '+fmt(stEffectiveDesign)+' instead of the standard '+fmt(STEEL_DESIGN)+'. Clear to revert.'
+    : 'Optional — type a custom amount (or 0 to waive) to discount or upcharge. Standard is '+fmt(STEEL_DESIGN)+'.';
+
   document.getElementById('st-ship-note').textContent = miles>0 && rate>0
     ? miles.toLocaleString('en-US')+' mi × $'+rate+' = '+fmt(ship)
     : 'Default $14/mi. Adjust as needed.';
@@ -1709,8 +1782,9 @@ function calcSteel(){
   function row(l,a,o){o=o||{};var s=o.sub?'<div class="sub">'+o.sub+'</div>':'';return '<tr><td class="label">'+l+s+'</td><td class="amt">'+fmt(a)+'</td></tr>';}
   var rows = '';
   if(build>0) rows += row('Light-gauge steel frame package', build, {sub: name || 'negotiated package price'});
-  if(designPaid) rows += rowRate('Architectural design', 'PAID', {sub:'already received · was '+fmt(STEEL_DESIGN)});
-  else           rows += row('Architectural design', STEEL_DESIGN, {sub:'per project · steel retainer'});
+  if(designPaid) rows += rowRate('Architectural design', 'PAID', {sub:'already received · was '+fmt(stEffectiveDesign)+(stDIsOverride?' (custom amount)':'')});
+  else if(stEffectiveDesign>0) rows += row('Architectural design', stEffectiveDesign, {sub: stDIsOverride ? 'custom amount (standard '+fmt(STEEL_DESIGN)+')' : 'per project · steel retainer'});
+  else rows += rowRate('Architectural design', 'WAIVED', {sub:'design retainer waived for this customer'});
   if(engPaid && eng>0) rows += rowRate('Engineering submittal', 'PAID', {sub:'already received · was '+fmt(eng)});
   else if(eng>0)       rows += row('Engineering submittal', eng, {sub:'stamped engineering · quoted per project'});
   else                 rows += rowRate('Engineering submittal', 'TBD', {sub:'enter project-specific amount'});
@@ -1723,7 +1797,7 @@ function calcSteel(){
 
   document.getElementById('st-lines').innerHTML = rows;
 
-  var designAmt = designPaid ? 0 : STEEL_DESIGN;
+  var designAmt = designPaid ? 0 : stEffectiveDesign;
   var engAmt    = engPaid    ? 0 : eng;
   var total = build + designAmt + engAmt + ship + customTotal;
   document.getElementById('st-total').textContent = fmt(total);
@@ -1738,7 +1812,7 @@ function calcSteel(){
     kind: 'Steel Frame',
     model: name || 'Light-gauge steel frame',
     units: 1,
-    design: STEEL_DESIGN,
+    design: stEffectiveDesign,
     engineering: eng,
     designPaid: designPaid, engineeringPaid: engPaid,
     contract: contract,
@@ -1858,12 +1932,12 @@ document.getElementById('zk-quotes-close').addEventListener('click', function(){
 /* ---------- Capture / restore current mode state ---------- */
 
 var ZK_MODE_FIELDS = {
-  shell:   ['s-model','s-units','s-snow','s-win','s-win-override','s-miles','s-disc','s-design-paid','s-eng-paid'],
+  shell:   ['s-model','s-units','s-snow','s-win','s-win-override','s-miles','s-disc','s-design-override','s-design-paid','s-eng-paid'],
   modular: ['m-model','m-units','m-base-override','m-snow','m-win','m-win-override','m-miles','m-disc'],
-  garage:  ['g-model','g-units','g-design','g-miles','g-design-paid'],
-  hangar:  ['h-model','h-units','h-base-override','h-miles','h-disc','h-design-paid'],
-  steel:   ['st-name','st-sqft','st-build','st-eng','st-miles','st-rate','st-scope','st-design-paid','st-eng-paid'],
-  custom:  ['c-name','c-sqft','c-build','c-design-tier','c-eng','c-miles','c-rate','c-scope','c-design-paid','c-eng-paid']
+  garage:  ['g-model','g-units','g-design','g-design-override','g-miles','g-design-paid'],
+  hangar:  ['h-model','h-units','h-base-override','h-miles','h-disc','h-design-override','h-design-paid'],
+  steel:   ['st-name','st-sqft','st-build','st-eng','st-miles','st-rate','st-scope','st-design-override','st-design-paid','st-eng-paid'],
+  custom:  ['c-name','c-sqft','c-build','c-design-tier','c-design-override','c-eng','c-miles','c-rate','c-scope','c-design-paid','c-eng-paid']
 };
 
 var ZK_BUYER_FIELDS = ['prop-buyer','prop-project','prop-location','prop-email','prop-phone','prop-num','prop-date'];
