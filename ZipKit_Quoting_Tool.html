@@ -145,6 +145,10 @@
           <option value="3">Andersen 100 Series</option>
         </select>
 
+        <label for="s-win-override">Window package price (override)</label>
+        <input type="number" id="s-win-override" min="0" step="100" placeholder="leave blank to use standard package price">
+        <p class="note" id="s-win-override-note">Optional — type a custom per-unit window package price if the customer is going non-standard (e.g. upgraded sizes, mixed brands, designer specs). Leave blank to use the standard price for the selected package.</p>
+
         <label for="s-miles">Shipping distance from Cedar City, UT (miles)</label>
         <input type="number" id="s-miles" min="0" max="2000" step="10" value="0">
         <p class="note" id="s-ship-note">Enter the miles to the job site — the per-mile rate is set by the model.</p>
@@ -207,6 +211,9 @@
         <div id="m-win-wrap">
           <label for="m-win">Window upgrade</label>
           <select id="m-win"></select>
+          <label for="m-win-override" style="margin-top:10px;">Window upgrade price (override)</label>
+          <input type="number" id="m-win-override" min="0" step="100" placeholder="leave blank to use standard upgrade price">
+          <p class="note" id="m-win-override-note">Optional — type a custom per-unit upgrade price if the customer is going non-standard.</p>
         </div>
 
         <div id="m-addons"></div>
@@ -1172,7 +1179,7 @@ function setBrand(which){
     var o=document.createElement('option'); o.value=i; o.textContent=m[0]+tag+' · '+m[1]+' sqft'; sel.appendChild(o);
   });
   sel.value = SHELL.findIndex(function(m){return m[0]==='Alpine';});
-  ['s-model','s-units','s-snow','s-win','s-miles','s-disc','s-design-paid','s-eng-paid'].forEach(function(id){
+  ['s-model','s-units','s-snow','s-win','s-win-override','s-miles','s-disc','s-design-paid','s-eng-paid'].forEach(function(id){
     var el=document.getElementById(id); el.addEventListener('input',calcShell); el.addEventListener('change',calcShell);
   });
   calcShell();
@@ -1181,6 +1188,7 @@ function resetShell(){
   document.getElementById('s-units').value=1; document.getElementById('s-snow').value=0;
   document.getElementById('s-win').value=-1; document.getElementById('s-miles').value=0;
   document.getElementById('s-disc').value=0;
+  document.getElementById('s-win-override').value='';
   document.getElementById('s-design-paid').checked=false;
   document.getElementById('s-eng-paid').checked=false;
   document.getElementById('s-custom').innerHTML='';
@@ -1232,7 +1240,19 @@ function calcShell(){
   if(flags.length){ flag.style.display='block'; flag.innerHTML=flags.join('<br>'); } else flag.style.display='none';
 
   var snow = snowSel===1?snow1 : snowSel===2?snow2 : 0;
-  var win = winSel>=0 ? wins[winSel] : 0;
+  var stdWin = winSel>=0 ? wins[winSel] : 0;
+  var winOverrideRaw = (document.getElementById('s-win-override').value || '').trim();
+  var winOverride = winOverrideRaw ? Math.max(0, parseFloat(winOverrideRaw) || 0) : 0;
+  // Override only applies when a real package is selected (winSel>=0). Picking
+  // "No window package" zeros it out regardless of the override field.
+  var winIsOverride = winSel>=0 && winOverride > 0 && winOverride !== stdWin;
+  var win = winSel>=0 ? (winOverride > 0 ? winOverride : stdWin) : 0;
+  // Helper text reflects whether override is active
+  document.getElementById('s-win-override-note').textContent = winIsOverride
+    ? 'Override active: using '+fmt(winOverride)+'/unit instead of the standard '+fmt(stdWin)+'. Clear to revert.'
+    : (winSel>=0
+        ? 'Optional — type a custom per-unit window package price if the customer is going non-standard. Standard price for this package is '+fmt(stdWin)+'.'
+        : 'Optional — type a custom per-unit window package price if the customer is going non-standard. (Pick a package above to use this override.)');
   var shipPer = miles*rate;
   document.getElementById('s-ship-note').textContent = miles>0
     ? miles.toLocaleString('en-US')+' mi × $'+rate+' = '+fmt(shipPer)+'/unit.'
@@ -1251,7 +1271,10 @@ function calcShell(){
   if(engPaid) rows+=rowRate('Engineering submittal', 'PAID', {sub:'already received · was '+fmt(eng)});
   else        rows+=row('Engineering submittal', eng, {sub:'per project'});
   if(snow>0) rows+=row('Snow load upgrade', snow*units, {sub:units>1?fmt(snow)+' × '+units:'per unit'});
-  if(win>0) rows+=row('Window & door package', win*units, {sub:units>1?fmt(win)+' × '+units:'incl. standard entry doors, shipping & install'});
+  if(win>0){
+    var winSubBase = winIsOverride ? 'non-standard package · incl. entry doors, shipping & install' : 'incl. standard entry doors, shipping & install';
+    rows+=row('Window & door package', win*units, {sub:units>1?fmt(win)+' × '+units+' · '+winSubBase:winSubBase});
+  }
   else rows+=rowRate('Windows & doors', 'not included', {sub:'select a package — doors come with it'});
   if(shipPer>0) rows+=row('Shipping', shipPer*units, {sub:units>1?fmt(shipPer)+' × '+units:'from Cedar City, UT'});
   else rows+=rowRate('Shipping', '$'+rate+'/mi', {sub:'from Cedar City, UT · enter distance'});
@@ -1292,7 +1315,7 @@ function calcShell(){
     sel.appendChild(og);
   });
   sel.addEventListener('change', function(){ buildModularControls(); calcModular(); });
-  ['m-units','m-base-override','m-miles','m-disc'].forEach(function(id){ var el=document.getElementById(id); el.addEventListener('input',calcModular); el.addEventListener('change',calcModular); });
+  ['m-units','m-base-override','m-miles','m-disc','m-win-override'].forEach(function(id){ var el=document.getElementById(id); el.addEventListener('input',calcModular); el.addEventListener('change',calcModular); });
   buildModularControls(); calcModular();
 })();
 function updateModularBrand(){ var m=MODULAR[+document.getElementById('m-model').value]; setBrand(m[1]==='Mountain Valley Prefab'?'mvp':'zipkit'); }
@@ -1330,6 +1353,7 @@ function resetModular(){
   document.getElementById('m-units').value=1; document.getElementById('m-snow').value=0;
   document.getElementById('m-miles').value=0; document.getElementById('m-disc').value=0;
   document.getElementById('m-base-override').value='';
+  document.getElementById('m-win-override').value='';
   document.getElementById('m-custom').innerHTML='';
   var w=document.getElementById('m-win'); if(w.options.length) w.value=-1;
   document.querySelectorAll('#m-addons input').forEach(function(c){c.checked=false;});
@@ -1354,7 +1378,16 @@ function calcModular(){
     : 'Optional — fill in if the negotiated unit price differs from the default '+fmt(defaultBase)+'. Snow, windows, addons, shipping, and discounts all apply on top.';
   var snow = snowSel===1?snow1 : snowSel===2?snow2 : 0;
   var winSel=+(document.getElementById('m-win').value||-1);
-  var winCost = (winSel>=0 && m[12][winSel]) ? m[12][winSel][1] : 0;
+  var stdWinCost = (winSel>=0 && m[12][winSel]) ? m[12][winSel][1] : 0;
+  var mWinOverrideRaw = (document.getElementById('m-win-override').value || '').trim();
+  var mWinOverride = mWinOverrideRaw ? Math.max(0, parseFloat(mWinOverrideRaw) || 0) : 0;
+  var mWinIsOverride = winSel>=0 && mWinOverride > 0 && mWinOverride !== stdWinCost;
+  var winCost = winSel>=0 ? (mWinOverride > 0 ? mWinOverride : stdWinCost) : 0;
+  document.getElementById('m-win-override-note').textContent = mWinIsOverride
+    ? 'Override active: using '+fmt(mWinOverride)+'/unit instead of the standard '+fmt(stdWinCost)+'. Clear to revert.'
+    : (winSel>=0
+        ? 'Optional — type a custom per-unit upgrade price if the customer is going non-standard. Standard upgrade for this selection is '+fmt(stdWinCost)+'.'
+        : 'Optional — type a custom per-unit upgrade price if the customer is going non-standard. (Pick an upgrade above to use this override.)');
   var addonTotal=0, addonRows='';
   if(m[11]) m[11].forEach(function(a,i){ var c=document.getElementById('m-addon-'+i); if(c&&c.checked){ addonTotal+=a[1]; addonRows+=rowM(a[0], a[1]*units, {sub:units>1?fmt(a[1])+' × '+units:'optional'}); } });
   var shipPer = miles*shipHigh;
@@ -1369,7 +1402,10 @@ function calcModular(){
     : (units>1 ? fmt(base)+' × '+units+(m[13]==='per-module'?' modules':' units') : (m[13]==='per-module'?'per module':'move-in ready'));
   rows+=rowM('Completed modular unit', base*units, {sub: unitSub});
   if(disc>0) rows+=rowM('Multi-unit discount', discPer*units, {d:true, sub:disc+'% off base'});
-  if(winCost>0) rows+=rowM('Window upgrade', winCost*units, {sub:units>1?fmt(winCost)+' × '+units:m[12][winSel][0]});
+  if(winCost>0){
+    var mWinSubBase = mWinIsOverride ? 'non-standard upgrade · custom selection' : m[12][winSel][0];
+    rows+=rowM('Window upgrade', winCost*units, {sub:units>1?fmt(winCost)+' × '+units+' · '+mWinSubBase:mWinSubBase});
+  }
   rows+=addonRows;
   if(snow>0) rows+=rowM('Snow load upgrade', snow*units, {sub:units>1?fmt(snow)+' × '+units:'per unit'});
   if(shipPer>0) rows+=rowM('Shipping', shipPer*units, {sub:units>1?fmt(shipPer)+' × '+units:'high end of range'});
@@ -1822,8 +1858,8 @@ document.getElementById('zk-quotes-close').addEventListener('click', function(){
 /* ---------- Capture / restore current mode state ---------- */
 
 var ZK_MODE_FIELDS = {
-  shell:   ['s-model','s-units','s-snow','s-win','s-miles','s-disc','s-design-paid','s-eng-paid'],
-  modular: ['m-model','m-units','m-base-override','m-snow','m-win','m-miles','m-disc'],
+  shell:   ['s-model','s-units','s-snow','s-win','s-win-override','s-miles','s-disc','s-design-paid','s-eng-paid'],
+  modular: ['m-model','m-units','m-base-override','m-snow','m-win','m-win-override','m-miles','m-disc'],
   garage:  ['g-model','g-units','g-design','g-miles','g-design-paid'],
   hangar:  ['h-model','h-units','h-base-override','h-miles','h-disc','h-design-paid'],
   steel:   ['st-name','st-sqft','st-build','st-eng','st-miles','st-rate','st-scope','st-design-paid','st-eng-paid'],
