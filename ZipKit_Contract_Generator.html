@@ -1473,8 +1473,24 @@ function generateCustomContract(){
 
 <div id="zk-toolbar" style="display:none;position:fixed;top:14px;right:18px;z-index:100;gap:8px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
   <span id="zk-user-email" style="font-size:12px;color:#5f5e5a;align-self:center;margin-right:6px;"></span>
+  <button onclick="zkShowMyContracts()" style="height:34px;padding:0 14px;font-size:12px;border:1px solid #c9c7bd;background:#fff;border-radius:8px;cursor:pointer;font-family:inherit;color:#1c1c1a;">My Contracts</button>
+  <button onclick="zkSaveCurrentContract()" style="height:34px;padding:0 14px;font-size:12px;border:1px solid #d85a30;background:#d85a30;color:#fff;border-radius:8px;cursor:pointer;font-family:inherit;font-weight:600;">Save Contract</button>
   <button onclick="zkSignOut()" style="height:34px;padding:0 14px;font-size:12px;border:1px solid #c9c7bd;background:#fff;border-radius:8px;cursor:pointer;font-family:inherit;color:#5f5e5a;">Sign out</button>
 </div>
+
+<!-- ============ MY CONTRACTS MODAL ============ -->
+<div id="zk-contracts-overlay" style="display:none;position:fixed;inset:0;background:rgba(28,28,26,0.6);z-index:9998;align-items:flex-start;justify-content:center;padding:60px 20px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;overflow-y:auto;">
+  <div style="background:#fff;border-radius:14px;padding:28px 32px;max-width:920px;width:100%;max-height:80vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.4);">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;">
+      <h2 style="margin:0;font-size:20px;font-weight:600;color:#1c1c1a;">My contracts</h2>
+      <button id="zk-contracts-close" style="background:none;border:none;cursor:pointer;font-size:28px;color:#5f5e5a;line-height:1;" onclick="document.getElementById('zk-contracts-overlay').style.display='none';">×</button>
+    </div>
+    <div id="zk-contracts-list" style="min-height:80px;"></div>
+  </div>
+</div>
+
+<!-- ============ TOAST ============ -->
+<div id="zk-contract-toast" style="display:none;position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:10000;background:#1c1c1a;color:#fff;padding:12px 20px;border-radius:8px;font-size:13px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;box-shadow:0 6px 20px rgba(0,0,0,0.3);"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="lib/supabase.js"></script>
@@ -1521,6 +1537,258 @@ function generateCustomContract(){
 })();
 
 async function zkSignOut(){ await zkAuth.signOut(); }
+
+/* ============================================================================
+   SAVE / LOAD CONTRACTS — uses the same Supabase quotes table as the quoting
+   tool but distinguishes records via product_kind ("contract-shell" etc.).
+   ============================================================================ */
+
+function zkContractToast(msg, isError){
+  var el = document.getElementById('zk-contract-toast');
+  if(!el) return;
+  el.textContent = msg;
+  el.style.background = isError ? '#993c1d' : '#1c1c1a';
+  el.style.display = 'block';
+  setTimeout(function(){ el.style.display = 'none'; }, 3000);
+}
+
+function zkContractActiveMode(){
+  var t = document.querySelector('.tab.active');
+  return t ? t.dataset.mode : 'shell';
+}
+
+// Shared buyer fields appear in all three modes (same top card).
+var ZK_CONTRACT_BUYER_FIELDS = ['c-buyer','c-project','c-phone','c-email','c-buyer-addr','c-site-addr','c-city','c-date','c-salesman'];
+// Mode-specific static fields (inputs/selects/checkboxes).
+var ZK_CONTRACT_MODE_FIELDS = {
+  shell:   ['c-model','c-snow','c-win','c-miles','c-design-override','c-design-paid','c-eng-paid'],
+  modular: ['cm-model','cm-units','cm-miles'],
+  custom:  ['cu-name','cu-sqft','cu-build','cu-eng','cu-miles','cu-rate','cu-photo','cu-win-label','cu-win-price','cu-design-override','cu-design-paid','cu-eng-paid']
+};
+
+function zkCaptureContract(){
+  var mode = zkContractActiveMode();
+  var cfg = { mode: mode, fields: {}, customs: [], scopeCustoms: [], scopeStd: {} };
+  // Buyer + mode-specific fields
+  ZK_CONTRACT_BUYER_FIELDS.concat(ZK_CONTRACT_MODE_FIELDS[mode] || []).forEach(function(id){
+    var el = document.getElementById(id); if(!el) return;
+    cfg.fields[id] = (el.type === 'checkbox') ? !!el.checked : el.value;
+  });
+  // Custom line items (data attr differs per mode)
+  var lineSpec = { shell:{box:'c-custom',d:'data-cust',a:'data-cust'},
+                   modular:{box:'cm-custom',d:'data-mcust',a:'data-mcust'},
+                   custom:{box:'cu-custom',d:'data-cucust',a:'data-cucust'} }[mode];
+  if(lineSpec){
+    var lb = document.getElementById(lineSpec.box);
+    if(lb){
+      lb.querySelectorAll('.lineitem').forEach(function(row){
+        var d = row.querySelector('['+lineSpec.d+'="desc"]');
+        var a = row.querySelector('['+lineSpec.a+'="amt"]');
+        if(d && a) cfg.customs.push({ desc: d.value, amt: a.value });
+      });
+    }
+  }
+  // Scope-custom items — each row has one text input + one select, use generic selectors
+  var scopeBoxId = { shell:'c-scope-custom', modular:'cm-scope-custom', custom:'cu-scope-custom' }[mode];
+  var sb = document.getElementById(scopeBoxId);
+  if(sb){
+    sb.querySelectorAll('.scoperow, .scoperow-mvp').forEach(function(row){
+      var t = row.querySelector('input[type="text"]');
+      var v = row.querySelector('select');
+      if(t && t.value.trim()) cfg.scopeCustoms.push({ text: t.value, value: v ? v.value : '' });
+    });
+  }
+  // Shell scope-std toggle overrides (inc / not)
+  if(mode === 'shell'){
+    document.querySelectorAll('#c-scope .scopesel').forEach(function(s){
+      var idx = s.getAttribute('data-scope');
+      if(idx !== null) cfg.scopeStd[idx] = s.value;
+    });
+  }
+  return cfg;
+}
+
+async function zkSaveCurrentContract(){
+  if(!window.zkQuotes){ zkContractToast('Save unavailable — auth not loaded.', true); return; }
+  var cfg = zkCaptureContract();
+  var mode = cfg.mode;
+
+  // Pull display info from the active mode's CURRENT_* global
+  var model = null, total = 0, brand = 'zipkit', units = 1;
+  if(mode === 'shell' && window.CURRENT){
+    model = CURRENT.m && CURRENT.m[0]; total = CURRENT.contract; brand = 'zipkit'; units = 1;
+  } else if(mode === 'modular' && window.CURRENT_MODULAR){
+    model = CURRENT_MODULAR.m && CURRENT_MODULAR.m[0]; total = CURRENT_MODULAR.total;
+    brand = (CURRENT_MODULAR.m && CURRENT_MODULAR.m[1] === 'Mountain Valley Prefab') ? 'mvp' : 'zipkit';
+    units = CURRENT_MODULAR.units || 1;
+  } else if(mode === 'custom' && window.CURRENT_CUSTOM){
+    model = CURRENT_CUSTOM.name || 'Custom home'; total = CURRENT_CUSTOM.contract; brand = 'zipkit'; units = 1;
+  } else {
+    zkContractToast('Configure the contract first — pick a model and fill in pricing.', true); return;
+  }
+
+  var buyer  = (document.getElementById('c-buyer')||{}).value || null;
+  var project= (document.getElementById('c-project')||{}).value || null;
+  var email  = (document.getElementById('c-email')||{}).value || null;
+  var phone  = (document.getElementById('c-phone')||{}).value || null;
+
+  var data = {
+    product_kind: 'contract-' + mode,
+    model: model,
+    brand: brand,
+    units: units,
+    buyer_name: buyer,
+    buyer_email: email,
+    buyer_phone: phone,
+    project_name: project,
+    total: total,
+    contract_amount: total,
+    config: cfg,
+    quote_data: null
+  };
+  try {
+    var row = await zkQuotes.save(data);
+    zkContractToast('Saved as ' + row.quote_number);
+  } catch(e){
+    console.error(e);
+    zkContractToast('Save failed: ' + (e.message || e), true);
+  }
+}
+
+async function zkShowMyContracts(){
+  var overlay = document.getElementById('zk-contracts-overlay');
+  var listDiv = document.getElementById('zk-contracts-list');
+  overlay.style.display = 'flex';
+  listDiv.innerHTML = '<p style="text-align:center;color:#888;padding:30px 0;">Loading…</p>';
+  try {
+    var all = await zkQuotes.list();
+    var contracts = all.filter(function(q){ return q.product_kind && q.product_kind.indexOf('contract-') === 0; });
+    if(!contracts.length){
+      listDiv.innerHTML = '<p style="text-align:center;color:#888;padding:30px 0;">No saved contracts yet. Configure a contract and click <b>Save Contract</b>.</p>';
+      return;
+    }
+    var html = '<table style="width:100%;border-collapse:collapse;font-size:13px;">'
+      +'<thead><tr style="border-bottom:2px solid #1c1c1a;color:#888;text-transform:uppercase;font-size:11px;letter-spacing:0.05em;">'
+      +'<th style="text-align:left;padding:10px 8px;">Contract #</th>'
+      +'<th style="text-align:left;padding:10px 8px;">Buyer / Project</th>'
+      +'<th style="text-align:left;padding:10px 8px;">Type</th>'
+      +'<th style="text-align:right;padding:10px 8px;">Total</th>'
+      +'<th style="text-align:left;padding:10px 8px;">Updated</th>'
+      +'<th></th>'
+      +'</tr></thead><tbody>';
+    contracts.forEach(function(c){
+      var d = new Date(c.updated_at);
+      var dateStr = d.toLocaleDateString('en-US') + ' ' + d.toLocaleTimeString('en-US', {hour:'2-digit',minute:'2-digit'});
+      var totalStr = c.total ? '$' + Number(c.total).toLocaleString('en-US') : '—';
+      var kind = c.product_kind.replace('contract-','');
+      kind = kind.charAt(0).toUpperCase() + kind.slice(1);
+      var typeStr = kind + (c.model ? ' · ' + c.model : '') + (c.units > 1 ? ' × ' + c.units : '');
+      var buyerStr = (c.buyer_name || '—') + (c.project_name ? '<div style="color:#888;font-size:11px;">'+c.project_name+'</div>' : '');
+      html += '<tr style="border-bottom:1px solid #e2e0d8;">'
+        +'<td style="padding:10px 8px;font-weight:500;font-family:Menlo,Consolas,monospace;font-size:12px;">'+c.quote_number+'</td>'
+        +'<td style="padding:10px 8px;">'+buyerStr+'</td>'
+        +'<td style="padding:10px 8px;">'+typeStr+'</td>'
+        +'<td style="padding:10px 8px;text-align:right;font-weight:500;">'+totalStr+'</td>'
+        +'<td style="padding:10px 8px;color:#888;font-size:12px;">'+dateStr+'</td>'
+        +'<td style="padding:10px 8px;text-align:right;white-space:nowrap;">'
+        +'<button onclick="zkOpenContract(\''+c.id+'\')" style="height:30px;padding:0 12px;font-size:12px;border:1px solid #d85a30;background:#d85a30;color:#fff;border-radius:6px;cursor:pointer;font-family:inherit;margin-right:4px;">Open</button>'
+        +'<button onclick="zkDeleteContract(\''+c.id+'\',\''+c.quote_number+'\')" style="height:30px;padding:0 10px;font-size:12px;border:1px solid #c9c7bd;background:#fff;color:#993c1d;border-radius:6px;cursor:pointer;font-family:inherit;">Delete</button>'
+        +'</td></tr>';
+    });
+    html += '</tbody></table>';
+    listDiv.innerHTML = html;
+  } catch(e){
+    console.error(e);
+    listDiv.innerHTML = '<p style="color:#993c1d;padding:20px;">Failed to load: '+ (e.message || e) +'</p>';
+  }
+}
+
+async function zkOpenContract(id){
+  try {
+    var q = await zkQuotes.get(id);
+    var cfg = q.config || {};
+    var mode = cfg.mode || (q.product_kind || '').replace('contract-','') || 'shell';
+
+    // Switch to the right tab (triggers buildScopeUI / calc etc. as side effects)
+    if(typeof setContractMode === 'function') setContractMode(mode);
+
+    // Restore static fields
+    Object.keys(cfg.fields || {}).forEach(function(fid){
+      var el = document.getElementById(fid); if(!el) return;
+      if(el.type === 'checkbox') el.checked = !!cfg.fields[fid];
+      else el.value = cfg.fields[fid];
+    });
+
+    // Rebuild custom line items via the mode's add function (re-binds handlers)
+    var lineSpec = { shell:{box:'c-custom',add:'addCustom',d:'data-cust',a:'data-cust'},
+                     modular:{box:'cm-custom',add:'addModularCustom',d:'data-mcust',a:'data-mcust'},
+                     custom:{box:'cu-custom',add:'addCuCustom',d:'data-cucust',a:'data-cucust'} }[mode];
+    if(lineSpec){
+      var lb = document.getElementById(lineSpec.box);
+      if(lb) lb.innerHTML = '';
+      (cfg.customs || []).forEach(function(item){
+        if(typeof window[lineSpec.add] === 'function'){
+          window[lineSpec.add]();
+          var last = lb.querySelector('.lineitem:last-child');
+          if(last){
+            var d = last.querySelector('['+lineSpec.d+'="desc"]');
+            var a = last.querySelector('['+lineSpec.a+'="amt"]');
+            if(d) d.value = item.desc || '';
+            if(a) a.value = item.amt || '';
+          }
+        }
+      });
+    }
+
+    // Rebuild scope-custom items
+    var scopeAdd = { shell:'addScopeCustom', modular:'addModularScopeCustom', custom:'addCuScopeCustom' }[mode];
+    var scopeBoxId = { shell:'c-scope-custom', modular:'cm-scope-custom', custom:'cu-scope-custom' }[mode];
+    var sb = document.getElementById(scopeBoxId);
+    if(sb) sb.innerHTML = '';
+    (cfg.scopeCustoms || []).forEach(function(item){
+      if(typeof window[scopeAdd] === 'function'){
+        window[scopeAdd]();
+        var last = sb.querySelector('.scoperow:last-child, .scoperow-mvp:last-child');
+        if(last){
+          var t = last.querySelector('input[type="text"]');
+          var v = last.querySelector('select');
+          if(t) t.value = item.text || '';
+          if(v && item.value) v.value = item.value;
+        }
+      }
+    });
+
+    // Shell scope-std toggle overrides
+    if(mode === 'shell' && cfg.scopeStd){
+      Object.keys(cfg.scopeStd).forEach(function(idx){
+        var sel = document.querySelector('#c-scope .scopesel[data-scope="'+idx+'"]');
+        if(sel) sel.value = cfg.scopeStd[idx];
+      });
+    }
+
+    // Recompute the totals so CURRENT_* gets populated
+    var calcMap = { shell:'calc', modular:'calcModular', custom:'calcCustom' };
+    var fnName = calcMap[mode];
+    if(fnName && typeof window[fnName] === 'function') window[fnName]();
+
+    document.getElementById('zk-contracts-overlay').style.display = 'none';
+    zkContractToast('Opened ' + q.quote_number);
+  } catch(e){
+    console.error(e);
+    zkContractToast('Failed to open: ' + (e.message || e), true);
+  }
+}
+
+async function zkDeleteContract(id, num){
+  if(!confirm('Delete ' + num + '? This cannot be undone.')) return;
+  try {
+    await zkQuotes.remove(id);
+    zkContractToast('Deleted ' + num);
+    zkShowMyContracts();
+  } catch(e){
+    zkContractToast('Delete failed: ' + (e.message || e), true);
+  }
+}
 </script>
 </body>
 </html>

@@ -2067,7 +2067,9 @@ async function zkShowMyQuotes(){
   overlay.style.display = 'flex';
   listDiv.innerHTML = '<p style="text-align:center;color:#888;padding:30px 0;">Loading…</p>';
   try {
-    var quotes = await zkQuotes.list();
+    var all = await zkQuotes.list();
+    // Filter out contracts (saved via the Contract Generator, stored in the same table with product_kind="contract-*")
+    var quotes = all.filter(function(q){ return !q.product_kind || q.product_kind.indexOf('contract-') !== 0; });
     if(!quotes.length){
       listDiv.innerHTML = '<p style="text-align:center;color:#888;padding:30px 0;">No saved quotes yet. Configure a quote and click <b>Save Quote</b>.</p>';
       return;
