@@ -1116,7 +1116,7 @@ var SHELL = [
   ["Sunstone","1,471",89550,6400,10884,21768,16,[6750,10250,12150,18450]],
   ["Bluebell","1,536",134120,10510,11410,18850,18,[7535,12055,13185,21328]],
   ["Shasta","1,590",96225,8475,12400,24875,16,[10300,15100,17675,26550]],
-  ["Summit","1,793",102900,9560,10290,20580,25,[9100,13750,16300,24800],"ship-range"],
+  ["Summit","1,793",102900,9560,10290,20580,16,[9100,13750,16300,24800],""],
   ["Jasper","1,800",124765,11260,12895,28965,16,[8105,10805,13720,18374]],
   ["Mesa","1,823",127435,11645,12215,24428,16,[12300,17835,21075,31978]],
   ["Koda","1,864",131475,11670,12750,25965,16,[7670,11800,14075,21535]],
@@ -1257,7 +1257,8 @@ function calcShell(){
 
   var flag=document.getElementById('s-flag');
   var flags=[];
-  if(tag==='ship-range') flags.push('Summit ships at $16–$25/mi. This quote uses $25 to be safe — confirm the actual rate with the office before you send it.');
+  // (No shell-kit models currently use the "ship-range" tag — Summit was locked at $16/mi.)
+  if(tag==='ship-range') flags.push('This model uses a shipping range. Confirm the actual rate with the office before you send the quote.');
   if(flags.length){ flag.style.display='block'; flag.innerHTML=flags.join('<br>'); } else flag.style.display='none';
 
   var snow = snowSel===1?snow1 : snowSel===2?snow2 : 0;
