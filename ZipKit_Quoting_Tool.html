@@ -1298,17 +1298,20 @@ function calcShell(){
   rows+=row('Panelized shell kit', shell*units, {sub: units>1?fmt(shell)+' × '+units+' units':'pre-framed + dry-in labor'});
   if(disc>0) rows+=row('Multi-unit discount', discPer*units, {d:true, sub:disc+'% off shell kits'});
   if(designPaid) rows+=rowRate('Architectural design', 'PAID', {sub:'already received · was '+fmt(effectiveDesign)+(sDIsOverride?' (custom amount)':'')});
-  else if(effectiveDesign>0) rows+=row('Architectural design', effectiveDesign, {sub: sDIsOverride ? 'per project · custom amount (standard '+fmt(SHELL_DESIGN)+')' : 'per project · from'});
+  else if(effectiveDesign>0) rows+=row('Architectural design', effectiveDesign, {sub: sDIsOverride ? 'full conceptual drawings · custom amount (standard '+fmt(SHELL_DESIGN)+')' : 'full conceptual drawings'});
   else rows+=rowRate('Architectural design', 'WAIVED', {sub:'design retainer waived for this customer'});
   if(engPaid) rows+=rowRate('Engineering submittal', 'PAID', {sub:'already received · was '+fmt(eng)});
-  else        rows+=row('Engineering submittal', eng, {sub:'per project'});
+  else        rows+=row('Engineering submittal', eng, {sub:'full submittal engineered docs'});
   if(snow>0) rows+=row('Snow load upgrade', snow*units, {sub:units>1?fmt(snow)+' × '+units:'per unit'});
   if(win>0){
     var winSubBase = winIsOverride ? 'non-standard package · incl. entry doors, shipping & install' : 'incl. standard entry doors, shipping & install';
     rows+=row('Window & door package', win*units, {sub:units>1?fmt(win)+' × '+units+' · '+winSubBase:winSubBase});
   }
   else rows+=rowRate('Windows & doors', 'not included', {sub:'select a package — doors come with it'});
-  if(shipPer>0) rows+=row('Shipping', shipPer*units, {sub:units>1?fmt(shipPer)+' × '+units:'from Cedar City, UT'});
+  if(shipPer>0){
+    var shipSub = miles.toLocaleString('en-US')+' mi from Cedar City, UT'+(units>1?' · '+fmt(shipPer)+' × '+units:'');
+    rows+=row('Shipping', shipPer*units, {sub: shipSub});
+  }
   else rows+=rowRate('Shipping', '$'+rate+'/mi', {sub:'from Cedar City, UT · enter distance'});
 
   // Custom line items (add-ons / extras)
@@ -1440,7 +1443,10 @@ function calcModular(){
   }
   rows+=addonRows;
   if(snow>0) rows+=rowM('Snow load upgrade', snow*units, {sub:units>1?fmt(snow)+' × '+units:'per unit'});
-  if(shipPer>0) rows+=rowM('Shipping', shipPer*units, {sub:units>1?fmt(shipPer)+' × '+units:'high end of range'});
+  if(shipPer>0){
+    var mShipSub = miles.toLocaleString('en-US')+' mi · high end of range'+(units>1?' · '+fmt(shipPer)+' × '+units:'');
+    rows+=rowM('Shipping', shipPer*units, {sub: mShipSub});
+  }
   else rows+=rowRate('Shipping', '$'+m[6]+'–$'+shipHigh+'/mi', {sub:'enter distance · uses high end'});
 
   // Custom line items (add-ons / extras / credits)
@@ -1510,9 +1516,12 @@ function calcGarage(){
   var rows='';
   rows+=rowG('Garage shell kit', g[2]*units, {sub:units>1?fmt(g[2])+' × '+units+' units':'pre-framed 2×6 panel shell · structural dry-in'});
   if(designPaid) rows+=rowRate('Design & engineering', 'PAID', {sub:'already received · was '+fmt(design)+(gDIsOverride?' (custom amount)':'')});
-  else if(design>0) rows+=rowG('Design & engineering', design, {sub: gDIsOverride ? 'custom amount (standard '+fmt(stdDesign)+')' : (stdDesign===562?'bundled with a home':'standalone')});
+  else if(design>0) rows+=rowG('Design & engineering', design, {sub: 'full conceptual drawings + submittal docs · '+(gDIsOverride ? 'custom amount (standard '+fmt(stdDesign)+')' : (stdDesign===562?'bundled with a home':'standalone'))});
   else rows+=rowRate('Design & engineering', 'WAIVED', {sub:'fee waived for this customer'});
-  if(shipPer>0) rows+=rowG('Shipping', shipPer*units, {sub:units>1?fmt(shipPer)+' × '+units:rateDesc});
+  if(shipPer>0){
+    var gShipSub = miles.toLocaleString('en-US')+' mi from Cedar City, UT · '+rateDesc+(units>1?' · '+fmt(shipPer)+' × '+units:'');
+    rows+=rowG('Shipping', shipPer*units, {sub: gShipSub});
+  }
   else rows+=rowRate('Shipping', '$'+grate+'/mi', {sub:bundled?'bundled with a home':'standalone · enter distance'});
 
   // Custom line items (add-ons / extras)
@@ -1609,9 +1618,12 @@ function calcHangar(){
   rows += rowH('Hangar shell kit', base*units, {sub: unitSub});
   if(disc>0) rows += rowH('Multi-unit discount', discPer*units, {d:true, sub:disc+'% off kit'});
   if(designPaid) rows += rowRate('Design & engineering', 'PAID', {sub:'already received · was '+fmt(hEffectiveDesign)+(hDIsOverride?' (custom amount)':'')});
-  else if(hEffectiveDesign>0) rows += rowH('Design & engineering', hEffectiveDesign, {sub: hDIsOverride ? 'custom amount (standard '+fmt(HANGAR_DESIGN)+')' : 'per project · from'});
+  else if(hEffectiveDesign>0) rows += rowH('Design & engineering', hEffectiveDesign, {sub: hDIsOverride ? 'full conceptual drawings + submittal docs · custom amount (standard '+fmt(HANGAR_DESIGN)+')' : 'full conceptual drawings + submittal docs'});
   else rows += rowRate('Design & engineering', 'WAIVED', {sub:'fee waived for this customer'});
-  if(shipPer>0) rows += rowH('Shipping', shipPer*units, {sub: units>1?fmt(shipPer)+' × '+units:'from Cedar City, UT'});
+  if(shipPer>0){
+    var hShipSub = miles.toLocaleString('en-US')+' mi from Cedar City, UT'+(units>1?' · '+fmt(shipPer)+' × '+units:'');
+    rows += rowH('Shipping', shipPer*units, {sub: hShipSub});
+  }
   else rows += rowRate('Shipping', '$'+HANGAR_SHIP_RATE+'/mi', {sub:'from Cedar City, UT · enter distance'});
 
   // Custom line items (add-ons / extras)
@@ -1697,12 +1709,12 @@ function calcCustom(){
   var rows = '';
   if(build>0) rows += row('Custom build', build, {sub: name || 'negotiated construction price'});
   if(designPaid) rows += rowRate('Architectural design', 'PAID', {sub:'already received · was '+fmt(cEffectiveDesign)+(cDIsOverride?' (custom amount)':'')});
-  else if(cEffectiveDesign>0) rows += row('Architectural design', cEffectiveDesign, {sub: cDIsOverride ? 'custom amount (tier '+fmt(designTier)+')' : 'per project · '+designLabel});
+  else if(cEffectiveDesign>0) rows += row('Architectural design', cEffectiveDesign, {sub: cDIsOverride ? 'full conceptual drawings · custom amount (tier '+fmt(designTier)+')' : 'full conceptual drawings · '+designLabel});
   else rows += rowRate('Architectural design', 'WAIVED', {sub:'design retainer waived for this customer'});
   if(engPaid && eng>0) rows += rowRate('Engineering submittal', 'PAID', {sub:'already received · was '+fmt(eng)});
-  else if(eng>0)       rows += row('Engineering submittal', eng, {sub:'quoted per project'});
+  else if(eng>0)       rows += row('Engineering submittal', eng, {sub:'full submittal engineered docs'});
   else                 rows += rowRate('Engineering submittal', 'TBD', {sub:'enter project-specific amount'});
-  if(ship>0) rows += row('Shipping', ship, {sub:miles+' mi × $'+rate+'/mi'});
+  if(ship>0) rows += row('Shipping', ship, {sub:miles.toLocaleString('en-US')+' mi from Cedar City, UT · $'+rate+'/mi'});
   document.getElementById('c-lines').innerHTML = rows;
 
   var designAmt = designPaid ? 0 : cEffectiveDesign;
@@ -1784,12 +1796,12 @@ function calcSteel(){
   var rows = '';
   if(build>0) rows += row('Light-gauge steel frame package', build, {sub: name || 'negotiated package price'});
   if(designPaid) rows += rowRate('Architectural design', 'PAID', {sub:'already received · was '+fmt(stEffectiveDesign)+(stDIsOverride?' (custom amount)':'')});
-  else if(stEffectiveDesign>0) rows += row('Architectural design', stEffectiveDesign, {sub: stDIsOverride ? 'custom amount (standard '+fmt(STEEL_DESIGN)+')' : 'per project · steel retainer'});
+  else if(stEffectiveDesign>0) rows += row('Architectural design', stEffectiveDesign, {sub: stDIsOverride ? 'full conceptual drawings · custom amount (standard '+fmt(STEEL_DESIGN)+')' : 'full conceptual drawings · steel retainer'});
   else rows += rowRate('Architectural design', 'WAIVED', {sub:'design retainer waived for this customer'});
   if(engPaid && eng>0) rows += rowRate('Engineering submittal', 'PAID', {sub:'already received · was '+fmt(eng)});
-  else if(eng>0)       rows += row('Engineering submittal', eng, {sub:'stamped engineering · quoted per project'});
+  else if(eng>0)       rows += row('Engineering submittal', eng, {sub:'stamped engineering · full submittal engineered docs'});
   else                 rows += rowRate('Engineering submittal', 'TBD', {sub:'enter project-specific amount'});
-  if(ship>0) rows += row('Shipping', ship, {sub:miles+' mi × $'+rate+'/mi'});
+  if(ship>0) rows += row('Shipping', ship, {sub:miles.toLocaleString('en-US')+' mi from Cedar City, UT · $'+rate+'/mi'});
 
   // Custom line items (add-ons / extras)
   var customs = getCustomItems('st');
