@@ -41,6 +41,8 @@
   @media (max-width: 780px) { .grid { grid-template-columns: 1fr; } }
   .card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 20px 22px; }
   .card h2 { font-size: 15px; font-weight: 600; margin: 0 0 16px; }
+  .qmodel-tag { font-size: 14px; font-weight: 400; color: var(--hint); margin-left: 2px; }
+  .qmodel-tag:not(:empty)::before { content: '· '; margin-right: 2px; }
   label { font-size: 13px; color: var(--muted); display: block; margin-bottom: 5px; }
   input[type="number"], input[type="text"], select {
     width: 100%; height: 40px; padding: 0 12px; font-size: 14px;
@@ -178,7 +180,7 @@
       </div>
 
       <div class="card">
-        <h2>Quote summary</h2>
+        <h2>Quote summary <span class="qmodel-tag" id="s-summary-model"></span></h2>
         <table><tbody id="s-lines"></tbody></table>
         <div class="total-row">
           <div class="total-flex"><span class="lbl">Total project price</span><span class="val" id="s-total">$0</span></div>
@@ -241,7 +243,7 @@
       </div>
 
       <div class="card">
-        <h2>Quote summary</h2>
+        <h2>Quote summary <span class="qmodel-tag" id="m-summary-model"></span></h2>
         <table><tbody id="m-lines"></tbody></table>
         <div class="total-row">
           <div class="total-flex"><span class="lbl">Total project price</span><span class="val" id="m-total">$0</span></div>
@@ -293,7 +295,7 @@
       </div>
 
       <div class="card">
-        <h2>Quote summary</h2>
+        <h2>Quote summary <span class="qmodel-tag" id="g-summary-model"></span></h2>
         <table><tbody id="g-lines"></tbody></table>
         <div class="total-row">
           <div class="total-flex"><span class="lbl">Total project price</span><span class="val" id="g-total">$0</span></div>
@@ -349,7 +351,7 @@
       </div>
 
       <div class="card">
-        <h2>Quote summary</h2>
+        <h2>Quote summary <span class="qmodel-tag" id="h-summary-model"></span></h2>
         <table><tbody id="h-lines"></tbody></table>
         <div class="total-row">
           <div class="total-flex"><span class="lbl">Total project price</span><span class="val" id="h-total">$0</span></div>
@@ -415,7 +417,7 @@
       </div>
 
       <div class="card">
-        <h2>Quote summary</h2>
+        <h2>Quote summary <span class="qmodel-tag" id="st-summary-model"></span></h2>
         <table><tbody id="st-lines"></tbody></table>
         <div class="total-row">
           <div class="total-flex"><span class="lbl">Total project price</span><span class="val" id="st-total">$0</span></div>
@@ -482,7 +484,7 @@
       </div>
 
       <div class="card">
-        <h2>Quote summary</h2>
+        <h2>Quote summary <span class="qmodel-tag" id="c-summary-model"></span></h2>
         <table><tbody id="c-lines"></tbody></table>
         <div class="total-row">
           <div class="total-flex"><span class="lbl">Total project price</span><span class="val" id="c-total">$0</span></div>
@@ -1320,6 +1322,7 @@ function calcShell(){
   customs.forEach(function(c){ rows += row(c.desc, c.amt, {sub:'add-on'}); });
 
   document.getElementById('s-lines').innerHTML=rows;
+  document.getElementById('s-summary-model').textContent = m[0] + (units>1?' × '+units:'');
 
   var designAmt = designPaid ? 0 : effectiveDesign;
   var engAmt    = engPaid    ? 0 : eng;
@@ -1455,6 +1458,7 @@ function calcModular(){
   customs.forEach(function(c){ rows += rowM(c.desc, c.amt, {sub: c.amt<0 ? 'credit' : 'add-on'}); });
 
   document.getElementById('m-lines').innerHTML=rows;
+  document.getElementById('m-summary-model').textContent = m[0] + (units>1?(m[13]==='per-module'?' × '+units+' modules':' × '+units+' units'):'');
 
   var total=(base-discPer)*units + winCost*units + addonTotal*units + snow*units + shipPer*units + customTotal;
   document.getElementById('m-total').textContent=fmt(total);
@@ -1530,6 +1534,7 @@ function calcGarage(){
   customs.forEach(function(c){ rows += rowG(c.desc, c.amt, {sub: c.amt<0 ? 'credit' : 'add-on'}); });
 
   document.getElementById('g-lines').innerHTML=rows;
+  document.getElementById('g-summary-model').textContent = g[0] + ' garage' + (units>1?' × '+units:'');
 
   var designAmt = designPaid ? 0 : design;
   var total=g[2]*units + designAmt + shipPer*units + customTotal;
@@ -1632,6 +1637,7 @@ function calcHangar(){
   customs.forEach(function(c){ rows += rowH(c.desc, c.amt, {sub: c.amt<0 ? 'credit' : 'add-on'}); });
 
   document.getElementById('h-lines').innerHTML = rows;
+  document.getElementById('h-summary-model').textContent = h[0] + ' hangar' + (units>1?' × '+units:'');
 
   var designAmt = designPaid ? 0 : hEffectiveDesign;
   var total = (base-discPer)*units + designAmt + shipPer*units + customTotal;
@@ -1716,6 +1722,7 @@ function calcCustom(){
   else                 rows += rowRate('Engineering submittal', 'TBD', {sub:'enter project-specific amount'});
   if(ship>0) rows += row('Shipping', ship, {sub:miles.toLocaleString('en-US')+' mi from Cedar City, UT · $'+rate+'/mi'});
   document.getElementById('c-lines').innerHTML = rows;
+  document.getElementById('c-summary-model').textContent = name || 'Custom Home';
 
   var designAmt = designPaid ? 0 : cEffectiveDesign;
   var engAmt    = engPaid    ? 0 : eng;
@@ -1809,6 +1816,7 @@ function calcSteel(){
   customs.forEach(function(c){ rows += row(c.desc, c.amt, {sub: c.amt<0?'credit':'add-on'}); });
 
   document.getElementById('st-lines').innerHTML = rows;
+  document.getElementById('st-summary-model').textContent = name || 'Light-gauge steel frame';
 
   var designAmt = designPaid ? 0 : stEffectiveDesign;
   var engAmt    = engPaid    ? 0 : eng;
