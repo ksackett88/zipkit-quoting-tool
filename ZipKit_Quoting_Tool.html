@@ -547,6 +547,8 @@
       <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
         <div><label for="inv-cust">Customer / project name</label><input type="text" id="inv-cust" placeholder="e.g. John Smith — Lot 14"></div>
         <div><label for="inv-num">Invoice number</label><input type="text" id="inv-num" placeholder="e.g. ZK-1042"></div>
+        <div><label for="inv-email">Customer email</label><input type="text" id="inv-email" placeholder="buyer@email.com"></div>
+        <div><label for="inv-phone">Customer phone</label><input type="text" id="inv-phone" placeholder="(555) 555-5555"></div>
         <div><label for="inv-date">Invoice date</label><input type="text" id="inv-date" placeholder="MM/DD/YYYY"></div>
         <div><label for="inv-stage-sel">Stage to invoice</label><select id="inv-stage-sel"></select></div>
       </div>
@@ -684,6 +686,11 @@ function generateInvoice(){
   var cust = document.getElementById('inv-cust').value || '—';
   var num = document.getElementById('inv-num').value || '—';
   var date = document.getElementById('inv-date').value || new Date().toLocaleDateString('en-US');
+  // Customer contact: read from invoice fields; fall back to proposal-panel values if blank.
+  var custEmail = (document.getElementById('inv-email').value || '').trim()
+               || ((document.getElementById('prop-email')||{}).value || '').trim();
+  var custPhone = (document.getElementById('inv-phone').value || '').trim()
+               || ((document.getElementById('prop-phone')||{}).value || '').trim();
   var rep = (document.getElementById('rep-name').value || '').trim();
   var repEmail = (document.getElementById('rep-email').value || '').trim();
   var repPhone = (document.getElementById('rep-phone').value || '').trim();
@@ -713,11 +720,19 @@ function generateInvoice(){
     ? '<img src="'+co.logo+'" alt="'+co.name+'" style="height:'+logoH+'px;">'
     : '<div style="font-size:22px; font-weight:700;">'+co.name+'</div>';
 
-  var scheduleRows = contractStages.map(function(s){
-    var isThis = s.key===stage.key;
-    return '<tr style="'+(isThis?'background:#faeeda;':'')+'">'
-      +'<td style="padding:7px 10px;">'+s.name+(isThis?' &nbsp;<b style="color:#993c1d;">← this invoice</b>':'')+'</td>'
-      +'<td style="padding:7px 10px; text-align:right;">'+fmt(s.amount)+'</td></tr>';
+  // Mark each stage's status relative to THIS invoice: prior = PAID, current = this invoice, future = upcoming.
+  var thisIdx = contractStages.indexOf(stage);
+  var scheduleRows = contractStages.map(function(s, i){
+    var isThis = i === thisIdx;
+    var isPrior = !isDesignInvoice && thisIdx > 0 && i < thisIdx;
+    var rowStyle = isThis ? 'background:#faeeda;' : (isPrior ? 'opacity:0.6;' : '');
+    var rightCell = isPrior
+      ? '<span style="color:#0f6e56; font-weight:600; letter-spacing:0.04em;">PAID</span><div style="font-size:10px; color:#888; font-weight:400;">was '+fmt(s.amount)+'</div>'
+      : fmt(s.amount);
+    var rowTag = isThis ? ' &nbsp;<b style="color:#993c1d;">← this invoice</b>' : '';
+    return '<tr style="'+rowStyle+'">'
+      +'<td style="padding:7px 10px;">'+s.name+rowTag+'</td>'
+      +'<td style="padding:7px 10px; text-align:right;">'+rightCell+'</td></tr>';
   }).join('');
   var contractTotal = contractStages.reduce(function(a,s){return a+s.amount;}, 0);
 
@@ -729,7 +744,9 @@ function generateInvoice(){
     +'<div style="font-size:12px; color:#5f5e5a; margin-top:4px; line-height:1.6;">Invoice #: <b>'+num+'</b><br>Date: '+date+'<br>Stage: <b>'+stage.name+'</b></div></div>'
     +'</div>'
     +'<div style="display:flex; justify-content:space-between; margin-top:14px; font-size:12px;">'
-    +'<div><div style="color:#888; text-transform:uppercase; font-size:10px; letter-spacing:0.05em;">Bill to</div><div style="font-size:14px; font-weight:500; margin-top:2px;">'+cust+'</div></div>'
+    +'<div><div style="color:#888; text-transform:uppercase; font-size:10px; letter-spacing:0.05em;">Bill to</div><div style="font-size:14px; font-weight:500; margin-top:2px;">'+cust+'</div>'
+    +(custEmail || custPhone ? '<div style="color:#5f5e5a; font-size:11px; margin-top:2px; line-height:1.4;">'+[custEmail, custPhone].filter(function(x){return x;}).join('<br>')+'</div>' : '')
+    +'</div>'
     +'<div style="text-align:right;"><div style="color:#888; text-transform:uppercase; font-size:10px; letter-spacing:0.05em;">Project</div><div style="font-size:14px; font-weight:500; margin-top:2px;">'+QUOTE.kind+' · '+QUOTE.model+(QUOTE.units>1?' ×'+QUOTE.units:'')+'</div></div>'
     +'</div>'
     +(rep ? '<div style="margin-top:8px; padding-top:8px; border-top:1px solid #e2e0d8; display:flex; justify-content:space-between; font-size:11px;"><div><span style="color:#888; text-transform:uppercase; font-size:10px; letter-spacing:0.05em;">Sales rep</span> &nbsp;<b>'+rep+'</b></div><div style="color:#5f5e5a;">'+[repEmail, repPhone].filter(function(x){return x;}).join(' &nbsp;·&nbsp; ')+'</div></div>' : '')
@@ -753,7 +770,7 @@ function generateInvoice(){
         +'<table style="width:100%; border-collapse:collapse; font-size:12px;">'+scheduleRows
         +'<tr style="border-top:1px solid #c9c7bd;"><td style="padding:5px 8px; font-weight:600;">Contract total</td><td style="padding:5px 8px; text-align:right; font-weight:600;">'+fmt(contractTotal)+'</td></tr>'
         +'</table>'
-        +'<div style="font-size:11px; color:#5f5e5a; margin-top:4px;">Previously invoiced: '+fmt(priorPaid)+' &nbsp;·&nbsp; Remaining after this invoice: '+fmt(remaining)+(QUOTE.design>0?' &nbsp;·&nbsp; Design retainer ('+fmt(QUOTE.design)+') billed separately':'')+'</div>'
+        +'<div style="font-size:11px; color:#5f5e5a; margin-top:4px;">Previously invoiced: '+fmt(priorPaid)+' &nbsp;·&nbsp; Remaining after this invoice: '+fmt(remaining)+'</div>'
         +'</div>')
     +'<div style="margin-top:14px; page-break-inside:avoid; break-inside:avoid;">'
     +'<div style="font-size:12px; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; border-bottom:2px solid #1c1c1a; padding-bottom:4px; margin-bottom:8px;">How to pay</div>'
@@ -785,7 +802,7 @@ function generateInvoice(){
     +'<div style="margin-top:14px; font-size:10px; color:#888; line-height:1.5; border-top:1px solid #e2e0d8; padding-top:8px;">'
     +(isDesignInvoice
       ? 'Architectural design retainer · paid up front, separate from the contract. The contract document and its payment schedule (engineering first, then 45% / 45% / 10% of the remainder) will follow once the design retainer is received. Pricing subject to change and correction. No sales tax applied.'
-      : 'Design retainer is billed separately as its own invoice (not shown above). Contract is billed engineering first, then 45% / 45% / 10% of the remainder. Shipping is included in the contract. No sales tax applied. Pricing subject to change and correction. This invoice reflects one stage of a multi-stage billing schedule.')
+      : 'Contract is billed engineering first, then 45% / 45% / 10% of the remainder. Shipping is included in the contract. No sales tax applied. Pricing subject to change and correction. This invoice reflects one stage of a multi-stage billing schedule.')
     +'</div>'
     +'</div>';
 
