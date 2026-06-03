@@ -131,6 +131,13 @@
         <label for="s-units">Number of units</label>
         <input type="number" id="s-units" min="1" max="50" step="1" value="1">
 
+        <div id="s-eng-modified-wrap" style="display:none; margin-top:6px; padding:10px 12px; background:#fff7e6; border-left:3px solid #d85a30; border-radius:4px;">
+          <label style="display:flex; align-items:flex-start; gap:8px; margin:0; cursor:pointer; line-height:1.4; font-size:13px; color:var(--ink);">
+            <input type="checkbox" id="s-eng-modified" style="margin:3px 0 0 0; flex-shrink:0;">
+            <span>Additional units are <b>mirrored / flipped / adjusted</b> — adds 50% engineering per additional unit. Identical copies share one engineering submittal at no extra cost (leave unchecked).</span>
+          </label>
+        </div>
+
         <label for="s-snow">Snow load engineering</label>
         <select id="s-snow">
           <option value="0">Standard (up to 35 PSF) — included</option>
@@ -1201,7 +1208,7 @@ function setBrand(which){
     var o=document.createElement('option'); o.value=i; o.textContent=m[0]+tag+' · '+m[1]+' sqft'; sel.appendChild(o);
   });
   sel.value = SHELL.findIndex(function(m){return m[0]==='Alpine';});
-  ['s-model','s-units','s-snow','s-win','s-win-override','s-miles','s-disc','s-design-override','s-design-paid','s-eng-paid'].forEach(function(id){
+  ['s-model','s-units','s-snow','s-win','s-win-override','s-miles','s-disc','s-design-override','s-design-paid','s-eng-paid','s-eng-modified'].forEach(function(id){
     var el=document.getElementById(id); el.addEventListener('input',calcShell); el.addEventListener('change',calcShell);
   });
   calcShell();
@@ -1214,6 +1221,7 @@ function resetShell(){
   document.getElementById('s-design-override').value='';
   document.getElementById('s-design-paid').checked=false;
   document.getElementById('s-eng-paid').checked=false;
+  document.getElementById('s-eng-modified').checked=false;
   document.getElementById('s-custom').innerHTML='';
   calcShell();
 }
@@ -1302,8 +1310,17 @@ function calcShell(){
   if(designPaid) rows+=rowRate('Architectural design', 'PAID', {sub:'already received · was '+fmt(effectiveDesign)+(sDIsOverride?' (custom amount)':'')});
   else if(effectiveDesign>0) rows+=row('Architectural design', effectiveDesign, {sub: sDIsOverride ? 'full conceptual drawings · custom amount (standard '+fmt(SHELL_DESIGN)+')' : 'full conceptual drawings'});
   else rows+=rowRate('Architectural design', 'WAIVED', {sub:'design retainer waived for this customer'});
-  if(engPaid) rows+=rowRate('Engineering submittal', 'PAID', {sub:'already received · was '+fmt(eng)});
-  else        rows+=row('Engineering submittal', eng, {sub:'full submittal engineered docs'});
+  // Multi-unit engineering: identical copies share one submittal (no extra);
+  // mirrored / flipped / adjusted units add 50% engineering each.
+  document.getElementById('s-eng-modified-wrap').style.display = (units > 1) ? '' : 'none';
+  var engModified = document.getElementById('s-eng-modified').checked;
+  var additionalEng = (engModified && units > 1) ? Math.round(eng * 0.5 * (units - 1)) : 0;
+
+  if(engPaid) rows+=rowRate('Engineering submittal', 'PAID', {sub:'already received · was '+fmt(eng + additionalEng)});
+  else        rows+=row('Engineering submittal', eng, {sub:'full submittal engineered docs'+(units>1 && !engModified?' · covers all '+units+' identical units':'')});
+  if(!engPaid && additionalEng > 0){
+    rows+=row('Additional engineering', additionalEng, {sub:'50% of '+fmt(eng)+' × '+(units-1)+' mirrored/adjusted unit'+(units-1>1?'s':'')});
+  }
   if(snow>0) rows+=row('Snow load upgrade', snow*units, {sub:units>1?fmt(snow)+' × '+units:'per unit'});
   if(win>0){
     var winSubBase = winIsOverride ? 'non-standard package · incl. entry doors, shipping & install' : 'incl. standard entry doors, shipping & install';
@@ -1325,7 +1342,8 @@ function calcShell(){
   document.getElementById('s-summary-model').textContent = m[0] + (units>1?' × '+units:'');
 
   var designAmt = designPaid ? 0 : effectiveDesign;
-  var engAmt    = engPaid    ? 0 : eng;
+  var totalEng  = eng + additionalEng;        // base + half-price per modified unit
+  var engAmt    = engPaid    ? 0 : totalEng;
   var total = (shell-discPer)*units + designAmt + engAmt + snow*units + win*units + shipPer*units + customTotal;
   document.getElementById('s-total').textContent=fmt(total);
   document.getElementById('s-per-unit').textContent = units>1?fmt(total/units)+' per unit':'';
@@ -1334,7 +1352,7 @@ function calcShell(){
   var contract = (shell-discPer)*units + snow*units + win*units + shipPer*units + customTotal;
   QUOTE = {
     kind: 'Shell Kit', model: m[0], units: units,
-    design: effectiveDesign, engineering: eng,
+    design: effectiveDesign, engineering: totalEng,
     designPaid: designPaid, engineeringPaid: engPaid,
     contract: contract, total: total,
     company: 'zipkit'
@@ -1953,7 +1971,7 @@ document.getElementById('zk-quotes-close').addEventListener('click', function(){
 /* ---------- Capture / restore current mode state ---------- */
 
 var ZK_MODE_FIELDS = {
-  shell:   ['s-model','s-units','s-snow','s-win','s-win-override','s-miles','s-disc','s-design-override','s-design-paid','s-eng-paid'],
+  shell:   ['s-model','s-units','s-snow','s-win','s-win-override','s-miles','s-disc','s-design-override','s-design-paid','s-eng-paid','s-eng-modified'],
   modular: ['m-model','m-units','m-base-override','m-snow','m-win','m-win-override','m-miles','m-disc'],
   garage:  ['g-model','g-units','g-design','g-design-override','g-miles','g-design-paid'],
   hangar:  ['h-model','h-units','h-base-override','h-miles','h-disc','h-design-override','h-design-paid'],
@@ -1971,7 +1989,9 @@ function zkActiveMode(){
 function zkCaptureConfig(mode){
   var config = { mode: mode, fields: {}, buyer: {}, customs: [], addons: {} };
   (ZK_MODE_FIELDS[mode] || []).forEach(function(id){
-    var el = document.getElementById(id); if(el) config.fields[id] = el.value;
+    var el = document.getElementById(id); if(!el) return;
+    // Checkboxes need .checked (their .value is always "on"); everything else uses .value.
+    config.fields[id] = (el.type === 'checkbox') ? !!el.checked : el.value;
   });
   ZK_BUYER_FIELDS.forEach(function(id){
     var el = document.getElementById(id); if(el) config.buyer[id] = el.value;
@@ -2079,10 +2099,12 @@ async function zkOpenQuote(id){
     // Switch to the right mode (this triggers the mode's calc as a side effect)
     if(typeof setMode === 'function') setMode(mode);
 
-    // Restore field values for the mode
+    // Restore field values for the mode (checkboxes use .checked, everything else uses .value)
     if(cfg.fields){
       Object.keys(cfg.fields).forEach(function(id){
-        var el = document.getElementById(id); if(el) el.value = cfg.fields[id];
+        var el = document.getElementById(id); if(!el) return;
+        if(el.type === 'checkbox') el.checked = !!cfg.fields[id];
+        else el.value = cfg.fields[id];
       });
     }
 
