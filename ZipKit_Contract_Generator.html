@@ -125,6 +125,13 @@
         <input type="number" id="c-design-override" min="0" step="100" placeholder="leave blank for $2,500 standard">
         <p class="note" id="c-design-override-note">Optional — type a custom amount (or 0 to waive) to discount or upcharge the design retainer for this customer. The contract reflects the amount you enter here.</p>
 
+        <div style="margin-top:14px; padding:10px 12px; background:#fff7e6; border-left:3px solid #d85a30; border-radius:4px;">
+          <label style="display:flex; align-items:flex-start; gap:8px; margin:0; cursor:pointer; line-height:1.4; font-size:13px; color:var(--ink);">
+            <input type="checkbox" id="c-promo-design-credit" style="margin:3px 0 0 0; flex-shrink:0;">
+            <span><b style="color:#d85a30; text-transform:uppercase; letter-spacing:0.04em; font-size:11px;">Promo</b> &nbsp;Credit design retainer toward engineering. When applied, the engineering payment is reduced by the design retainer amount and a promo credit line appears on the contract.</span>
+          </label>
+        </div>
+
         <label style="margin-top:14px;">Already paid (remove from payment schedule)</label>
         <div style="display:flex; flex-direction:column; gap:8px; margin-bottom:6px; font-size:13px;">
           <label style="display:flex; align-items:center; gap:8px; margin:0; cursor:pointer; color:var(--ink);"><input type="checkbox" id="c-design-paid" style="accent-color:var(--accent); width:16px; height:16px;"> Design retainer</label>
@@ -228,6 +235,13 @@
           <label for="cu-design-override" style="font-size:13px; color:var(--ink); margin:0;">Design retainer (override / discount)</label>
           <input type="number" id="cu-design-override" min="0" step="100" placeholder="leave blank for $3,500 standard">
           <p class="note" id="cu-design-override-note" style="margin-top:-4px;">Optional — type a custom amount (or 0 to waive) to discount or upcharge the design retainer.</p>
+
+          <div style="padding:10px 12px; background:#fff7e6; border-left:3px solid #d85a30; border-radius:4px; margin:4px 0;">
+            <label style="display:flex; align-items:flex-start; gap:8px; margin:0; cursor:pointer; line-height:1.4; font-size:13px; color:var(--ink);">
+              <input type="checkbox" id="cu-promo-design-credit" style="margin:3px 0 0 0; flex-shrink:0;">
+              <span><b style="color:#d85a30; text-transform:uppercase; letter-spacing:0.04em; font-size:11px;">Promo</b> &nbsp;Credit design retainer toward engineering. Reduces the engineering payment by the design retainer amount and adds a promo credit line to the contract.</span>
+            </label>
+          </div>
 
           <label style="display:flex; align-items:center; gap:8px; margin:0; cursor:pointer; color:var(--ink);"><input type="checkbox" id="cu-design-paid" style="accent-color:var(--accent); width:16px; height:16px;"> Design retainer paid</label>
           <label style="display:flex; align-items:center; gap:8px; margin:0; cursor:pointer; color:var(--ink);"><input type="checkbox" id="cu-eng-paid" style="accent-color:var(--accent); width:16px; height:16px;"> Engineering</label>
@@ -436,7 +450,18 @@ function addCustom(val){
   var sel=document.getElementById('c-model');
   SHELL.forEach(function(m,i){var o=document.createElement('option');o.value=i;o.textContent=m[0]+' · '+m[1]+' sqft';sel.appendChild(o);});
   sel.value=SHELL.findIndex(function(m){return m[0]==='Cedar';});
-  ['c-model','c-snow','c-win','c-miles','c-design-override','c-design-paid','c-eng-paid'].forEach(function(id){var el=document.getElementById(id);el.addEventListener('input',calc);el.addEventListener('change',calc);});
+  ['c-model','c-snow','c-win','c-miles','c-design-override','c-design-paid','c-eng-paid','c-promo-design-credit'].forEach(function(id){var el=document.getElementById(id);el.addEventListener('input',calc);el.addEventListener('change',calc);});
+  // Promo checkbox — restore + persist via localStorage so it survives reload (one shared flag across shell + custom modes)
+  var promoShell = document.getElementById('c-promo-design-credit');
+  if(promoShell){
+    try{ promoShell.checked = localStorage.getItem('zk_promo_design_credit')==='1'; }catch(e){}
+    promoShell.addEventListener('change', function(){
+      try{ localStorage.setItem('zk_promo_design_credit', promoShell.checked?'1':'0'); }catch(e){}
+      var cu = document.getElementById('cu-promo-design-credit');
+      if(cu) cu.checked = promoShell.checked;
+      if(typeof calcCustom === 'function') calcCustom();
+    });
+  }
   buildScopeUI();
   calc();
 })();
@@ -477,12 +502,19 @@ function calc(){
     ? 'Override active: contract will show '+fmt(cEffectiveDesign)+' design retainer instead of '+fmt(SHELL_DESIGN)+'. Clear to revert.'
     : 'Optional — type a custom amount (or 0 to waive) to discount or upcharge the design retainer for this customer. Standard is '+fmt(SHELL_DESIGN)+'.';
 
+  // Promo: design retainer credited toward engineering. Reduces the engineering
+  // payment by the (effective) design retainer amount. Skipped when engineering
+  // is already paid (the bill it would reduce is gone).
+  var promoOn = !!(document.getElementById('c-promo-design-credit') && document.getElementById('c-promo-design-credit').checked);
+  var promoCredit = (promoOn && cEffectiveDesign>0 && eng>0 && !engPaid) ? Math.min(cEffectiveDesign, eng) : 0;
+
   // Build summary lines
   var rows='';
   function row(l,a,o){o=o||{};var s=o.sub?'<div class="sub">'+o.sub+'</div>':'';return '<tr><td class="label">'+l+s+'</td><td class="amt">'+fmt(a)+'</td></tr>';}
   function rowPaid(l,a){return '<tr><td class="label">'+l+'<div class="sub">PAID — already received · was '+fmt(a)+'</div></td><td class="amt" style="color:var(--hint);">PAID</td></tr>';}
   if(engPaid) rows+=rowPaid('Engineered plans', eng);
   else        rows+=row('Engineered plans',eng,{sub:'payment 1 of contract'});
+  if(promoCredit>0) rows+='<tr><td class="label" style="color:#0f6e56;"><b>Promo credit — design retainer toward engineering</b><div class="sub" style="color:#0f6e56;">limited-time credit</div></td><td class="amt" style="color:#0f6e56; font-weight:600;">-'+fmt(promoCredit)+'</td></tr>';
   rows+=row('Framed panelized kit',shell,{sub:m[0]+' shell'});
   if(snow>0) rows+=row('Snow load upgrade',snow);
   if(win>0) rows+=row('Window & exterior door package',win,{sub:'incl. standard entry doors'});
@@ -491,7 +523,7 @@ function calc(){
   document.getElementById('c-lines').innerHTML=rows;
 
   var customTotal=customs.reduce(function(a,c){return a+c.amt;},0);
-  var contract=eng+shell+snow+win+customTotal+ship;
+  var contract=eng+shell+snow+win+customTotal+ship-promoCredit;
   document.getElementById('c-total').textContent=fmt(contract);
 
   // Restore the design retainer row (modular hides it; custom retitles to $3,500)
@@ -500,21 +532,28 @@ function calc(){
   var dVal=document.getElementById('c-design');
   if(dVal) dVal.textContent = designPaid ? 'PAID' : fmt(cEffectiveDesign);
 
-  // Payments: engineering first (if not paid), then 45/45/10 of remainder
-  var remainder=contract-eng;
+  // Payments: engineering first (reduced by promo credit if active), then 45/45/10 of remainder
+  // Remainder is computed from the non-engineering portion so the promo credit only affects p1.
+  var remainder = shell + snow + win + customTotal + ship;
+  var p1Effective = Math.max(0, eng - promoCredit);
   var p2=Math.round(remainder*0.45), p3=Math.round(remainder*0.45);
   var p4=remainder-p2-p3; // final absorbs rounding (the 10%)
   var prows='';
   function prow(l,a,o){o=o||{};var s=o.sub?'<div class="sub">'+o.sub+'</div>':'';return '<tr><td class="label">'+l+s+'</td><td class="amt">'+fmt(a)+'</td></tr>';}
-  if(!engPaid) prows+=prow('Payment 1 — Engineering',eng,{sub:'engineer-stamped plans · secures production slot'});
+  if(!engPaid){
+    var p1Sub = promoCredit>0
+      ? 'engineer-stamped plans · '+fmt(eng)+' less '+fmt(promoCredit)+' design-retainer promo credit · secures production slot'
+      : 'engineer-stamped plans · secures production slot';
+    prows+=prow('Payment 1 — Engineering', p1Effective, {sub: p1Sub});
+  }
   prows+=prow((engPaid?'Payment 1':'Payment 2')+' — 45%',p2,{sub:'45% of remainder · long-lead materials, begins production'});
   prows+=prow((engPaid?'Payment 2':'Payment 3')+' — 45%',p3,{sub:'45% of remainder · before shipment'});
   prows+=prow('Final Payment — 10%',p4,{sub:'10% of remainder · at completion'});
-  var paymentSum = (engPaid ? 0 : eng) + p2 + p3 + p4;
+  var paymentSum = (engPaid ? 0 : p1Effective) + p2 + p3 + p4;
   prows+='<tr><td class="label" style="border-top:1px solid var(--line);padding-top:8px;font-weight:500;color:var(--ink);">Sum of payments</td><td class="amt" style="border-top:1px solid var(--line);padding-top:8px;font-weight:500;">'+fmt(paymentSum)+'</td></tr>';
   document.getElementById('c-payments').innerHTML=prows;
 
-  CURRENT={m:m,eng:eng,shell:shell,snow:snow,win:win,winLabel:winSel>=0?['Cascade WinPro Vinyl — Clay/White','Cascade WinPro Vinyl — Black/White','Amsco Studios','Andersen 100 Series'][winSel]:'',ship:ship,miles:miles,rate:rate,customs:customs,contract:contract,p1:eng,p2:p2,p3:p3,p4:p4,designPaid:designPaid,engPaid:engPaid,designAmt:cEffectiveDesign};
+  CURRENT={m:m,eng:eng,shell:shell,snow:snow,win:win,winLabel:winSel>=0?['Cascade WinPro Vinyl — Clay/White','Cascade WinPro Vinyl — Black/White','Amsco Studios','Andersen 100 Series'][winSel]:'',ship:ship,miles:miles,rate:rate,customs:customs,contract:contract,p1:p1Effective,p1Base:eng,promoCredit:promoCredit,p2:p2,p3:p3,p4:p4,designPaid:designPaid,engPaid:engPaid,designAmt:cEffectiveDesign};
 }
 
 function generateContract(){
@@ -537,6 +576,7 @@ function generateContract(){
   function srPaid(l,a){return '<tr><td style="padding:5px 8px;border:1px solid #ccc;">'+l+'</td><td style="padding:5px 8px;border:1px solid #ccc;text-align:right;white-space:nowrap;color:#888;">PAID</td><td style="padding:5px 8px;border:1px solid #ccc;font-size:11px;color:#555;">already received · was '+fmt(a)+'</td></tr>';}
   if(c.engPaid) sumRows+=srPaid('Engineered plans', c.eng);
   else          sumRows+=sr('Engineered plans',c.eng,'payment 1 of contract');
+  if(c.promoCredit>0) sumRows+='<tr><td style="padding:5px 8px;border:1px solid #ccc;color:#0f6e56;font-weight:600;">Promo credit — design retainer toward engineering</td><td style="padding:5px 8px;border:1px solid #ccc;text-align:right;white-space:nowrap;color:#0f6e56;font-weight:600;">-'+fmt(c.promoCredit)+'</td><td style="padding:5px 8px;border:1px solid #ccc;font-size:11px;color:#555;">limited-time credit — design retainer credited against Payment 1</td></tr>';
   sumRows+=sr('Framed Panelized Kit',c.shell,c.m[1]+' sqft livable');
   if(c.snow>0) sumRows+=sr('Snow load upgrade',c.snow,'');
   if(c.win>0) sumRows+=sr('Window and Exterior Door Package',c.win,c.winLabel);
@@ -613,8 +653,8 @@ function generateContract(){
   +'<table style="width:100%;border-collapse:collapse;margin-top:14px;font-size:12px;">'
   +'<tr><td style="padding:5px 8px;border:1px solid #ccc;background:#f5f3ec;font-weight:600;" colspan="3">Estimated Timing &amp; Payment Schedule</td></tr>'
   +(c.engPaid
-    ? '<tr><td style="padding:6px 8px;border:1px solid #ccc;">Payment 1 (engineering)</td><td style="padding:6px 8px;border:1px solid #ccc;text-align:right;color:#888;">PAID</td><td style="padding:6px 8px;border:1px solid #ccc;font-size:11px;">Already received · was '+fmt(c.p1)+'</td></tr>'
-    : '<tr><td style="padding:6px 8px;border:1px solid #ccc;">Payment 1 (engineering)</td><td style="padding:6px 8px;border:1px solid #ccc;text-align:right;">'+fmt(c.p1)+'</td><td style="padding:6px 8px;border:1px solid #ccc;font-size:11px;">Full submit-ready, engineer-stamped plans, delivered within 4 weeks of execution. Secures the project on the production schedule.</td></tr>')
+    ? '<tr><td style="padding:6px 8px;border:1px solid #ccc;">Payment 1 (engineering)</td><td style="padding:6px 8px;border:1px solid #ccc;text-align:right;color:#888;">PAID</td><td style="padding:6px 8px;border:1px solid #ccc;font-size:11px;">Already received · was '+fmt(c.p1Base||c.p1)+'</td></tr>'
+    : '<tr><td style="padding:6px 8px;border:1px solid #ccc;">Payment 1 (engineering)</td><td style="padding:6px 8px;border:1px solid #ccc;text-align:right;">'+fmt(c.p1)+'</td><td style="padding:6px 8px;border:1px solid #ccc;font-size:11px;">Full submit-ready, engineer-stamped plans, delivered within 4 weeks of execution. Secures the project on the production schedule.'+(c.promoCredit>0?' · '+fmt(c.p1Base)+' less '+fmt(c.promoCredit)+' design-retainer promo credit':'')+'</td></tr>')
   +'<tr><td style="padding:6px 8px;border:1px solid #ccc;">Payment 2 (45%)</td><td style="padding:6px 8px;border:1px solid #ccc;text-align:right;">'+fmt(c.p2)+'</td><td style="padding:6px 8px;border:1px solid #ccc;font-size:11px;">45% of remainder after engineering. Covers long-lead-time materials (lumber, windows, etc.) and begins production.</td></tr>'
   +'<tr><td style="padding:6px 8px;border:1px solid #ccc;">Payment 3 (45%)</td><td style="padding:6px 8px;border:1px solid #ccc;text-align:right;">'+fmt(c.p3)+'</td><td style="padding:6px 8px;border:1px solid #ccc;font-size:11px;">45% of remainder. Due before the kit ships, unless agreed otherwise in writing.</td></tr>'
   +'<tr><td style="padding:6px 8px;border:1px solid #ccc;">Final Payment (10%)</td><td style="padding:6px 8px;border:1px solid #ccc;text-align:right;">'+fmt(c.p4)+'</td><td style="padding:6px 8px;border:1px solid #ccc;font-size:11px;">10% of remainder. Due when framing and Zip Kit Homes scope of work is completed onsite.</td></tr>'
@@ -1155,11 +1195,22 @@ function initCustomContract(){
   // Default to the generic Custom Home photo
   sel.value = 'Custom Home';
 
-  ['cu-name','cu-sqft','cu-build','cu-eng','cu-miles','cu-rate','cu-photo','cu-win-label','cu-win-price','cu-design-override','cu-design-paid','cu-eng-paid'].forEach(function(id){
+  ['cu-name','cu-sqft','cu-build','cu-eng','cu-miles','cu-rate','cu-photo','cu-win-label','cu-win-price','cu-design-override','cu-design-paid','cu-eng-paid','cu-promo-design-credit'].forEach(function(id){
     var el = document.getElementById(id);
     el.addEventListener('input', calcCustom);
     el.addEventListener('change', calcCustom);
   });
+  // Promo checkbox — load + persist via localStorage, sync to/from shell-mode checkbox
+  var promoCu = document.getElementById('cu-promo-design-credit');
+  if(promoCu){
+    try{ promoCu.checked = localStorage.getItem('zk_promo_design_credit')==='1'; }catch(e){}
+    promoCu.addEventListener('change', function(){
+      try{ localStorage.setItem('zk_promo_design_credit', promoCu.checked?'1':'0'); }catch(e){}
+      var sh = document.getElementById('c-promo-design-credit');
+      if(sh) sh.checked = promoCu.checked;
+      if(typeof calc === 'function') calc();
+    });
+  }
 
   buildCuScopeUI();
 }
@@ -1271,8 +1322,13 @@ function calcCustom(){
   var rows = '';
   function row(l,a,sub){var s=sub?'<div class="sub">'+sub+'</div>':''; return '<tr><td class="label">'+l+s+'</td><td class="amt">'+fmt(a)+'</td></tr>';}
   function rowPaid(l,a){return '<tr><td class="label">'+l+'<div class="sub">PAID — already received · was '+fmt(a)+'</div></td><td class="amt" style="color:var(--hint);">PAID</td></tr>';}
+  // Promo: design retainer credited toward engineering — reduces Payment 1 by the (effective) design retainer.
+  var cuPromoOn = !!(document.getElementById('cu-promo-design-credit') && document.getElementById('cu-promo-design-credit').checked);
+  var cuPromoCredit = (cuPromoOn && cuEffectiveDesign>0 && eng>0 && !engPaid) ? Math.min(cuEffectiveDesign, eng) : 0;
+
   if(engPaid && eng>0) rows += rowPaid('Engineering', eng);
   else                 rows += row('Engineering', eng, 'payment 1 of contract');
+  if(cuPromoCredit>0) rows += '<tr><td class="label" style="color:#0f6e56;"><b>Promo credit — design retainer toward engineering</b><div class="sub" style="color:#0f6e56;">limited-time credit</div></td><td class="amt" style="color:#0f6e56; font-weight:600;">-'+fmt(cuPromoCredit)+'</td></tr>';
   rows += row('Custom build', build, (sqft>0 ? sqft.toLocaleString()+' sqft livable' : 'negotiated build cost'));
   if(winPrice>0) rows += row('Window & door package', winPrice, winLabel || 'custom selection');
   customs.forEach(function(c){ rows += row(c.desc, c.amt, c.amt<0?'credit':'add-on'); });
@@ -1285,22 +1341,28 @@ function calcCustom(){
   var dVal = document.getElementById('c-design');
   if(dVal) dVal.textContent = designPaid ? 'PAID' : fmt(cuEffectiveDesign);
 
-  var contract = eng + build + winPrice + customTotal + ship;
+  var contract = eng + build + winPrice + customTotal + ship - cuPromoCredit;
   document.getElementById('c-total').textContent = fmt(contract);
 
-  // Payments: engineering first (if not paid), then 45/45/10 of remainder
-  var remainder = contract - eng;
+  // Payments: engineering first (reduced by promo credit if active), then 45/45/10 of remainder
+  var remainder = build + winPrice + customTotal + ship;  // unaffected by promo (it only touches p1)
+  var p1Effective = Math.max(0, eng - cuPromoCredit);
   var p2 = Math.round(remainder*0.45), p3 = Math.round(remainder*0.45);
   var p4 = remainder - p2 - p3;
   var prows = '';
   function prow(l,a,sub){var s=sub?'<div class="sub">'+sub+'</div>':''; return '<tr><td class="label">'+l+s+'</td><td class="amt">'+fmt(a)+'</td></tr>';}
-  if(!engPaid) prows += prow('Engineering', eng, 'payment 1 · due at contract signing');
+  if(!engPaid){
+    var p1Sub = cuPromoCredit>0
+      ? 'payment 1 · '+fmt(eng)+' less '+fmt(cuPromoCredit)+' design-retainer promo credit · due at contract signing'
+      : 'payment 1 · due at contract signing';
+    prows += prow('Engineering', p1Effective, p1Sub);
+  }
   prows += prow('Materials (45%)', p2, '45% of remainder · due after engineering');
   prows += prow('Pre-ship (45%)', p3, '45% of remainder · before shipment');
   prows += prow('Final set (10%)', p4, '10% of remainder · due on set');
   document.getElementById('c-payments').innerHTML = prows;
 
-  CURRENT_CUSTOM = {name:name, sqft:sqft, build:build, eng:eng, miles:miles, rate:rate, ship:ship, photo:photo, customs:customs, contract:contract, p1:eng, p2:p2, p3:p3, p4:p4, designPaid:designPaid, engPaid:engPaid, designAmt:cuEffectiveDesign, winLabel:winLabel, winPrice:winPrice};
+  CURRENT_CUSTOM = {name:name, sqft:sqft, build:build, eng:eng, miles:miles, rate:rate, ship:ship, photo:photo, customs:customs, contract:contract, p1:p1Effective, p1Base:eng, promoCredit:cuPromoCredit, p2:p2, p3:p3, p4:p4, designPaid:designPaid, engPaid:engPaid, designAmt:cuEffectiveDesign, winLabel:winLabel, winPrice:winPrice};
 }
 
 function generateCustomContract(){
@@ -1324,6 +1386,7 @@ function generateCustomContract(){
   function srPaid(l,a){return '<tr><td style="padding:5px 8px;border:1px solid #ccc;">'+l+'</td><td style="padding:5px 8px;border:1px solid #ccc;text-align:right;white-space:nowrap;color:#888;">PAID</td><td style="padding:5px 8px;border:1px solid #ccc;font-size:11px;color:#555;">already received · was '+fmt(a)+'</td></tr>';}
   if(c.engPaid) sumRows += srPaid('Engineered plans', c.eng);
   else          sumRows += sr('Engineered plans', c.eng, 'payment 1 of contract');
+  if(c.promoCredit>0) sumRows += '<tr><td style="padding:5px 8px;border:1px solid #ccc;color:#0f6e56;font-weight:600;">Promo credit — design retainer toward engineering</td><td style="padding:5px 8px;border:1px solid #ccc;text-align:right;white-space:nowrap;color:#0f6e56;font-weight:600;">-'+fmt(c.promoCredit)+'</td><td style="padding:5px 8px;border:1px solid #ccc;font-size:11px;color:#555;">limited-time credit — design retainer credited against Payment 1</td></tr>';
   sumRows += sr('Custom build', c.build, c.sqft>0 ? c.sqft.toLocaleString()+' sqft livable' : 'negotiated build cost');
   if(c.winPrice>0) sumRows += sr('Window & door package', c.winPrice, c.winLabel || 'custom selection');
   c.customs.forEach(function(x){ sumRows += sr(x.desc, x.amt, ''); });
@@ -1392,8 +1455,8 @@ function generateCustomContract(){
   +'<table style="width:100%;border-collapse:collapse;margin-top:14px;font-size:12px;">'
   +'<tr><td style="padding:5px 8px;border:1px solid #ccc;background:#f5f3ec;font-weight:600;" colspan="3">Estimated Timing &amp; Payment Schedule</td></tr>'
   +(c.engPaid
-    ? '<tr><td style="padding:5px 8px;border:1px solid #ccc;">Payment 1 — Engineering</td><td style="padding:5px 8px;border:1px solid #ccc;text-align:right;color:#888;">PAID</td><td style="padding:5px 8px;border:1px solid #ccc;font-size:11px;color:#555;">Already received · was '+fmt(c.p1)+'</td></tr>'
-    : '<tr><td style="padding:5px 8px;border:1px solid #ccc;">Payment 1 — Engineering</td><td style="padding:5px 8px;border:1px solid #ccc;text-align:right;">'+fmt(c.p1)+'</td><td style="padding:5px 8px;border:1px solid #ccc;font-size:11px;color:#555;">due at contract signing</td></tr>')
+    ? '<tr><td style="padding:5px 8px;border:1px solid #ccc;">Payment 1 — Engineering</td><td style="padding:5px 8px;border:1px solid #ccc;text-align:right;color:#888;">PAID</td><td style="padding:5px 8px;border:1px solid #ccc;font-size:11px;color:#555;">Already received · was '+fmt(c.p1Base||c.p1)+'</td></tr>'
+    : '<tr><td style="padding:5px 8px;border:1px solid #ccc;">Payment 1 — Engineering</td><td style="padding:5px 8px;border:1px solid #ccc;text-align:right;">'+fmt(c.p1)+'</td><td style="padding:5px 8px;border:1px solid #ccc;font-size:11px;color:#555;">due at contract signing'+(c.promoCredit>0?' · '+fmt(c.p1Base)+' less '+fmt(c.promoCredit)+' design-retainer promo credit':'')+'</td></tr>')
   +'<tr><td style="padding:5px 8px;border:1px solid #ccc;">Payment 2 — Materials (45%)</td><td style="padding:5px 8px;border:1px solid #ccc;text-align:right;">'+fmt(c.p2)+'</td><td style="padding:5px 8px;border:1px solid #ccc;font-size:11px;color:#555;">45% of remainder · due after engineering</td></tr>'
   +'<tr><td style="padding:5px 8px;border:1px solid #ccc;">Payment 3 — Pre-ship (45%)</td><td style="padding:5px 8px;border:1px solid #ccc;text-align:right;">'+fmt(c.p3)+'</td><td style="padding:5px 8px;border:1px solid #ccc;font-size:11px;color:#555;">45% of remainder · due before shipment</td></tr>'
   +'<tr><td style="padding:5px 8px;border:1px solid #ccc;">Final — Set (10%)</td><td style="padding:5px 8px;border:1px solid #ccc;text-align:right;">'+fmt(c.p4)+'</td><td style="padding:5px 8px;border:1px solid #ccc;font-size:11px;color:#555;">10% of remainder · due on set</td></tr>'
