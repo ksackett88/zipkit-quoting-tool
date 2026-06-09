@@ -92,7 +92,7 @@
   .mode.active { display: block; }
   .print-only { display: none; }
   @media print {
-    .tabs, .actions, footer, .card.inputs, #invoice-panel, #proposal-panel, #rep-panel, #zk-toolbar, #zk-auth-overlay, #zk-quotes-overlay { display: none !important; }
+    .tabs, .actions, footer, .card.inputs, #invoice-panel, #generic-invoice-panel, #proposal-panel, #rep-panel, #zk-toolbar, #zk-auth-overlay, #zk-quotes-overlay { display: none !important; }
     .grid { grid-template-columns: 1fr; }
     .mode:not(.active) { display: none; }
     .screen-only { display: none !important; }
@@ -558,6 +558,41 @@
     </div>
   </div>
 
+  <div class="card" id="generic-invoice-panel" style="margin-top:18px;">
+    <h2>Special invoice · free-form / case-by-case</h2>
+    <p class="meta">For one-off billing situations that don't fit the standard schedule above — e.g. drafting on a big multi-unit project, change-order work, partial credits. Pick a brand, fill in line items, generate.</p>
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+      <div><label for="gen-brand">Brand / company</label>
+        <select id="gen-brand">
+          <option value="zipkit">Zip Kit Homes</option>
+          <option value="mvp">Mountain Valley Prefab</option>
+          <option value="zksteel">Zip Kit Steel</option>
+        </select>
+      </div>
+      <div><label for="gen-num">Invoice number</label><input type="text" id="gen-num" placeholder="e.g. ZK-S-1042"></div>
+      <div><label for="gen-cust">Bill to (customer / company)</label><input type="text" id="gen-cust" placeholder="e.g. John Smith — Lot 14"></div>
+      <div><label for="gen-project">Project name (optional)</label><input type="text" id="gen-project" placeholder="e.g. Smith multi-unit"></div>
+      <div><label for="gen-email">Customer email</label><input type="text" id="gen-email" placeholder="buyer@email.com"></div>
+      <div><label for="gen-phone">Customer phone</label><input type="text" id="gen-phone" placeholder="(555) 555-5555"></div>
+      <div><label for="gen-date">Invoice date</label><input type="text" id="gen-date" placeholder="MM/DD/YYYY"></div>
+      <div><label for="gen-title">Invoice subject / title</label><input type="text" id="gen-title" placeholder="e.g. Drafting services — Smith multi-unit"></div>
+    </div>
+    <div style="margin-top:14px;">
+      <label for="gen-note">Description / note (shown on the invoice, optional)</label>
+      <textarea id="gen-note" rows="2" placeholder="Optional context for the customer — what this invoice covers, why it's separate, etc." style="width:100%; font-family:inherit; padding:8px 10px; border:1px solid var(--line); border-radius:6px; resize:vertical;"></textarea>
+    </div>
+    <div style="margin-top:14px;">
+      <label>Line items</label>
+      <div id="gen-lines"></div>
+      <button type="button" class="btn-sm" onclick="addGenericLine()" style="margin-top:6px;">+ Add line item</button>
+      <p class="custom-help">Each line: description + amount. Use a negative amount for a credit (e.g. -500).</p>
+    </div>
+    <div style="margin-top:14px; padding-top:12px; border-top:1px solid var(--line); display:flex; justify-content:space-between; align-items:center;">
+      <div style="font-size:14px; color:var(--ink);">Total: <b id="gen-total" style="font-size:18px; margin-left:6px;">$0</b></div>
+      <button class="act primary" style="width:auto; padding:0 22px;" onclick="generateGenericInvoice()">Generate special invoice</button>
+    </div>
+  </div>
+
   <!-- Disclaimer shown only on Print / Save as PDF output -->
   <div class="print-only" style="margin-top:32px; padding:16px 20px; background:#faf9f5; border-top:2px solid #1c1c1a; border-radius:6px; font-size:11px; color:#5f5e5a; line-height:1.6;">
     <b style="color:#d85a30; letter-spacing:0.08em; text-transform:uppercase;">Preliminary quote — not a binding offer.</b><br>
@@ -813,6 +848,148 @@ function generateInvoice(){
     +'<style>@page{size:letter;margin:0.35in;}@media print{.noprint{display:none;}.invoice-page{padding:0!important;}body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}}</style></body></html>');
   w.document.close();
 }
+
+/* ---------------- GENERIC / SPECIAL INVOICE ---------------- */
+// Free-form invoice generator for one-off billing situations that don't fit the
+// standard QUOTE-driven payment schedule (e.g. drafting on a multi-unit project,
+// change-order work, partial credits). Independent of QUOTE.
+
+function addGenericLine(desc, amt){
+  var box = document.getElementById('gen-lines'); if(!box) return;
+  var div = document.createElement('div');
+  div.className = 'lineitem';
+  div.style.cssText = 'display:grid; grid-template-columns:1fr 140px 32px; gap:8px; margin-bottom:6px; align-items:center;';
+  div.innerHTML = '<input type="text" placeholder="Description (e.g. Drafting — multi-unit revisions)" data-gen="desc" style="margin:0;">'
+    +'<input type="number" placeholder="0" data-gen="amt" step="1" style="margin:0;">'
+    +'<button type="button" class="btn-sm" style="height:34px; padding:0 8px; font-size:18px; line-height:1;" title="Remove">×</button>';
+  if(desc != null) div.querySelector('[data-gen="desc"]').value = desc;
+  if(amt != null)  div.querySelector('[data-gen="amt"]').value  = amt;
+  box.appendChild(div);
+  div.querySelectorAll('input').forEach(function(i){ i.addEventListener('input', updateGenericTotal); });
+  div.querySelector('button').addEventListener('click', function(){ div.remove(); updateGenericTotal(); });
+  updateGenericTotal();
+}
+
+function getGenericLines(){
+  var items = [];
+  document.querySelectorAll('#gen-lines .lineitem').forEach(function(row){
+    var d = row.querySelector('[data-gen="desc"]').value.trim();
+    var a = parseFloat(row.querySelector('[data-gen="amt"]').value) || 0;
+    if(d || a) items.push({ desc: d || 'Line item', amt: a });
+  });
+  return items;
+}
+
+function updateGenericTotal(){
+  var items = getGenericLines();
+  var total = items.reduce(function(a,c){ return a + c.amt; }, 0);
+  var el = document.getElementById('gen-total'); if(el) el.textContent = fmt(total);
+}
+
+function generateGenericInvoice(){
+  var items = getGenericLines();
+  if(!items.length){ alert('Add at least one line item before generating.'); return; }
+  var g = function(id){ return (document.getElementById(id).value || '').trim(); };
+  var company = document.getElementById('gen-brand').value || 'zipkit';
+  var num     = g('gen-num') || '—';
+  var date    = g('gen-date') || new Date().toLocaleDateString('en-US');
+  var cust    = g('gen-cust') || '—';
+  var project = g('gen-project');
+  var email   = g('gen-email');
+  var phone   = g('gen-phone');
+  var title   = g('gen-title') || 'Special invoice';
+  var note    = g('gen-note');
+  var rep      = (document.getElementById('rep-name').value  || '').trim();
+  var repEmail = (document.getElementById('rep-email').value || '').trim();
+  var repPhone = (document.getElementById('rep-phone').value || '').trim();
+  var total = items.reduce(function(a,c){ return a + c.amt; }, 0);
+
+  var co = (company==='mvp')
+    ? {name:'Mountain Valley Prefab', addr:'3791 East 49th North, Idaho Falls ID 83401', tel:'(435) 592·3596', email:'sales@mountainvalleyprefab.com', logo:MVP_LOGO}
+    : (company==='zksteel')
+      ? {name:'Zip Kit Steel', addr:'3665 West 2700 South, Cedar City UT 84720', tel:'(435) 340·1171', email:'sales@zipkitsteel.com', logo:zkImageUrl('zksteel-logo.png')}
+      : {name:'Zip Kit Homes', addr:'3665 West 2700 South, Cedar City UT 84720', tel:'(435) 340·1171', email:'sales@zipkithomes.com', logo:ZIPKIT_LOGO};
+  var pay = PAYMENT_INFO[company] || PAYMENT_INFO.zipkit;
+  var logoH = (company === 'mvp') ? 76 : 54;
+  var brandHead = '<img src="'+co.logo+'" alt="'+co.name+'" style="height:'+logoH+'px;">';
+
+  var lineRows = items.map(function(it){
+    return '<tr style="border-bottom:1px solid #e2e0d8;">'
+      +'<td style="padding:9px 0; font-size:13px;">'+it.desc+'</td>'
+      +'<td style="padding:9px 0; text-align:right; font-size:14px; font-weight:500; white-space:nowrap;">'+fmt(it.amt)+'</td></tr>';
+  }).join('');
+
+  var html = ''
+    +'<div class="invoice-page" style="max-width:760px; margin:0 auto; font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif; color:#1c1c1a; padding:22px 24px;">'
+    +'<div style="display:flex; justify-content:space-between; align-items:flex-start; border-bottom:2px solid #1c1c1a; padding-bottom:12px;">'
+    +'<div>'+brandHead+'<div style="font-size:11px; color:#5f5e5a; margin-top:6px; line-height:1.5;">'+co.addr+'<br>'+co.tel+' &nbsp;|&nbsp; '+co.email+'</div></div>'
+    +'<div style="text-align:right;"><div style="font-size:26px; font-weight:700; letter-spacing:-0.02em;">INVOICE</div>'
+    +'<div style="font-size:12px; color:#5f5e5a; margin-top:4px; line-height:1.6;">Invoice #: <b>'+num+'</b><br>Date: '+date+'</div></div>'
+    +'</div>'
+    +'<div style="display:flex; justify-content:space-between; margin-top:14px; font-size:12px;">'
+    +'<div><div style="color:#888; text-transform:uppercase; font-size:10px; letter-spacing:0.05em;">Bill to</div>'
+    +'<div style="font-size:14px; font-weight:500; margin-top:2px;">'+cust+'</div>'
+    +(email || phone ? '<div style="color:#5f5e5a; font-size:11px; margin-top:2px; line-height:1.4;">'+[email, phone].filter(function(x){return x;}).join('<br>')+'</div>' : '')
+    +'</div>'
+    +(project ? '<div style="text-align:right;"><div style="color:#888; text-transform:uppercase; font-size:10px; letter-spacing:0.05em;">Project</div><div style="font-size:14px; font-weight:500; margin-top:2px;">'+project+'</div></div>' : '')
+    +'</div>'
+    +(rep ? '<div style="margin-top:8px; padding-top:8px; border-top:1px solid #e2e0d8; display:flex; justify-content:space-between; font-size:11px;"><div><span style="color:#888; text-transform:uppercase; font-size:10px; letter-spacing:0.05em;">Sales rep</span> &nbsp;<b>'+rep+'</b></div><div style="color:#5f5e5a;">'+[repEmail, repPhone].filter(function(x){return x;}).join(' &nbsp;·&nbsp; ')+'</div></div>' : '')
+    +'<div style="margin-top:16px; font-size:14px; font-weight:600; color:#1c1c1a;">'+title+'</div>'
+    +(note ? '<div style="margin-top:6px; font-size:12px; color:#5f5e5a; line-height:1.5; white-space:pre-wrap;">'+note.replace(/</g,'&lt;')+'</div>' : '')
+    +'<table style="width:100%; border-collapse:collapse; margin-top:14px; font-size:13px;">'
+    +'<tr style="border-bottom:2px solid #1c1c1a;"><td style="padding:6px 0; text-transform:uppercase; font-size:10px; letter-spacing:0.05em; color:#888;">Description</td><td style="padding:6px 0; text-align:right; text-transform:uppercase; font-size:10px; letter-spacing:0.05em; color:#888;">Amount</td></tr>'
+    +lineRows
+    +'</table>'
+    +'<div style="display:flex; justify-content:flex-end; margin-top:10px;">'
+    +'<table style="font-size:13px; min-width:260px;">'
+    +'<tr><td style="padding:2px 0; color:#5f5e5a;">Amount due this invoice</td><td style="padding:2px 0; text-align:right; font-size:18px; font-weight:700;">'+fmt(total)+'</td></tr>'
+    +'</table></div>'
+    +'<div style="margin-top:18px; page-break-inside:avoid; break-inside:avoid;">'
+    +'<div style="font-size:12px; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; border-bottom:2px solid #1c1c1a; padding-bottom:4px; margin-bottom:8px;">How to pay</div>'
+    +'<div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">'
+    +'<div style="border:1px solid #e2e0d8; border-radius:6px; padding:10px 12px; font-size:11px; line-height:1.45;">'
+    +'<div style="font-weight:600; font-size:12px; margin-bottom:6px;">Check</div>'
+    +'<div style="color:#888; text-transform:uppercase; font-size:9px; letter-spacing:0.05em;">Make payable to</div>'
+    +'<div style="margin-bottom:6px;">'+pay.payable+'</div>'
+    +'<div style="color:#888; text-transform:uppercase; font-size:9px; letter-spacing:0.05em;">Mail to</div>'
+    +'<div>'+pay.mailing.join('<br>')+'</div>'
+    +'</div>'
+    +'<div style="border:1px solid #e2e0d8; border-radius:6px; padding:10px 12px; font-size:11px; line-height:1.45;">'
+    +'<div style="font-weight:600; font-size:12px; margin-bottom:6px;">Wire transfer</div>'
+    +(pay.wire
+      ? '<table style="width:100%; font-size:11px; border-collapse:collapse;">'
+        +'<tr><td style="color:#888; padding:1px 6px 1px 0; vertical-align:top; white-space:nowrap;">Account name</td><td style="padding:1px 0; vertical-align:top;">'+pay.wire.accountName+'</td></tr>'
+        +'<tr><td style="color:#888; padding:1px 6px 1px 0; vertical-align:top; white-space:nowrap;">Account #</td><td style="padding:1px 0; vertical-align:top;">'+pay.wire.accountNumber+'</td></tr>'
+        +'<tr><td style="color:#888; padding:1px 6px 1px 0; vertical-align:top; white-space:nowrap;">Routing #</td><td style="padding:1px 0; vertical-align:top;">'+pay.wire.routingNumber+'</td></tr>'
+        +'<tr><td style="color:#888; padding:1px 6px 1px 0; vertical-align:top; white-space:nowrap;">Bank</td><td style="padding:1px 0; vertical-align:top;">'+pay.wire.bank+(pay.wire.bankBranch?'<br>'+pay.wire.bankBranch:'')+(pay.wire.bankAddress && pay.wire.bankAddress.length?'<br>'+pay.wire.bankAddress.join('<br>'):'')+'</td></tr>'
+        +(pay.wire.businessAddress?'<tr><td style="color:#888; padding:1px 6px 1px 0; vertical-align:top; white-space:nowrap;">Business addr</td><td style="padding:1px 0; vertical-align:top;">'+pay.wire.businessAddress.join('<br>')+'</td></tr>':'')
+        +'</table>'
+      : '<div style="color:#5f5e5a;">Contact '+co.email+' for wire details.</div>')
+    +'</div>'
+    +'</div>'
+    +'<div style="font-size:10px; color:#5f5e5a; margin-top:6px;">QuickBooks online payment also available — reply to this invoice and we\'ll send a payment link.</div>'
+    +'</div>'
+    +'<div style="margin-top:14px; font-size:10px; color:#888; line-height:1.5; border-top:1px solid #e2e0d8; padding-top:8px;">'
+    +'Special / case-by-case invoice — not part of a standard contract payment schedule. Pricing reflects the specific scope described above. No sales tax applied. Contact your sales rep with any questions.'
+    +'</div>'
+    +'</div>';
+
+  var w = window.open('', '_blank');
+  if(!w){ alert('Please allow pop-ups to generate the invoice.'); return; }
+  w.document.write('<!DOCTYPE html><html><head><meta charset="utf-8"><title>Special Invoice '+num+' — '+cust+'</title></head><body style="margin:0; background:#fff;">'+html
+    +'<div style="text-align:center; padding:20px;" class="noprint"><button onclick="window.print()" style="padding:10px 24px; font-size:14px; background:#d85a30; color:#fff; border:none; border-radius:8px; cursor:pointer;">Print / Save as PDF</button></div>'
+    +'<style>@page{size:letter;margin:0.35in;}@media print{.noprint{display:none;}.invoice-page{padding:0!important;}body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}}</style></body></html>');
+  w.document.close();
+}
+
+// Seed one empty line item so the rep doesn't have to click "+ Add" first.
+(function initGenericInvoice(){
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', function(){ if(document.getElementById('gen-lines')) addGenericLine(); });
+  } else {
+    if(document.getElementById('gen-lines')) addGenericLine();
+  }
+})();
 
 /* ---------- PROPOSAL ---------- */
 // Explicit map for photo files whose filename doesn't match the model name
