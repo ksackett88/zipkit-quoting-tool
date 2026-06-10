@@ -481,6 +481,18 @@
         <textarea id="c-scope" rows="6" placeholder="Describe what's included in this custom build. One line per item.&#10;&#10;e.g.&#10;Full panelized shell&#10;Custom roof line &amp; dormer windows&#10;Wraparound porch with metal roof"></textarea>
         <p class="note">Each line becomes a bullet on the proposal's "What's included" list.</p>
 
+        <label>Add-ons &amp; extras</label>
+        <div id="c-custom"></div>
+        <button type="button" class="btn-sm" onclick="addCustomItem('c')">+ Add line item</button>
+        <p class="custom-help">For anything not in the negotiated build cost above — basement windows, dormers, premium upgrades, change-order work, etc. Each line flows into the total, proposal, contract, and payment schedule. Use a negative amount for a credit.</p>
+
+        <div id="c-promo-wrap" style="margin-top:14px; padding:10px 12px; background:#fff7e6; border-left:3px solid #d85a30; border-radius:4px;">
+          <label style="display:flex; align-items:flex-start; gap:8px; margin:0; cursor:pointer; line-height:1.4; font-size:13px; color:var(--ink);">
+            <input type="checkbox" id="c-promo-design-credit" style="margin:3px 0 0 0; flex-shrink:0;">
+            <span><b style="color:#d85a30; text-transform:uppercase; letter-spacing:0.04em; font-size:11px;">Promo</b> &nbsp;Credit design retainer toward engineering. Reduces engineering by the design retainer amount (synced with the proposal panel below).</span>
+          </label>
+        </div>
+
         <label style="margin-top:8px;">Already paid (remove from total &amp; payment schedule)</label>
         <div class="checkrow"><input type="checkbox" id="c-design-paid"><label for="c-design-paid" style="margin:0;color:var(--ink);">Design retainer ($3,500)</label></div>
         <div class="checkrow"><input type="checkbox" id="c-eng-paid"><label for="c-eng-paid" style="margin:0;color:var(--ink);">Engineering</label></div>
@@ -1104,6 +1116,9 @@ function loadRepFields(){
     try{ promo.checked = localStorage.getItem('zk_promo_design_credit')==='1'; }catch(e){}
     promo.addEventListener('change', function(){
       try{ localStorage.setItem('zk_promo_design_credit', promo.checked?'1':'0'); }catch(e){}
+      // Mirror to the Custom Home per-mode checkbox if present (kept visually in sync).
+      var c = document.getElementById('c-promo-design-credit');
+      if(c) c.checked = promo.checked;
       if(QUOTE){ QUOTE.designCreditPromo = promo.checked; renderInvoiceStages(); }
     });
   }
@@ -1878,6 +1893,18 @@ var CUSTOM_DESIGN = 3500;
     el.addEventListener('input', calcCustom);
     el.addEventListener('change', calcCustom);
   });
+  // Per-mode promo checkbox: load from localStorage and sync with the proposal panel's checkbox.
+  var promoC = document.getElementById('c-promo-design-credit');
+  if(promoC){
+    try{ promoC.checked = localStorage.getItem('zk_promo_design_credit')==='1'; }catch(e){}
+    promoC.addEventListener('change', function(){
+      try{ localStorage.setItem('zk_promo_design_credit', promoC.checked?'1':'0'); }catch(e){}
+      // Mirror to the proposal-panel checkbox (single source of truth for QUOTE.designCreditPromo)
+      var p = document.getElementById('prop-promo-design-credit');
+      if(p) p.checked = promoC.checked;
+      if(QUOTE){ QUOTE.designCreditPromo = promoC.checked; if(typeof renderInvoiceStages === 'function') renderInvoiceStages(); }
+    });
+  }
 })();
 
 function resetCustom(){
@@ -1892,6 +1919,7 @@ function resetCustom(){
   document.getElementById('c-scope').value = '';
   document.getElementById('c-design-paid').checked = false;
   document.getElementById('c-eng-paid').checked = false;
+  document.getElementById('c-custom').innerHTML = '';
   calcCustom();
 }
 
@@ -1933,17 +1961,23 @@ function calcCustom(){
   else if(eng>0)       rows += row('Engineering submittal', eng, {sub:'full submittal engineered docs'});
   else                 rows += rowRate('Engineering submittal', 'TBD', {sub:'enter project-specific amount'});
   if(ship>0) rows += row('Shipping', ship, {sub:miles.toLocaleString('en-US')+' mi from Cedar City, UT · $'+rate+'/mi'});
+
+  // Custom line items (add-ons / extras / credits)
+  var customs = getCustomItems('c');
+  var customTotal = customs.reduce(function(a,c){return a+c.amt;}, 0);
+  customs.forEach(function(c){ rows += row(c.desc, c.amt, {sub: c.amt<0 ? 'credit' : 'add-on'}); });
+
   document.getElementById('c-lines').innerHTML = rows;
   document.getElementById('c-summary-model').textContent = name || 'Custom Home';
 
   var designAmt = designPaid ? 0 : cEffectiveDesign;
   var engAmt    = engPaid    ? 0 : eng;
-  var total = build + designAmt + engAmt + ship;
+  var total = build + designAmt + engAmt + ship + customTotal;
   document.getElementById('c-total').textContent = fmt(total);
   document.getElementById('c-per-sqft').textContent = (sqft>0 && total>0) ? fmt(total/sqft)+' / sqft' : '';
 
   // contract excludes design + engineering (billed as their own stages); matches shell-kit pattern
-  var contract = build + ship;
+  var contract = build + ship + customTotal;
 
   // Build dynamic scope from the textarea (one bullet per line)
   var scopeLines = scopeText.split(/\r?\n/).map(function(s){return s.trim();}).filter(function(s){return s.length>0;});
