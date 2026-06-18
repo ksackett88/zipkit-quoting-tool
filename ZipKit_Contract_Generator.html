@@ -314,7 +314,11 @@ var MODEL_PHOTO_MAP = {
   '1-Car':'1car-garage','2-Car':'2car-garage','3-Car':'3car-garage','4-Car':'4car-garage',
   'Custom Home':'customhome',
   'Steel Frame':'steelhouse',
-  "64' × 50'":'6450hangar', "80' × 60'":'8060hangar'
+  "64' × 50'":'6450hangar', "80' × 60'":'8060hangar',
+  // Custom-project photos — uppercase filenames on disk, map every plausible typed variant.
+  'Della':'THEDELLA','The Della':'THEDELLA','the della':'THEDELLA','Thedella':'THEDELLA',
+  'Carbonate':'CARBONATE','carbonate':'CARBONATE',
+  'Big Lost':'BIGLOST','Biglost':'BIGLOST','BigLost':'BIGLOST','big lost':'BIGLOST','big-lost':'BIGLOST'
 };
 
 // Absolute URL helper — popups need fully-qualified URLs to resolve relative paths.
@@ -1190,6 +1194,8 @@ function initCustomContract(){
   }
   // Generic "Custom Home" photo first (default)
   addOpt('Custom Home');
+  // Custom-project photos (specific custom builds we've shot — pickable on any custom contract).
+  ['Della','Carbonate','Big Lost'].forEach(addOpt);
   if(typeof SHELL !== 'undefined') SHELL.forEach(function(m){ addOpt(m[0]); });
   if(typeof MODULAR !== 'undefined') MODULAR.forEach(function(m){ addOpt(m[0]); });
   // Default to the generic Custom Home photo

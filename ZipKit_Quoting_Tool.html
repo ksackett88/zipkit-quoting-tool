@@ -1013,7 +1013,11 @@ var MODEL_PHOTO_MAP = {
   '1-Car':'1car-garage','2-Car':'2car-garage','3-Car':'3car-garage','4-Car':'4car-garage',
   'Custom Home':'customhome',
   'Steel Frame':'steelhouse',
-  "64' × 50'":'6450hangar', "80' × 60'":'8060hangar'
+  "64' × 50'":'6450hangar', "80' × 60'":'8060hangar',
+  // Custom-project photos — uppercase filenames on disk, map every plausible typed variant.
+  'Della':'THEDELLA','The Della':'THEDELLA','the della':'THEDELLA','Thedella':'THEDELLA',
+  'Carbonate':'CARBONATE','carbonate':'CARBONATE',
+  'Big Lost':'BIGLOST','Biglost':'BIGLOST','BigLost':'BIGLOST','big lost':'BIGLOST','big-lost':'BIGLOST'
 };
 
 function modelPhotoUrls(modelName){
