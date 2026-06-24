@@ -71,6 +71,7 @@
     <button class="tab active" data-mode="shell" onclick="setContractMode('shell')">Shell Kit Contract</button>
     <button class="tab" data-mode="modular" onclick="setContractMode('modular')">Modular Contract</button>
     <button class="tab" data-mode="custom" onclick="setContractMode('custom')">Custom Home</button>
+    <button class="tab" data-mode="changeorder" onclick="setContractMode('changeorder')">Change Order</button>
   </div>
 
   <div class="grid">
@@ -258,9 +259,47 @@
         <button class="btn sm" onclick="addCuScopeCustom()">+ Add scope item</button>
       </div>
       </div>
+
+      <div id="changeorder-mode" class="mode">
+      <div class="card">
+        <h2>Change order — reference</h2>
+        <p class="note" style="margin-top:0;">Amends an existing signed contract. Fill in the original contract's reference info, then add the change line items below.</p>
+        <label for="co-brand">Brand / company</label>
+        <select id="co-brand">
+          <option value="zipkit">Zip Kit Homes</option>
+          <option value="mvp">Mountain Valley Prefab</option>
+          <option value="zksteel">Zip Kit Steel</option>
+        </select>
+        <div class="row2">
+          <div><label for="co-num">Change order #</label><input type="text" id="co-num" placeholder="e.g. CO-1"></div>
+          <div><label for="co-date">Change order date</label><input type="text" id="co-date" placeholder="MM/DD/YYYY"></div>
+        </div>
+        <div class="row2">
+          <div><label for="co-contract-num">Original contract #</label><input type="text" id="co-contract-num" placeholder="e.g. ZK-1042"></div>
+          <div><label for="co-contract-date">Original contract date</label><input type="text" id="co-contract-date" placeholder="MM/DD/YYYY"></div>
+        </div>
+        <label for="co-orig-total">Original contract total ($)</label>
+        <input type="number" id="co-orig-total" min="0" step="100" placeholder="e.g. 425000">
+        <p class="note">The signed contract amount before this change order. Used to show the new revised total.</p>
+      </div>
+
+      <div class="card">
+        <h2>Changes</h2>
+        <p class="note" style="margin-top:0;">Each line: description + cost change. Use a negative amount for a credit (e.g. -1500 to remove a feature). Multiple lines roll up into a net cost change.</p>
+        <div id="co-changes"></div>
+        <button type="button" class="btn sm" onclick="addCoChange()">+ Add change line</button>
+        <label style="margin-top:14px;" for="co-days">Schedule impact (days added)</label>
+        <input type="number" id="co-days" min="0" step="1" value="0">
+        <p class="note">Optional — additional days to project schedule due to this change. Leave 0 if no schedule impact.</p>
+        <label style="margin-top:14px;" for="co-reason">Reason / context (optional)</label>
+        <textarea id="co-reason" rows="3" placeholder="Brief explanation shown on the change order — e.g. 'Buyer-requested addition of basement structural framing per revised plans dated 5/15/2026.'" style="width:100%; font-family:inherit; padding:8px 10px; border:1px solid var(--line); border-radius:6px; resize:vertical;"></textarea>
+      </div>
+      </div>
+
     </div>
 
     <div>
+      <div id="standard-right">
       <div class="card">
         <h2>Contract summary</h2>
         <table><tbody id="c-lines"></tbody></table>
@@ -279,6 +318,26 @@
         <h2>Generate</h2>
         <button class="btn primary" style="width:100%;" onclick="dispatchGenerate()">Generate contract document</button>
         <p class="note" style="margin-top:12px;">This opens the finished contract in a new tab — print it or save it as a PDF from there. If nothing opens, allow pop-ups for this page.</p>
+      </div>
+      </div>
+
+      <div id="changeorder-right" style="display:none;">
+      <div class="card">
+        <h2>Change order summary</h2>
+        <table style="width:100%;" id="co-summary-table"><tbody id="co-lines"></tbody></table>
+        <div class="total-row">
+          <div class="total-flex"><span class="lbl">Original contract</span><span class="val" id="co-orig-out" style="font-size:16px;">$0</span></div>
+          <div class="total-flex" style="margin-top:6px;"><span class="lbl">Net change</span><span class="val" id="co-change-out" style="font-size:16px;">$0</span></div>
+          <div class="total-flex" style="margin-top:6px;"><span class="lbl">Revised contract total</span><span class="val" id="co-new-out">$0</span></div>
+          <p class="per-unit" id="co-days-note"></p>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Generate</h2>
+        <button class="btn primary" style="width:100%;" onclick="generateChangeOrder()">Generate change order document</button>
+        <p class="note" style="margin-top:12px;">Opens the finished change order in a new tab — print or save as PDF. Needs the buyer/project info filled in at the top of the page.</p>
+      </div>
       </div>
     </div>
   </div>
@@ -1499,27 +1558,200 @@ function generateCustomContract(){
     CONTRACT_MODE = mode;
     document.querySelectorAll('.tab').forEach(function(t){ t.classList.toggle('active', t.dataset.mode===mode); });
     document.querySelectorAll('.mode').forEach(function(m){ m.classList.toggle('active', m.id===mode+'-mode'); });
+    // Swap right column: standard cards for shell/modular/custom, CO-specific cards for changeorder.
+    var stdRight = document.getElementById('standard-right');
+    var coRight  = document.getElementById('changeorder-right');
+    var isCo = (mode === 'changeorder');
+    if(stdRight) stdRight.style.display = isCo ? 'none' : '';
+    if(coRight)  coRight.style.display  = isCo ? '' : 'none';
     if(mode==='modular') calcModular();
     else if(mode==='custom') calcCustom();
+    else if(mode==='changeorder') calcCo();
     else calc();
   };
   var origDispatch = dispatchGenerate;
   dispatchGenerate = function(){
     if(CONTRACT_MODE==='modular') generateModularContract();
     else if(CONTRACT_MODE==='custom') generateCustomContract();
+    else if(CONTRACT_MODE==='changeorder') generateChangeOrder();
     else generateContract();
   };
 })();
 
-// Wire up modular + custom UI after page load
+// Wire up modular + custom + change order UI after page load
 (function initModularDeferred(){
-  function go(){ initModularContract(); calcModular(); initCustomContract(); calcCustom(); }
+  function go(){
+    initModularContract(); calcModular();
+    initCustomContract();  calcCustom();
+    initChangeOrder();     calcCo();
+  }
   if(document.readyState==='loading'){
     document.addEventListener('DOMContentLoaded', go);
   } else {
     go();
   }
 })();
+
+/* ============================================================================
+   CHANGE ORDER — amends an existing signed contract with cost/schedule changes.
+   Free-form (no QUOTE dependency). Reuses the shared buyer/project card at the
+   top of the page for buyer info + salesman.
+   ============================================================================ */
+
+function initChangeOrder(){
+  ['co-brand','co-num','co-date','co-contract-num','co-contract-date','co-orig-total','co-days','co-reason'].forEach(function(id){
+    var el = document.getElementById(id); if(!el) return;
+    el.addEventListener('input',  calcCo);
+    el.addEventListener('change', calcCo);
+  });
+  // Seed with one empty change line so the rep doesn't have to click + first.
+  if(document.getElementById('co-changes') && !document.querySelector('#co-changes .lineitem')){
+    addCoChange();
+  }
+}
+
+function addCoChange(desc, amt){
+  var box = document.getElementById('co-changes'); if(!box) return;
+  var div = document.createElement('div');
+  div.className = 'lineitem';
+  div.innerHTML = '<input type="text" placeholder="Change description (e.g. Add basement structural framing)" data-co="desc">'
+    +'<input type="number" placeholder="0 or -1500" data-co="amt" step="1">'
+    +'<button type="button" class="remove" title="Remove">×</button>';
+  if(desc != null) div.querySelector('[data-co="desc"]').value = desc;
+  if(amt  != null) div.querySelector('[data-co="amt"]').value  = amt;
+  box.appendChild(div);
+  div.querySelectorAll('input').forEach(function(i){ i.addEventListener('input', calcCo); });
+  div.querySelector('.remove').addEventListener('click', function(){ div.remove(); calcCo(); });
+  calcCo();
+}
+
+function getCoChanges(){
+  var items = [];
+  document.querySelectorAll('#co-changes .lineitem').forEach(function(row){
+    var d = row.querySelector('[data-co="desc"]').value.trim();
+    var a = parseFloat(row.querySelector('[data-co="amt"]').value) || 0;
+    if(d || a) items.push({ desc: d || 'Change item', amt: a });
+  });
+  return items;
+}
+
+var CURRENT_CO = null;
+
+function calcCo(){
+  if(!document.getElementById('co-lines')) return;
+  var changes = getCoChanges();
+  var netChange = changes.reduce(function(a,c){ return a + c.amt; }, 0);
+  var orig      = Math.max(0, parseFloat((document.getElementById('co-orig-total')||{}).value) || 0);
+  var days      = Math.max(0, parseInt((document.getElementById('co-days')||{}).value) || 0);
+  var newTotal  = orig + netChange;
+
+  // Live preview rows in the right column
+  var rows = '';
+  function row(l,a,sub){var s=sub?'<div class="sub">'+sub+'</div>':''; return '<tr><td class="label">'+l+s+'</td><td class="amt">'+fmt(a)+'</td></tr>';}
+  changes.forEach(function(c){ rows += row(c.desc, c.amt, c.amt<0 ? 'credit' : 'add'); });
+  if(!changes.length) rows = '<tr><td class="label" style="color:#888;">Add at least one change line to see the impact</td><td class="amt"></td></tr>';
+  document.getElementById('co-lines').innerHTML = rows;
+  document.getElementById('co-orig-out').textContent   = fmt(orig);
+  document.getElementById('co-change-out').textContent = (netChange<0 ? '-' : '+') + fmt(Math.abs(netChange));
+  document.getElementById('co-new-out').textContent    = fmt(newTotal);
+  document.getElementById('co-days-note').textContent  = days>0 ? '+ '+days+' day'+(days===1?'':'s')+' added to schedule' : '';
+
+  CURRENT_CO = { changes:changes, netChange:netChange, orig:orig, newTotal:newTotal, days:days };
+}
+
+function generateChangeOrder(){
+  if(!CURRENT_CO || !CURRENT_CO.changes.length){
+    alert('Add at least one change line before generating.'); return;
+  }
+  var g = function(id){return (document.getElementById(id).value || '').trim();};
+  var co = CURRENT_CO;
+
+  var brand        = document.getElementById('co-brand').value || 'zipkit';
+  var coNum        = g('co-num')          || '—';
+  var coDate       = g('co-date')         || new Date().toLocaleDateString('en-US');
+  var contractNum  = g('co-contract-num') || '—';
+  var contractDate = g('co-contract-date')|| '—';
+  var reason       = g('co-reason');
+
+  // Buyer info comes from the shared buyer/project card at the top
+  var buyer     = g('c-buyer')     || '__________';
+  var project   = g('c-project')   || '—';
+  var phone     = g('c-phone')     || '—';
+  var email     = g('c-email')     || '—';
+  var siteAddr  = g('c-site-addr') || '—';
+  var city      = g('c-city')      || '';
+  var salesman  = g('c-salesman')  || '__________';
+
+  var brandInfo = (brand === 'mvp')
+    ? {name:'Mountain Valley Prefab', addr:'3791 East 49th North, Idaho Falls ID 83401', tel:'(435) 592·3596', email:'sales@mountainvalleyprefab.com', logo:MVP_LOGO}
+    : (brand === 'zksteel')
+      ? {name:'Zip Kit Steel', addr:'3665 West 2700 South, Cedar City UT 84720', tel:'(435) 340·1171', email:'sales@zipkitsteel.com', logo:imageUrl('zksteel-logo.png')}
+      : {name:'Zip Kit Homes', addr:'3665 West 2700 South, Cedar City UT 84720', tel:'(435) 340·1171', email:'sales@ZipKitHomes.com', logo:ZIPKIT_LOGO};
+
+  var changeRows = co.changes.map(function(c){
+    return '<tr>'
+      +'<td style="padding:7px 10px;border:1px solid #ccc;">'+c.desc+'</td>'
+      +'<td style="padding:7px 10px;border:1px solid #ccc;text-align:right;white-space:nowrap;font-weight:500;'+(c.amt<0?'color:#993c1d;':'')+'">'+(c.amt<0?'-':'+')+fmt(Math.abs(c.amt))+'</td>'
+      +'</tr>';
+  }).join('');
+
+  var html = ''
+    +'<div style="max-width:760px;margin:0 auto;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#1c1c1a;padding:28px;">'
+    // Header
+    +'<div style="display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #1c1c1a;padding-bottom:14px;">'
+    +'<div><img src="'+brandInfo.logo+'" alt="'+brandInfo.name+'" style="height:'+(brand==='mvp'?72:50)+'px;">'
+    +'<div style="font-size:11px;color:#5f5e5a;margin-top:6px;line-height:1.5;">'+brandInfo.addr+'<br>'+brandInfo.tel+' &nbsp;|&nbsp; '+brandInfo.email+'</div></div>'
+    +'<div style="text-align:right;"><div style="font-size:24px;font-weight:700;letter-spacing:-0.02em;">CHANGE ORDER</div>'
+    +'<div style="font-size:12px;color:#5f5e5a;margin-top:4px;line-height:1.6;">CO #: <b>'+coNum+'</b><br>Date: '+coDate+'</div></div>'
+    +'</div>'
+    // Reference
+    +'<div style="margin-top:14px;padding:10px 14px;background:#f5f3ec;border-radius:6px;font-size:12px;color:#1c1c1a;line-height:1.6;">'
+    +'<b>Reference contract:</b> #'+contractNum+(contractDate!=='—'?' &nbsp;·&nbsp; dated '+contractDate:'')+'. This Change Order amends and forms part of that Agreement. All other terms of the original Agreement remain in full force and effect.'
+    +'</div>'
+    // Buyer / project / seller
+    +'<table style="width:100%;border-collapse:collapse;margin-top:14px;font-size:12px;">'
+    +'<tr><td style="padding:5px 8px;border:1px solid #ccc;background:#f5f3ec;font-weight:600;" colspan="2">Buyer</td><td style="padding:5px 8px;border:1px solid #ccc;background:#f5f3ec;font-weight:600;" colspan="2">Seller</td></tr>'
+    +'<tr><td style="padding:5px 8px;border:1px solid #ccc;">Name</td><td style="padding:5px 8px;border:1px solid #ccc;">'+buyer+'</td><td style="padding:5px 8px;border:1px solid #ccc;">Company</td><td style="padding:5px 8px;border:1px solid #ccc;">'+brandInfo.name+'</td></tr>'
+    +'<tr><td style="padding:5px 8px;border:1px solid #ccc;">Project</td><td style="padding:5px 8px;border:1px solid #ccc;">'+project+'</td><td style="padding:5px 8px;border:1px solid #ccc;">Salesman</td><td style="padding:5px 8px;border:1px solid #ccc;">'+salesman+'</td></tr>'
+    +'<tr><td style="padding:5px 8px;border:1px solid #ccc;">Site</td><td style="padding:5px 8px;border:1px solid #ccc;">'+siteAddr+(city?', '+city:'')+'</td><td style="padding:5px 8px;border:1px solid #ccc;">Phone</td><td style="padding:5px 8px;border:1px solid #ccc;">'+brandInfo.tel+'</td></tr>'
+    +'<tr><td style="padding:5px 8px;border:1px solid #ccc;">Phone / Email</td><td style="padding:5px 8px;border:1px solid #ccc;">'+phone+(email!=='—'?' &middot; '+email:'')+'</td><td style="padding:5px 8px;border:1px solid #ccc;">Email</td><td style="padding:5px 8px;border:1px solid #ccc;">'+brandInfo.email+'</td></tr>'
+    +'</table>'
+    // Reason / context
+    +(reason ? '<div style="margin-top:14px;font-size:12px;color:#1c1c1a;line-height:1.55;"><b>Reason for change:</b> '+reason.replace(/</g,'&lt;')+'</div>' : '')
+    // Changes table
+    +'<table style="width:100%;border-collapse:collapse;margin-top:16px;font-size:12px;">'
+    +'<tr><td style="padding:6px 10px;border:1px solid #ccc;background:#5f5e5a;color:#fff;font-weight:600;">DESCRIPTION OF CHANGE</td><td style="padding:6px 10px;border:1px solid #ccc;background:#5f5e5a;color:#fff;font-weight:600;text-align:right;">COST IMPACT</td></tr>'
+    +changeRows
+    +'</table>'
+    // Cost summary
+    +'<table style="width:100%;border-collapse:collapse;margin-top:14px;font-size:13px;">'
+    +'<tr><td style="padding:6px 10px;border:1px solid #ccc;">Original contract amount</td><td style="padding:6px 10px;border:1px solid #ccc;text-align:right;">'+fmt(co.orig)+'</td></tr>'
+    +'<tr><td style="padding:6px 10px;border:1px solid #ccc;">Net change (this CO)</td><td style="padding:6px 10px;border:1px solid #ccc;text-align:right;color:'+(co.netChange<0?'#993c1d':'#0f6e56')+';font-weight:600;">'+(co.netChange<0?'-':'+')+fmt(Math.abs(co.netChange))+'</td></tr>'
+    +'<tr><td style="padding:8px 10px;border:1px solid #ccc;background:#f5f3ec;font-weight:700;">Revised contract total</td><td style="padding:8px 10px;border:1px solid #ccc;text-align:right;background:#f5f3ec;font-weight:700;font-size:15px;">'+fmt(co.newTotal)+'</td></tr>'
+    +'</table>'
+    // Schedule impact
+    +(co.days>0
+      ? '<div style="margin-top:10px;padding:8px 12px;background:#fff7e6;border-left:3px solid #d85a30;border-radius:4px;font-size:12px;color:#1c1c1a;"><b>Schedule impact:</b> the original delivery schedule is extended by '+co.days+' day'+(co.days===1?'':'s')+' as a result of this Change Order.</div>'
+      : '<div style="margin-top:10px;padding:8px 12px;background:#f5f3ec;border-radius:4px;font-size:12px;color:#5f5e5a;"><b>Schedule impact:</b> no change to the original delivery schedule.</div>')
+    // Legal language
+    +'<div style="margin-top:18px;font-size:11px;color:#555;line-height:1.55;">'
+    +'<b>Acceptance.</b> Buyer\'s signature below authorizes Seller to perform the work described in this Change Order at the cost shown. The net change above is invoiced separately on Seller\'s standard terms. Payments under this Change Order are non-refundable once work has commenced. All other terms, conditions, and payment provisions of the original Agreement (Contract #'+contractNum+') remain unchanged.'
+    +'</div>'
+    // Signatures
+    +'<table style="width:100%;border-collapse:collapse;margin-top:24px;font-size:12px;">'
+    +'<tr><td style="padding:8px;border:1px solid #ccc;width:50%;vertical-align:top;"><div style="color:#888;text-transform:uppercase;font-size:10px;letter-spacing:0.05em;">Buyer signature</div><div style="height:48px;border-bottom:1px solid #1c1c1a;margin-top:18px;"></div><div style="margin-top:6px;color:#555;">Printed name: '+buyer+'</div><div style="margin-top:4px;color:#555;">Date: ____________</div></td>'
+    +'<td style="padding:8px;border:1px solid #ccc;width:50%;vertical-align:top;"><div style="color:#888;text-transform:uppercase;font-size:10px;letter-spacing:0.05em;">Seller signature ('+brandInfo.name+')</div><div style="height:48px;border-bottom:1px solid #1c1c1a;margin-top:18px;"></div><div style="margin-top:6px;color:#555;">Printed name: '+salesman+'</div><div style="margin-top:4px;color:#555;">Date: ____________</div></td></tr>'
+    +'</table>'
+    +'<div style="margin-top:14px;font-size:10px;color:#888;line-height:1.5;border-top:1px solid #e2e0d8;padding-top:8px;">Change Order #'+coNum+' &middot; '+coDate+' &middot; Amends Contract #'+contractNum+'. This document is not effective until signed by both parties.</div>'
+    +'</div>';
+
+  var w = window.open('','_blank');
+  if(!w){ alert('Please allow pop-ups to generate the change order.'); return; }
+  w.document.write('<!DOCTYPE html><html><head><meta charset="utf-8"><title>Change Order '+coNum+' — '+buyer+'</title></head><body style="margin:0;background:#fff;">'+html
+    +'<div style="text-align:center;padding:20px;" class="noprint"><button onclick="window.print()" style="padding:10px 24px;font-size:14px;background:#d85a30;color:#fff;border:none;border-radius:8px;cursor:pointer;">Print / Save as PDF</button></div>'
+    +'<style>@page{size:letter;margin:0.4in;}@media print{.noprint{display:none;}body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}}</style></body></html>');
+  w.document.close();
+}
 
 </script>
 
@@ -1630,9 +1862,10 @@ function zkContractActiveMode(){
 var ZK_CONTRACT_BUYER_FIELDS = ['c-buyer','c-project','c-phone','c-email','c-buyer-addr','c-site-addr','c-city','c-date','c-salesman'];
 // Mode-specific static fields (inputs/selects/checkboxes).
 var ZK_CONTRACT_MODE_FIELDS = {
-  shell:   ['c-model','c-snow','c-win','c-miles','c-design-override','c-design-paid','c-eng-paid'],
-  modular: ['cm-model','cm-units','cm-miles'],
-  custom:  ['cu-name','cu-sqft','cu-build','cu-eng','cu-miles','cu-rate','cu-photo','cu-win-label','cu-win-price','cu-design-override','cu-design-paid','cu-eng-paid']
+  shell:       ['c-model','c-snow','c-win','c-miles','c-design-override','c-design-paid','c-eng-paid'],
+  modular:     ['cm-model','cm-units','cm-miles'],
+  custom:      ['cu-name','cu-sqft','cu-build','cu-eng','cu-miles','cu-rate','cu-photo','cu-win-label','cu-win-price','cu-design-override','cu-design-paid','cu-eng-paid'],
+  changeorder: ['co-brand','co-num','co-date','co-contract-num','co-contract-date','co-orig-total','co-days','co-reason']
 };
 
 function zkCaptureContract(){
@@ -1646,7 +1879,8 @@ function zkCaptureContract(){
   // Custom line items (data attr differs per mode)
   var lineSpec = { shell:{box:'c-custom',d:'data-cust',a:'data-cust'},
                    modular:{box:'cm-custom',d:'data-mcust',a:'data-mcust'},
-                   custom:{box:'cu-custom',d:'data-cucust',a:'data-cucust'} }[mode];
+                   custom:{box:'cu-custom',d:'data-cucust',a:'data-cucust'},
+                   changeorder:{box:'co-changes',d:'data-co',a:'data-co'} }[mode];
   if(lineSpec){
     var lb = document.getElementById(lineSpec.box);
     if(lb){
@@ -1692,6 +1926,13 @@ async function zkSaveCurrentContract(){
     units = CURRENT_MODULAR.units || 1;
   } else if(mode === 'custom' && window.CURRENT_CUSTOM){
     model = CURRENT_CUSTOM.name || 'Custom home'; total = CURRENT_CUSTOM.contract; brand = 'zipkit'; units = 1;
+  } else if(mode === 'changeorder' && window.CURRENT_CO){
+    var coNum = (document.getElementById('co-num')||{}).value || 'CO';
+    var contractRef = (document.getElementById('co-contract-num')||{}).value || '';
+    model = coNum + (contractRef ? ' on '+contractRef : '');
+    total = CURRENT_CO.newTotal;
+    brand = (document.getElementById('co-brand')||{}).value || 'zipkit';
+    units = 1;
   } else {
     zkContractToast('Configure the contract first — pick a model and fill in pricing.', true); return;
   }
@@ -1791,7 +2032,8 @@ async function zkOpenContract(id){
     // Rebuild custom line items via the mode's add function (re-binds handlers)
     var lineSpec = { shell:{box:'c-custom',add:'addCustom',d:'data-cust',a:'data-cust'},
                      modular:{box:'cm-custom',add:'addModularCustom',d:'data-mcust',a:'data-mcust'},
-                     custom:{box:'cu-custom',add:'addCuCustom',d:'data-cucust',a:'data-cucust'} }[mode];
+                     custom:{box:'cu-custom',add:'addCuCustom',d:'data-cucust',a:'data-cucust'},
+                     changeorder:{box:'co-changes',add:'addCoChange',d:'data-co',a:'data-co'} }[mode];
     if(lineSpec){
       var lb = document.getElementById(lineSpec.box);
       if(lb) lb.innerHTML = '';
@@ -1836,7 +2078,7 @@ async function zkOpenContract(id){
     }
 
     // Recompute the totals so CURRENT_* gets populated
-    var calcMap = { shell:'calc', modular:'calcModular', custom:'calcCustom' };
+    var calcMap = { shell:'calc', modular:'calcModular', custom:'calcCustom', changeorder:'calcCo' };
     var fnName = calcMap[mode];
     if(fnName && typeof window[fnName] === 'function') window[fnName]();
 
