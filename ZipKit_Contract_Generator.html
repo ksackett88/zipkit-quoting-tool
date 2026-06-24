@@ -1622,24 +1622,51 @@ function addCoDeduction(){
   if(d) d.focus();
 }
 
-function addCoChange(desc, amt){
+function addCoChange(desc, amt, notes){
   var box = document.getElementById('co-changes'); if(!box) return;
-  var div = document.createElement('div');
-  div.className = 'lineitem';
-  div.innerHTML = '<input type="text" placeholder="Change description (e.g. Add basement structural framing)" data-co="desc">'
+  // Wrap row + notes in a single container so the remove button takes the whole block out.
+  var wrap = document.createElement('div');
+  wrap.className = 'co-line-wrap';
+  wrap.style.cssText = 'margin-bottom:10px; padding-bottom:8px; border-bottom:1px dashed #e2e0d8;';
+  var row = document.createElement('div');
+  row.className = 'lineitem';
+  row.innerHTML = '<input type="text" placeholder="Change description (e.g. Add basement structural framing)" data-co="desc">'
     +'<input type="number" placeholder="0 or -1500" data-co="amt" step="1">'
     +'<button type="button" class="remove" title="Remove">×</button>';
-  if(desc != null) div.querySelector('[data-co="desc"]').value = desc;
-  if(amt  != null) div.querySelector('[data-co="amt"]').value  = amt;
-  box.appendChild(div);
-  div.querySelectorAll('input').forEach(function(i){ i.addEventListener('input', calcCo); });
-  div.querySelector('.remove').addEventListener('click', function(){ div.remove(); calcCo(); });
+  wrap.appendChild(row);
+  var notesEl = document.createElement('textarea');
+  notesEl.setAttribute('data-co','notes');
+  notesEl.rows = 2;
+  notesEl.placeholder = 'Notes / details (optional) — e.g. why the credit is being applied, what the addition includes, dimensions, materials, etc.';
+  notesEl.style.cssText = 'width:100%; margin-top:4px; font-family:inherit; font-size:12px; padding:6px 8px; border:1px solid var(--line); border-radius:6px; resize:vertical; box-sizing:border-box;';
+  wrap.appendChild(notesEl);
+  if(desc  != null) row.querySelector('[data-co="desc"]').value = desc;
+  if(amt   != null) row.querySelector('[data-co="amt"]').value  = amt;
+  if(notes != null) notesEl.value = notes;
+  box.appendChild(wrap);
+  row.querySelectorAll('input').forEach(function(i){ i.addEventListener('input', calcCo); });
+  notesEl.addEventListener('input', calcCo);
+  row.querySelector('.remove').addEventListener('click', function(){ wrap.remove(); calcCo(); });
   calcCo();
 }
 
 function getCoChanges(){
   var items = [];
+  document.querySelectorAll('#co-changes .co-line-wrap').forEach(function(wrap){
+    var d = (wrap.querySelector('[data-co="desc"]')||{}).value || '';
+    var a = parseFloat((wrap.querySelector('[data-co="amt"]')||{}).value) || 0;
+    var n = ((wrap.querySelector('[data-co="notes"]')||{}).value || '').trim();
+    d = d.trim();
+    if(d || a || n) items.push({ desc: d || 'Change item', amt: a, notes: n });
+  });
+  return items;
+}
+
+// (Legacy selector kept for older saved configs that used the flat .lineitem structure.)
+function getCoChangesLegacy(){
+  var items = [];
   document.querySelectorAll('#co-changes .lineitem').forEach(function(row){
+    if(row.closest('.co-line-wrap')) return; // skip rows already inside a wrap
     var d = row.querySelector('[data-co="desc"]').value.trim();
     var a = parseFloat(row.querySelector('[data-co="amt"]').value) || 0;
     if(d || a) items.push({ desc: d || 'Change item', amt: a });
@@ -1660,7 +1687,11 @@ function calcCo(){
   // Live preview rows in the right column
   var rows = '';
   function row(l,a,sub){var s=sub?'<div class="sub">'+sub+'</div>':''; return '<tr><td class="label">'+l+s+'</td><td class="amt">'+fmt(a)+'</td></tr>';}
-  changes.forEach(function(c){ rows += row(c.desc, c.amt, c.amt<0 ? 'credit' : 'add'); });
+  changes.forEach(function(c){
+    var sub = c.amt<0 ? 'credit' : 'add';
+    if(c.notes) sub += ' · ' + c.notes.replace(/\s+/g,' ').slice(0,80) + (c.notes.length>80?'…':'');
+    rows += row(c.desc, c.amt, sub);
+  });
   if(!changes.length) rows = '<tr><td class="label" style="color:#888;">Add at least one change line to see the impact</td><td class="amt"></td></tr>';
   document.getElementById('co-lines').innerHTML = rows;
   document.getElementById('co-orig-out').textContent   = fmt(orig);
@@ -1698,10 +1729,14 @@ function generateChangeOrder(){
       ? {name:'Zip Kit Steel', addr:'3665 West 2700 South, Cedar City UT 84720', tel:'(435) 340·1171', email:'sales@zipkitsteel.com', logo:imageUrl('zksteel-logo.png')}
       : {name:'Zip Kit Homes', addr:'3665 West 2700 South, Cedar City UT 84720', tel:'(435) 340·1171', email:'sales@ZipKitHomes.com', logo:ZIPKIT_LOGO};
 
+  function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
   var changeRows = co.changes.map(function(c){
+    var notesHtml = c.notes
+      ? '<div style="font-size:11px;color:#555;margin-top:4px;line-height:1.45;white-space:pre-wrap;">'+esc(c.notes)+'</div>'
+      : '';
     return '<tr>'
-      +'<td style="padding:7px 10px;border:1px solid #ccc;">'+c.desc+'</td>'
-      +'<td style="padding:7px 10px;border:1px solid #ccc;text-align:right;white-space:nowrap;font-weight:500;'+(c.amt<0?'color:#993c1d;':'')+'">'+(c.amt<0?'-':'+')+fmt(Math.abs(c.amt))+'</td>'
+      +'<td style="padding:7px 10px;border:1px solid #ccc;vertical-align:top;"><div style="font-weight:500;">'+esc(c.desc)+'</div>'+notesHtml+'</td>'
+      +'<td style="padding:7px 10px;border:1px solid #ccc;text-align:right;white-space:nowrap;font-weight:500;vertical-align:top;'+(c.amt<0?'color:#993c1d;':'')+'">'+(c.amt<0?'-':'+')+fmt(Math.abs(c.amt))+'</td>'
       +'</tr>';
   }).join('');
 
@@ -1897,7 +1932,14 @@ function zkCaptureContract(){
       lb.querySelectorAll('.lineitem').forEach(function(row){
         var d = row.querySelector('['+lineSpec.d+'="desc"]');
         var a = row.querySelector('['+lineSpec.a+'="amt"]');
-        if(d && a) cfg.customs.push({ desc: d.value, amt: a.value });
+        if(d && a){
+          var entry = { desc: d.value, amt: a.value };
+          // Change order rows can carry an optional notes textarea in the same wrapper.
+          var wrap = row.closest('.co-line-wrap');
+          var n = wrap && wrap.querySelector('[data-co="notes"]');
+          if(n) entry.notes = n.value;
+          cfg.customs.push(entry);
+        }
       });
     }
   }
@@ -2050,12 +2092,18 @@ async function zkOpenContract(id){
       (cfg.customs || []).forEach(function(item){
         if(typeof window[lineSpec.add] === 'function'){
           window[lineSpec.add]();
-          var last = lb.querySelector('.lineitem:last-child');
+          // For change order rows, walk to the wrap (the new row is the last .lineitem inside the last wrap).
+          var wrap = (mode === 'changeorder') ? lb.querySelector('.co-line-wrap:last-child') : null;
+          var last = wrap ? wrap.querySelector('.lineitem') : lb.querySelector('.lineitem:last-child');
           if(last){
             var d = last.querySelector('['+lineSpec.d+'="desc"]');
             var a = last.querySelector('['+lineSpec.a+'="amt"]');
             if(d) d.value = item.desc || '';
             if(a) a.value = item.amt || '';
+            if(wrap){
+              var n = wrap.querySelector('[data-co="notes"]');
+              if(n) n.value = item.notes || '';
+            }
           }
         }
       });
