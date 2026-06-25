@@ -497,6 +497,15 @@
         <div class="checkrow"><input type="checkbox" id="c-design-paid"><label for="c-design-paid" style="margin:0;color:var(--ink);">Design retainer ($3,500)</label></div>
         <div class="checkrow"><input type="checkbox" id="c-eng-paid"><label for="c-eng-paid" style="margin:0;color:var(--ink);">Engineering</label></div>
 
+        <label style="margin-top:16px;">Payment schedule (editable)</label>
+        <p class="note">Override the default 45/45/10 split with your own stages. Percentages apply to engineering + contract (design retainer stays separate, paid upfront). Total must equal 100%.</p>
+        <div id="c-schedule"></div>
+        <div style="display:flex; gap:8px; align-items:center; margin-top:6px; flex-wrap:wrap;">
+          <button type="button" class="btn-sm" onclick="addCustomScheduleStage()">+ Add stage</button>
+          <button type="button" class="btn-sm" onclick="resetCustomSchedule()">Reset to default</button>
+          <span class="sub" style="margin-left:auto;">Sum: <b id="c-schedule-sum" style="font-family:Menlo,Consolas,monospace;">0%</b></span>
+        </div>
+
         <div class="disclaimer">
           Heads up: design retainer is paid up front — pick the right tier above ($2,500 Standard or $3,500 Custom). Engineering is quoted per project — get a real number from the engineering team before sending. Confirm everything with Sven before this goes to a customer.
         </div>
@@ -639,6 +648,27 @@ function invoiceStages(q){
   }
   // Shell kits & garages: design separate, engineering first, then 45/45/10 of the remainder
   if(q.design>0 && !q.designPaid) stages.push({key:'design', name:'Design', desc:'Architectural design fee · due at project start', amount:q.design});
+
+  // Custom Home with an editable schedule: stages cover engineering + contract by %.
+  if(q.kind==='Custom Home' && q.customSchedule && q.customSchedule.length){
+    var promoCredit = (q.designCreditPromo && q.design>0 && q.engineering>0 && !q.engineeringPaid)
+      ? Math.min(q.design, q.engineering) : 0;
+    var schedBase = (q.engineeringPaid ? 0 : Math.max(0, q.engineering - promoCredit)) + q.contract;
+    var lastIdx = q.customSchedule.length - 1;
+    var assigned = 0;
+    q.customSchedule.forEach(function(s, i){
+      var amt = (i === lastIdx) ? (schedBase - assigned) : Math.round(schedBase * s.pct / 100);
+      assigned += amt;
+      stages.push({
+        key: 'custom-'+i,
+        name: s.name + ' ('+(Math.round(s.pct*100)/100)+'%)',
+        desc: s.desc || '',
+        amount: amt
+      });
+    });
+    return stages;
+  }
+
   if(q.engineering>0 && !q.engineeringPaid){
     // Promo: design retainer credited toward engineering — reduces the engineering invoice by q.design.
     var engAmt = q.engineering;
@@ -1890,6 +1920,52 @@ function calcHangar(){
 /* ---------- CUSTOM HOME ---------- */
 var CUSTOM_DESIGN = 3500;
 
+// Default schedule for a Custom Home contract (engineering first, then 45/45/10
+// of the remainder). The editable schedule UI in Custom Home mode is seeded with
+// these so reps can tweak rather than start from scratch.
+var CUSTOM_SCHEDULE_DEFAULT = [
+  { name: 'Engineering',     pct: 0,    desc: 'engineering portion of contract · due at signing', engShare: true },
+  { name: 'Materials (45%)', pct: 45,   desc: '45% of remainder · due after engineering' },
+  { name: 'Pre-ship (45%)',  pct: 45,   desc: '45% of remainder · due before shipment' },
+  { name: 'Final set (10%)', pct: 10,   desc: '10% of remainder · due on set' }
+];
+
+function addCustomScheduleStage(name, pct, desc){
+  var box = document.getElementById('c-schedule'); if(!box) return;
+  var div = document.createElement('div');
+  div.className = 'lineitem c-schedule-row';
+  div.style.cssText = 'display:grid; grid-template-columns:1.4fr 80px 2fr 32px; gap:6px; margin-bottom:6px; align-items:center;';
+  div.innerHTML = '<input type="text" placeholder="Stage name (e.g. Engineering)" data-cs="name" style="margin:0;">'
+    +'<input type="number" placeholder="0.0" step="0.5" min="0" max="100" data-cs="pct" style="margin:0;">'
+    +'<input type="text" placeholder="Description / due date note" data-cs="desc" style="margin:0;">'
+    +'<button type="button" class="remove" title="Remove" style="height:34px;">×</button>';
+  if(name != null) div.querySelector('[data-cs="name"]').value = name;
+  if(pct  != null) div.querySelector('[data-cs="pct"]').value  = pct;
+  if(desc != null) div.querySelector('[data-cs="desc"]').value = desc;
+  box.appendChild(div);
+  div.querySelectorAll('input').forEach(function(i){ i.addEventListener('input', calcCustom); });
+  div.querySelector('.remove').addEventListener('click', function(){ div.remove(); calcCustom(); });
+  calcCustom();
+}
+
+function resetCustomSchedule(){
+  var box = document.getElementById('c-schedule'); if(!box) return;
+  box.innerHTML = '';
+  CUSTOM_SCHEDULE_DEFAULT.forEach(function(s){ addCustomScheduleStage(s.name, s.pct, s.desc); });
+}
+
+function getCustomSchedule(){
+  var stages = [];
+  document.querySelectorAll('#c-schedule .c-schedule-row').forEach(function(row){
+    var n = row.querySelector('[data-cs="name"]').value.trim();
+    var p = parseFloat(row.querySelector('[data-cs="pct"]').value) || 0;
+    var d = row.querySelector('[data-cs="desc"]').value.trim();
+    if(n || p > 0) stages.push({ name: n || 'Payment', pct: p, desc: d });
+  });
+  var sum = stages.reduce(function(a,s){ return a + s.pct; }, 0);
+  return { stages: stages, sum: sum, isValid: stages.length > 0 && Math.abs(sum - 100) < 0.01 };
+}
+
 (function initCustom(){
   var ids = ['c-name','c-sqft','c-build','c-design-tier','c-design-override','c-eng','c-miles','c-rate','c-scope','c-design-paid','c-eng-paid'];
   ids.forEach(function(id){
@@ -1909,6 +1985,11 @@ var CUSTOM_DESIGN = 3500;
       if(QUOTE){ QUOTE.designCreditPromo = promoC.checked; if(typeof renderInvoiceStages === 'function') renderInvoiceStages(); }
     });
   }
+  // Seed the editable payment schedule with the default 45/45/10 stages so the
+  // rep can tweak rather than build from scratch.
+  if(document.getElementById('c-schedule') && !document.querySelector('#c-schedule .c-schedule-row')){
+    resetCustomSchedule();
+  }
 })();
 
 function resetCustom(){
@@ -1916,6 +1997,7 @@ function resetCustom(){
   document.getElementById('c-sqft').value = '';
   document.getElementById('c-build').value = '';
   document.getElementById('c-design-tier').value = '3500';
+  if(typeof resetCustomSchedule === 'function') resetCustomSchedule();
   document.getElementById('c-design-override').value = '';
   document.getElementById('c-eng').value = '';
   document.getElementById('c-miles').value = 0;
@@ -1986,6 +2068,14 @@ function calcCustom(){
   // Build dynamic scope from the textarea (one bullet per line)
   var scopeLines = scopeText.split(/\r?\n/).map(function(s){return s.trim();}).filter(function(s){return s.length>0;});
 
+  // Read the editable payment schedule and update the live sum indicator.
+  var cSched = (typeof getCustomSchedule === 'function') ? getCustomSchedule() : { stages:[], sum:0, isValid:false };
+  var sumEl = document.getElementById('c-schedule-sum');
+  if(sumEl){
+    sumEl.textContent = (Math.round(cSched.sum*100)/100) + '%';
+    sumEl.style.color = cSched.isValid ? '#0f6e56' : (cSched.stages.length===0 ? '#888' : '#993c1d');
+  }
+
   QUOTE = {
     kind: 'Custom Home',
     model: name || 'Custom home',
@@ -1996,6 +2086,7 @@ function calcCustom(){
     contract: contract,
     total: total,
     company: 'zipkit',
+    customSchedule: cSched.isValid ? cSched.stages : null,
     sqft: sqft,
     customScope: scopeLines   // consumed by generateProposal when present
   };
