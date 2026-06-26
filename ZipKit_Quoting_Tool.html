@@ -162,6 +162,10 @@
         <input type="number" id="s-miles" min="0" max="2000" step="10" value="0">
         <p class="note" id="s-ship-note">Enter the miles to the job site — the per-mile rate is set by the model.</p>
 
+        <label for="s-ship-override">Shipping cost (override, per unit)</label>
+        <input type="number" id="s-ship-override" min="0" step="50" placeholder="leave blank to use miles × rate">
+        <p class="note" id="s-ship-override-note">Optional — type a flat per-unit shipping cost if you got a quote from the office that doesn't match the per-mile math.</p>
+
         <label for="s-disc">Multi-unit discount (% off shell kits)</label>
         <div class="slider-row">
           <input type="range" id="s-disc" min="0" max="15" step="1" value="0">
@@ -235,6 +239,10 @@
         <input type="number" id="m-miles" min="0" max="2000" step="10" value="0">
         <p class="note" id="m-ship-note"></p>
 
+        <label for="m-ship-override">Shipping cost (override, per unit)</label>
+        <input type="number" id="m-ship-override" min="0" step="50" placeholder="leave blank to use miles × high-end rate">
+        <p class="note" id="m-ship-override-note">Optional — type a flat per-unit shipping cost if the office quoted a different number.</p>
+
         <label for="m-disc">Multi-unit discount (% off base)</label>
         <div class="slider-row">
           <input type="range" id="m-disc" min="0" max="15" step="1" value="0">
@@ -286,6 +294,10 @@
         <input type="number" id="g-miles" min="0" max="2000" step="10" value="0">
         <p class="note" id="g-ship-note">Enter the miles to the job site. The rate depends on standalone vs. bundled above.</p>
 
+        <label for="g-ship-override">Shipping cost (override, per unit)</label>
+        <input type="number" id="g-ship-override" min="0" step="50" placeholder="leave blank to use miles × rate">
+        <p class="note" id="g-ship-override-note">Optional — type a flat per-unit shipping cost if the office quoted a different number.</p>
+
         <label for="g-design-override" style="margin-top:8px;">Design &amp; engineering (override / discount)</label>
         <input type="number" id="g-design-override" min="0" step="50" placeholder="leave blank to use standalone/bundled default">
         <p class="note" id="g-design-override-note">Optional — type a custom amount (or 0 to waive) to discount or upcharge the design &amp; engineering fee.</p>
@@ -335,6 +347,10 @@
         <label for="h-miles">Shipping distance from Cedar City, UT (miles)</label>
         <input type="number" id="h-miles" min="0" max="2000" step="10" value="0">
         <p class="note" id="h-ship-note">Enter the miles to the job site. Hangar shipping is $12/mile.</p>
+
+        <label for="h-ship-override">Shipping cost (override, per unit)</label>
+        <input type="number" id="h-ship-override" min="0" step="50" placeholder="leave blank to use miles × rate">
+        <p class="note" id="h-ship-override-note">Optional — type a flat per-unit shipping cost if the office quoted a different number.</p>
 
         <label for="h-disc">Multi-unit discount (% off kit)</label>
         <div class="slider-row">
@@ -1451,7 +1467,7 @@ function setBrand(which){
     var o=document.createElement('option'); o.value=i; o.textContent=m[0]+tag+' · '+m[1]+' sqft'; sel.appendChild(o);
   });
   sel.value = SHELL.findIndex(function(m){return m[0]==='Alpine';});
-  ['s-model','s-units','s-snow','s-win','s-win-override','s-miles','s-disc','s-design-override','s-design-paid','s-eng-paid','s-eng-modified'].forEach(function(id){
+  ['s-model','s-units','s-snow','s-win','s-win-override','s-miles','s-ship-override','s-disc','s-design-override','s-design-paid','s-eng-paid','s-eng-modified'].forEach(function(id){
     var el=document.getElementById(id); el.addEventListener('input',calcShell); el.addEventListener('change',calcShell);
   });
   calcShell();
@@ -1461,6 +1477,7 @@ function resetShell(){
   document.getElementById('s-win').value=-1; document.getElementById('s-miles').value=0;
   document.getElementById('s-disc').value=0;
   document.getElementById('s-win-override').value='';
+  document.getElementById('s-ship-override').value='';
   document.getElementById('s-design-override').value='';
   document.getElementById('s-design-paid').checked=false;
   document.getElementById('s-eng-paid').checked=false;
@@ -1528,10 +1545,17 @@ function calcShell(){
     : (winSel>=0
         ? 'Optional — type a custom per-unit window package price if the customer is going non-standard. Standard price for this package is '+fmt(stdWin)+'.'
         : 'Optional — type a custom per-unit window package price if the customer is going non-standard. (Pick a package above to use this override.)');
-  var shipPer = miles*rate;
+  var computedShipPer = miles*rate;
+  var sShipOvRaw = (document.getElementById('s-ship-override').value || '').trim();
+  var sShipOverride = sShipOvRaw ? Math.max(0, parseFloat(sShipOvRaw) || 0) : 0;
+  var sShipIsOverride = sShipOvRaw !== '';
+  var shipPer = sShipIsOverride ? sShipOverride : computedShipPer;
   document.getElementById('s-ship-note').textContent = miles>0
-    ? miles.toLocaleString('en-US')+' mi × $'+rate+' = '+fmt(shipPer)+'/unit.'
+    ? miles.toLocaleString('en-US')+' mi × $'+rate+' = '+fmt(computedShipPer)+'/unit.'
     : 'Enter distance · $'+rate+'/mi from Cedar City, UT.';
+  document.getElementById('s-ship-override-note').textContent = sShipIsOverride
+    ? 'Override active: using '+fmt(sShipOverride)+'/unit instead of the computed '+fmt(computedShipPer)+'. Clear to revert.'
+    : 'Optional — type a flat per-unit shipping cost if you got a quote from the office that doesn\'t match the per-mile math.';
 
   var discPer = shell*(disc/100);
   var rows='';
@@ -1614,7 +1638,7 @@ function calcShell(){
     sel.appendChild(og);
   });
   sel.addEventListener('change', function(){ buildModularControls(); calcModular(); });
-  ['m-units','m-base-override','m-miles','m-disc','m-win-override'].forEach(function(id){ var el=document.getElementById(id); el.addEventListener('input',calcModular); el.addEventListener('change',calcModular); });
+  ['m-units','m-base-override','m-miles','m-ship-override','m-disc','m-win-override'].forEach(function(id){ var el=document.getElementById(id); el.addEventListener('input',calcModular); el.addEventListener('change',calcModular); });
   buildModularControls(); calcModular();
 })();
 function updateModularBrand(){ var m=MODULAR[+document.getElementById('m-model').value]; setBrand(m[1]==='Mountain Valley Prefab'?'mvp':'zipkit'); }
@@ -1653,6 +1677,7 @@ function resetModular(){
   document.getElementById('m-miles').value=0; document.getElementById('m-disc').value=0;
   document.getElementById('m-base-override').value='';
   document.getElementById('m-win-override').value='';
+  document.getElementById('m-ship-override').value='';
   document.getElementById('m-custom').innerHTML='';
   var w=document.getElementById('m-win'); if(w.options.length) w.value=-1;
   document.querySelectorAll('#m-addons input').forEach(function(c){c.checked=false;});
@@ -1689,8 +1714,15 @@ function calcModular(){
         : 'Optional — type a custom per-unit upgrade price if the customer is going non-standard. (Pick an upgrade above to use this override.)');
   var addonTotal=0, addonRows='';
   if(m[11]) m[11].forEach(function(a,i){ var c=document.getElementById('m-addon-'+i); if(c&&c.checked){ addonTotal+=a[1]; addonRows+=rowM(a[0], a[1]*units, {sub:units>1?fmt(a[1])+' × '+units:'optional'}); } });
-  var shipPer = miles*shipHigh;
-  document.getElementById('m-ship-note').textContent = miles>0 ? miles.toLocaleString('en-US')+' mi × $'+shipHigh+'/mi = '+fmt(shipPer)+' per unit (using the high end to be safe).' : 'Enter the miles to the job site. Ships $'+m[6]+'–$'+shipHigh+'/mi; this uses the high end.';
+  var mComputedShipPer = miles*shipHigh;
+  var mShipOvRaw = (document.getElementById('m-ship-override').value || '').trim();
+  var mShipOverride = mShipOvRaw ? Math.max(0, parseFloat(mShipOvRaw) || 0) : 0;
+  var mShipIsOverride = mShipOvRaw !== '';
+  var shipPer = mShipIsOverride ? mShipOverride : mComputedShipPer;
+  document.getElementById('m-ship-note').textContent = miles>0 ? miles.toLocaleString('en-US')+' mi × $'+shipHigh+'/mi = '+fmt(mComputedShipPer)+' per unit (using the high end to be safe).' : 'Enter the miles to the job site. Ships $'+m[6]+'–$'+shipHigh+'/mi; this uses the high end.';
+  document.getElementById('m-ship-override-note').textContent = mShipIsOverride
+    ? 'Override active: using '+fmt(mShipOverride)+'/unit instead of the computed '+fmt(mComputedShipPer)+'. Clear to revert.'
+    : 'Optional — type a flat per-unit shipping cost if the office quoted a different number.';
 
   var discPer=base*(disc/100);
   function rowM(l,a,o){o=o||{};var s=o.sub?'<div class="sub">'+o.sub+'</div>':'';var c=o.d?' class="discount"':'';var sg=o.d?'−':'';return '<tr><td class="label">'+l+s+'</td><td class="amt"'+c+'>'+sg+fmt(a)+'</td></tr>';}
@@ -1738,12 +1770,13 @@ function calcModular(){
 (function initGarage(){
   var sel=document.getElementById('g-model');
   GARAGES.forEach(function(g,i){ var o=document.createElement('option'); o.value=i; o.textContent=g[0]+' · '+g[1]; sel.appendChild(o); });
-  ['g-model','g-units','g-design','g-design-override','g-miles','g-design-paid'].forEach(function(id){ var el=document.getElementById(id); el.addEventListener('input',calcGarage); el.addEventListener('change',calcGarage); });
+  ['g-model','g-units','g-design','g-design-override','g-miles','g-ship-override','g-design-paid'].forEach(function(id){ var el=document.getElementById(id); el.addEventListener('input',calcGarage); el.addEventListener('change',calcGarage); });
   calcGarage();
 })();
 function resetGarage(){
   document.getElementById('g-units').value=1; document.getElementById('g-design').value=1125;
   document.getElementById('g-design-override').value='';
+  document.getElementById('g-ship-override').value='';
   document.getElementById('g-miles').value=0;
   document.getElementById('g-design-paid').checked=false;
   document.getElementById('g-custom').innerHTML='';
@@ -1770,10 +1803,17 @@ function calcGarage(){
   if(bundled){ grate=6; rateDesc='$6/mi (bundled with a home)'; }
   else if(miles>600){ grate=16; rateDesc='$16/mi (standalone, over 600 mi)'; }
   else { grate=14; rateDesc='$14/mi (standalone, up to 600 mi)'; }
-  var shipPer=miles*grate;
+  var gComputedShipPer = miles*grate;
+  var gShipOvRaw = (document.getElementById('g-ship-override').value || '').trim();
+  var gShipOverride = gShipOvRaw ? Math.max(0, parseFloat(gShipOvRaw) || 0) : 0;
+  var gShipIsOverride = gShipOvRaw !== '';
+  var shipPer = gShipIsOverride ? gShipOverride : gComputedShipPer;
   document.getElementById('g-ship-note').textContent = miles>0
-    ? miles.toLocaleString('en-US')+' mi × $'+grate+'/mi = '+fmt(shipPer)+' per unit · '+rateDesc+'.'
+    ? miles.toLocaleString('en-US')+' mi × $'+grate+'/mi = '+fmt(gComputedShipPer)+' per unit · '+rateDesc+'.'
     : (bundled ? 'Bundled with a home: $6/mi. Enter the miles to the job site.' : 'Standalone: $14/mi up to 600 mi, $16/mi over 600. Enter the miles to the job site.');
+  document.getElementById('g-ship-override-note').textContent = gShipIsOverride
+    ? 'Override active: using '+fmt(gShipOverride)+'/unit instead of the computed '+fmt(gComputedShipPer)+'. Clear to revert.'
+    : 'Optional — type a flat per-unit shipping cost if the office quoted a different number.';
 
   var designPaid = document.getElementById('g-design-paid').checked;
 
@@ -1825,13 +1865,14 @@ var HANGARS = [
 (function initHangar(){
   var sel=document.getElementById('h-model');
   HANGARS.forEach(function(h,i){ var o=document.createElement('option'); o.value=i; o.textContent=h[0]+' · starting at '+fmt(h[2]); sel.appendChild(o); });
-  ['h-model','h-units','h-base-override','h-miles','h-disc','h-design-override','h-design-paid'].forEach(function(id){ var el=document.getElementById(id); el.addEventListener('input',calcHangar); el.addEventListener('change',calcHangar); });
+  ['h-model','h-units','h-base-override','h-miles','h-ship-override','h-disc','h-design-override','h-design-paid'].forEach(function(id){ var el=document.getElementById(id); el.addEventListener('input',calcHangar); el.addEventListener('change',calcHangar); });
   calcHangar();
 })();
 
 function resetHangar(){
   document.getElementById('h-units').value=1;
   document.getElementById('h-base-override').value='';
+  document.getElementById('h-ship-override').value='';
   document.getElementById('h-design-override').value='';
   document.getElementById('h-miles').value=0;
   document.getElementById('h-disc').value=0;
@@ -1858,10 +1899,17 @@ function calcHangar(){
 
   document.getElementById('h-meta').textContent = h[1]+' · starting at '+fmt(defaultBase)+' per unit · multi-unit discounts available';
 
-  var shipPer = miles * HANGAR_SHIP_RATE;
+  var hComputedShipPer = miles * HANGAR_SHIP_RATE;
+  var hShipOvRaw = (document.getElementById('h-ship-override').value || '').trim();
+  var hShipOverride = hShipOvRaw ? Math.max(0, parseFloat(hShipOvRaw) || 0) : 0;
+  var hShipIsOverride = hShipOvRaw !== '';
+  var shipPer = hShipIsOverride ? hShipOverride : hComputedShipPer;
   document.getElementById('h-ship-note').textContent = miles>0
-    ? miles.toLocaleString('en-US')+' mi × $'+HANGAR_SHIP_RATE+'/mi = '+fmt(shipPer)+' per unit'
+    ? miles.toLocaleString('en-US')+' mi × $'+HANGAR_SHIP_RATE+'/mi = '+fmt(hComputedShipPer)+' per unit'
     : 'Enter the miles to the job site. Hangar shipping is $'+HANGAR_SHIP_RATE+'/mile.';
+  document.getElementById('h-ship-override-note').textContent = hShipIsOverride
+    ? 'Override active: using '+fmt(hShipOverride)+'/unit instead of the computed '+fmt(hComputedShipPer)+'. Clear to revert.'
+    : 'Optional — type a flat per-unit shipping cost if the office quoted a different number.';
 
   var discPer = base*(disc/100);
 
@@ -2294,10 +2342,10 @@ document.getElementById('zk-quotes-close').addEventListener('click', function(){
 /* ---------- Capture / restore current mode state ---------- */
 
 var ZK_MODE_FIELDS = {
-  shell:   ['s-model','s-units','s-snow','s-win','s-win-override','s-miles','s-disc','s-design-override','s-design-paid','s-eng-paid','s-eng-modified'],
-  modular: ['m-model','m-units','m-base-override','m-snow','m-win','m-win-override','m-miles','m-disc'],
-  garage:  ['g-model','g-units','g-design','g-design-override','g-miles','g-design-paid'],
-  hangar:  ['h-model','h-units','h-base-override','h-miles','h-disc','h-design-override','h-design-paid'],
+  shell:   ['s-model','s-units','s-snow','s-win','s-win-override','s-miles','s-ship-override','s-disc','s-design-override','s-design-paid','s-eng-paid','s-eng-modified'],
+  modular: ['m-model','m-units','m-base-override','m-snow','m-win','m-win-override','m-miles','m-ship-override','m-disc'],
+  garage:  ['g-model','g-units','g-design','g-design-override','g-miles','g-ship-override','g-design-paid'],
+  hangar:  ['h-model','h-units','h-base-override','h-miles','h-ship-override','h-disc','h-design-override','h-design-paid'],
   steel:   ['st-name','st-sqft','st-build','st-eng','st-miles','st-rate','st-scope','st-design-override','st-design-paid','st-eng-paid'],
   custom:  ['c-name','c-sqft','c-build','c-design-tier','c-design-override','c-eng','c-miles','c-rate','c-scope','c-design-paid','c-eng-paid']
 };
