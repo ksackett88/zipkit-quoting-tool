@@ -254,15 +254,6 @@
         <button type="button" class="btn-sm" onclick="addCustomItem('m')">+ Add line item</button>
         <p class="custom-help">For project extras or credits — site survey, premium appliances, no-fireplace credit, etc. Use a negative amount for a credit (e.g. -1400). Each line flows into the total, proposal, contract, and payment schedule.</p>
 
-        <label style="margin-top:16px;">Payment schedule (editable)</label>
-        <p class="note">Override the default 30/30/30/10 modular split with your own stages. Percentages apply to the full project total. Must equal 100%.</p>
-        <div id="m-schedule"></div>
-        <div style="display:flex; gap:8px; align-items:center; margin-top:6px; flex-wrap:wrap;">
-          <button type="button" class="btn-sm" onclick="addModularScheduleStage()">+ Add stage</button>
-          <button type="button" class="btn-sm" onclick="resetModularSchedule()">Reset to default</button>
-          <span class="sub" style="margin-left:auto;">Sum: <b id="m-schedule-sum" style="font-family:Menlo,Consolas,monospace;">0%</b></span>
-        </div>
-
         <div class="disclaimer" id="m-disclaimer"></div>
       </div>
 
@@ -662,23 +653,7 @@ function invoiceStages(q){
   // Returns the ordered list of billing stages for the current quote.
   var stages = [];
   if(q.kind==='Modular'){
-    // Custom schedule (from the editable UI) takes precedence when set & valid.
-    if(q.modularSchedule && q.modularSchedule.length){
-      var lastIdx = q.modularSchedule.length - 1;
-      var assigned = 0;
-      q.modularSchedule.forEach(function(s, i){
-        var amt = (i === lastIdx) ? (q.total - assigned) : Math.round(q.total * s.pct / 100);
-        assigned += amt;
-        stages.push({
-          key: 'mod-'+i,
-          name: s.name + ' ('+(Math.round(s.pct*100)/100)+'%)',
-          desc: s.desc || '',
-          amount: amt
-        });
-      });
-      return stages;
-    }
-    // Default: 30 / 30 / 30 / 10 of the total (design, engineering & windows already included)
+    // Modular units: 30 / 30 / 30 / 10 of the total (design, engineering & windows already included)
     var p1=Math.round(q.total*0.30), p2=Math.round(q.total*0.30), p3=Math.round(q.total*0.30);
     var p4=q.total-p1-p2-p3; // final absorbs rounding
     stages.push({key:'pay1', name:'Payment 1 (30%)', desc:'Upon signing contract — deposit to order windows, doors, trusses and all long lead time items', amount:p1});
@@ -1668,9 +1643,6 @@ function calcShell(){
   ['m-units','m-base-override','m-miles','m-ship-override','m-disc','m-win-override'].forEach(function(id){ var el=document.getElementById(id); el.addEventListener('input',calcModular); el.addEventListener('change',calcModular); });
   buildModularControls();
   calcModular();
-  // Note: the editable payment schedule is seeded further down the file, after
-  // MODULAR_SCHEDULE_DEFAULT is defined. Seeding here would throw because the
-  // constant hasn't been assigned yet at this point in script execution.
 })();
 function updateModularBrand(){ var m=MODULAR[+document.getElementById('m-model').value]; setBrand(m[1]==='Mountain Valley Prefab'?'mvp':'zipkit'); }
 function buildModularControls(){
@@ -1789,19 +1761,10 @@ function calcModular(){
   var label = m[13]==='per-module' ? ' per module' : ' per unit';
   document.getElementById('m-per-unit').textContent = units>1?fmt(total/units)+label:'';
 
-  // Read the editable payment schedule and update the live sum indicator.
-  var mSched = (typeof getModularSchedule === 'function') ? getModularSchedule() : { stages:[], sum:0, isValid:false };
-  var mSumEl = document.getElementById('m-schedule-sum');
-  if(mSumEl){
-    mSumEl.textContent = (Math.round(mSched.sum*100)/100) + '%';
-    mSumEl.style.color = mSched.isValid ? '#0f6e56' : (mSched.stages.length===0 ? '#888' : '#993c1d');
-  }
-
   QUOTE = {
     kind: 'Modular', model: m[0], units: units,
     design: 0, engineering: 0, contract: total, total: total,
-    company: (m[1]==='Mountain Valley Prefab' ? 'mvp' : 'zipkit'),
-    modularSchedule: mSched.isValid ? mSched.stages : null
+    company: (m[1]==='Mountain Valley Prefab' ? 'mvp' : 'zipkit')
   };
   renderInvoiceStages();
 }
@@ -2054,60 +2017,6 @@ function getCustomSchedule(){
   return { stages: stages, sum: sum, isValid: stages.length > 0 && Math.abs(sum - 100) < 0.01 };
 }
 
-// Modular payment schedule editor (percentages apply to the full modular total —
-// modular has design, engineering, and standard windows already rolled in).
-var MODULAR_SCHEDULE_DEFAULT = [
-  { name: 'Payment 1',     pct: 30, desc: 'Upon signing contract · deposit to order windows, doors, trusses & long-lead items' },
-  { name: 'Payment 2',     pct: 30, desc: 'When framing is completed on all units' },
-  { name: 'Payment 3',     pct: 30, desc: 'When exterior siding + interior painting is completed' },
-  { name: 'Final Payment', pct: 10, desc: 'Due when unit is set and connected to the foundation' }
-];
-
-function addModularScheduleStage(name, pct, desc){
-  var box = document.getElementById('m-schedule'); if(!box) return;
-  var div = document.createElement('div');
-  div.className = 'lineitem m-schedule-row';
-  div.style.cssText = 'display:grid; grid-template-columns:1.4fr 80px 2fr 32px; gap:6px; margin-bottom:6px; align-items:center;';
-  div.innerHTML = '<input type="text" placeholder="Stage name (e.g. Payment 1)" data-ms="name" style="margin:0;">'
-    +'<input type="number" placeholder="0.0" step="0.5" min="0" max="100" data-ms="pct" style="margin:0;">'
-    +'<input type="text" placeholder="Description / trigger event" data-ms="desc" style="margin:0;">'
-    +'<button type="button" class="remove" title="Remove" style="height:34px;">×</button>';
-  if(name != null) div.querySelector('[data-ms="name"]').value = name;
-  if(pct  != null) div.querySelector('[data-ms="pct"]').value  = pct;
-  if(desc != null) div.querySelector('[data-ms="desc"]').value = desc;
-  box.appendChild(div);
-  div.querySelectorAll('input').forEach(function(i){ i.addEventListener('input', calcModular); });
-  div.querySelector('.remove').addEventListener('click', function(){ div.remove(); calcModular(); });
-  calcModular();
-}
-
-function resetModularSchedule(){
-  var box = document.getElementById('m-schedule'); if(!box) return;
-  box.innerHTML = '';
-  MODULAR_SCHEDULE_DEFAULT.forEach(function(s){ addModularScheduleStage(s.name, s.pct, s.desc); });
-}
-
-function getModularSchedule(){
-  var stages = [];
-  document.querySelectorAll('#m-schedule .m-schedule-row').forEach(function(row){
-    var n = row.querySelector('[data-ms="name"]').value.trim();
-    var p = parseFloat(row.querySelector('[data-ms="pct"]').value) || 0;
-    var d = row.querySelector('[data-ms="desc"]').value.trim();
-    if(n || p > 0) stages.push({ name: n || 'Payment', pct: p, desc: d });
-  });
-  var sum = stages.reduce(function(a,s){ return a + s.pct; }, 0);
-  return { stages: stages, sum: sum, isValid: stages.length > 0 && Math.abs(sum - 100) < 0.01 };
-}
-
-// Deferred seed for the Modular payment schedule editor. Runs here (after
-// MODULAR_SCHEDULE_DEFAULT is defined) rather than inside initModular, which
-// runs before the constant exists.
-(function seedModularSchedule(){
-  if(document.getElementById('m-schedule') && !document.querySelector('#m-schedule .m-schedule-row')){
-    resetModularSchedule();
-    if(typeof calcModular === 'function') calcModular();
-  }
-})();
 
 (function initCustom(){
   var ids = ['c-name','c-sqft','c-build','c-design-tier','c-design-override','c-eng','c-miles','c-rate','c-scope','c-design-paid','c-eng-paid'];
