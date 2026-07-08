@@ -1667,11 +1667,10 @@ function calcShell(){
   sel.addEventListener('change', function(){ buildModularControls(); calcModular(); });
   ['m-units','m-base-override','m-miles','m-ship-override','m-disc','m-win-override'].forEach(function(id){ var el=document.getElementById(id); el.addEventListener('input',calcModular); el.addEventListener('change',calcModular); });
   buildModularControls();
-  // Seed the editable payment schedule with the default 30/30/30/10 stages.
-  if(document.getElementById('m-schedule') && !document.querySelector('#m-schedule .m-schedule-row')){
-    resetModularSchedule();
-  }
   calcModular();
+  // Note: the editable payment schedule is seeded further down the file, after
+  // MODULAR_SCHEDULE_DEFAULT is defined. Seeding here would throw because the
+  // constant hasn't been assigned yet at this point in script execution.
 })();
 function updateModularBrand(){ var m=MODULAR[+document.getElementById('m-model').value]; setBrand(m[1]==='Mountain Valley Prefab'?'mvp':'zipkit'); }
 function buildModularControls(){
@@ -2099,6 +2098,16 @@ function getModularSchedule(){
   var sum = stages.reduce(function(a,s){ return a + s.pct; }, 0);
   return { stages: stages, sum: sum, isValid: stages.length > 0 && Math.abs(sum - 100) < 0.01 };
 }
+
+// Deferred seed for the Modular payment schedule editor. Runs here (after
+// MODULAR_SCHEDULE_DEFAULT is defined) rather than inside initModular, which
+// runs before the constant exists.
+(function seedModularSchedule(){
+  if(document.getElementById('m-schedule') && !document.querySelector('#m-schedule .m-schedule-row')){
+    resetModularSchedule();
+    if(typeof calcModular === 'function') calcModular();
+  }
+})();
 
 (function initCustom(){
   var ids = ['c-name','c-sqft','c-build','c-design-tier','c-design-override','c-eng','c-miles','c-rate','c-scope','c-design-paid','c-eng-paid'];
