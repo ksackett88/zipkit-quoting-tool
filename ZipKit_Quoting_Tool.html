@@ -513,8 +513,8 @@
         <div class="checkrow"><input type="checkbox" id="c-design-paid"><label for="c-design-paid" style="margin:0;color:var(--ink);">Design retainer ($3,500)</label></div>
         <div class="checkrow"><input type="checkbox" id="c-eng-paid"><label for="c-eng-paid" style="margin:0;color:var(--ink);">Engineering</label></div>
 
-        <label style="margin-top:16px;">Payment schedule (editable)</label>
-        <p class="note">Override the default 45/45/10 split with your own stages. Percentages apply to engineering + contract (design retainer stays separate, paid upfront). Total must equal 100%.</p>
+        <label style="margin-top:16px;">Payment schedule override (optional)</label>
+        <p class="note">Leave empty to use the standard flow (Engineering is a fixed $, then 45/45/10 of the contract). Only fill this in when you want a different split — e.g. 6 payments instead of 3. Engineering stays as its own fixed-$ line either way; these percentages apply to the contract portion only and must total 100%.</p>
         <div id="c-schedule"></div>
         <div style="display:flex; gap:8px; align-items:center; margin-top:6px; flex-wrap:wrap;">
           <button type="button" class="btn-sm" onclick="addCustomScheduleStage()">+ Add stage</button>
@@ -665,11 +665,21 @@ function invoiceStages(q){
   // Shell kits & garages: design separate, engineering first, then 45/45/10 of the remainder
   if(q.design>0 && !q.designPaid) stages.push({key:'design', name:'Design', desc:'Architectural design fee · due at project start', amount:q.design});
 
-  // Custom Home with an editable schedule: stages cover engineering + contract by %.
+  // Custom Home with an editable schedule OVERRIDE: engineering is still its own
+  // fixed-dollar stage; the custom percentages apply to the contract portion only.
   if(q.kind==='Custom Home' && q.customSchedule && q.customSchedule.length){
     var promoCredit = (q.designCreditPromo && q.design>0 && q.engineering>0 && !q.engineeringPaid)
       ? Math.min(q.design, q.engineering) : 0;
-    var schedBase = (q.engineeringPaid ? 0 : Math.max(0, q.engineering - promoCredit)) + q.contract;
+    // Engineering — same treatment as the default (fixed $, promo credit applied if set).
+    if(q.engineering>0 && !q.engineeringPaid){
+      var engAmtCS = Math.max(0, q.engineering - promoCredit);
+      var engDescCS = promoCredit>0
+        ? 'Full submittal engineering ('+fmt(q.engineering)+' less '+fmt(promoCredit)+' design-retainer credit) · due after contract signing'
+        : 'Full submittal engineering · due after contract signing';
+      stages.push({key:'engineering', name:'Engineering', desc:engDescCS, amount:engAmtCS});
+    }
+    // Custom stages split the contract only.
+    var schedBase = q.contract;
     var lastIdx = q.customSchedule.length - 1;
     var assigned = 0;
     q.customSchedule.forEach(function(s, i){
@@ -677,7 +687,7 @@ function invoiceStages(q){
       assigned += amt;
       stages.push({
         key: 'custom-'+i,
-        name: s.name + ' ('+(Math.round(s.pct*100)/100)+'%)',
+        name: s.name,
         desc: s.desc || '',
         amount: amt
       });
@@ -1974,11 +1984,12 @@ var CUSTOM_DESIGN = 3500;
 // Default schedule for a Custom Home contract (engineering first, then 45/45/10
 // of the remainder). The editable schedule UI in Custom Home mode is seeded with
 // these so reps can tweak rather than start from scratch.
+// "Reset to default" seeds these three contract stages. Engineering is NEVER a
+// stage here — it's always billed as its own fixed-dollar line before this schedule.
 var CUSTOM_SCHEDULE_DEFAULT = [
-  { name: 'Engineering',     pct: 0,    desc: 'engineering portion of contract · due at signing', engShare: true },
-  { name: 'Materials (45%)', pct: 45,   desc: '45% of remainder · due after engineering' },
-  { name: 'Pre-ship (45%)',  pct: 45,   desc: '45% of remainder · due before shipment' },
-  { name: 'Final set (10%)', pct: 10,   desc: '10% of remainder · due on set' }
+  { name: 'Materials', pct: 45, desc: '45% of contract · due after engineering' },
+  { name: 'Pre-ship',  pct: 45, desc: '45% of contract · due before shipment' },
+  { name: 'Final set', pct: 10, desc: '10% of contract · due on set' }
 ];
 
 function addCustomScheduleStage(name, pct, desc){
@@ -2037,11 +2048,9 @@ function getCustomSchedule(){
       if(QUOTE){ QUOTE.designCreditPromo = promoC.checked; if(typeof renderInvoiceStages === 'function') renderInvoiceStages(); }
     });
   }
-  // Seed the editable payment schedule with the default 45/45/10 stages so the
-  // rep can tweak rather than build from scratch.
-  if(document.getElementById('c-schedule') && !document.querySelector('#c-schedule .c-schedule-row')){
-    resetCustomSchedule();
-  }
+  // Payment schedule editor is optional — left EMPTY by default so the standard
+  // (fixed engineering + 45/45/10 of contract) applies. Reps only touch it when
+  // they want a genuinely different split.
 })();
 
 function resetCustom(){

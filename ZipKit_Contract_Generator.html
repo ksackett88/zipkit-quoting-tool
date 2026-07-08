@@ -170,8 +170,8 @@
       </div>
 
       <div class="card">
-        <h2>Scope of work (MVP vs Buyer)</h2>
-        <p class="note" style="margin-top:0;">Standard modular scope, two-column. Toggle each row to MVP or Buyer; add custom items below.</p>
+        <h2>Scope of work (Seller vs Buyer)</h2>
+        <p class="note" style="margin-top:0;">Standard modular scope, two-column. Toggle each row to Seller or Buyer; add custom items below. (Seller = Zip Kit Homes for Zip Kit models, MVP for MVP models.)</p>
         <div id="cm-scope"></div>
         <label style="margin-top:14px;">Custom scope items</label>
         <div id="cm-scope-custom"></div>
@@ -180,7 +180,7 @@
 
       <div class="card">
         <h2>Specifications</h2>
-        <p class="note" style="margin-top:0;">Standard MVP spec list — edit, remove, or add per project.</p>
+        <p class="note" style="margin-top:0;">Standard modular spec list — edit, remove, or add per project.</p>
         <div id="cm-specs"></div>
         <button class="btn sm" onclick="addModularSpec()">+ Add specification</button>
       </div>
@@ -955,7 +955,7 @@ function buildModularScopeUI(){
     h += '<div class="scoperow-mvp">'
       +'<span class="scopelabel">'+s.t+'</span>'
       +'<select class="scopeselm" data-mscope="'+i+'">'
-      +'<option value="mvp"'+(s.mvp?' selected':'')+'>MVP / Seller</option>'
+      +'<option value="mvp"'+(s.mvp?' selected':'')+'>Seller</option>'
       +'<option value="buyer"'+(!s.mvp?' selected':'')+'>BUYER</option>'
       +'</select></div>';
   });
@@ -966,7 +966,7 @@ function addModularScopeCustom(){
   var div = document.createElement('div');
   div.className = 'scoperow-mvp';
   div.innerHTML = '<input type="text" placeholder="Custom scope item" data-msccust="t" style="margin-bottom:0;">'
-    +'<select class="scopeselm" data-msccust="v"><option value="mvp">MVP / Seller</option><option value="buyer">BUYER</option></select>'
+    +'<select class="scopeselm" data-msccust="v"><option value="mvp">Seller</option><option value="buyer">BUYER</option></select>'
     +'<button class="remove" title="Remove">×</button>';
   document.getElementById('cm-scope-custom').appendChild(div);
   div.querySelector('.remove').addEventListener('click', function(){ div.remove(); });
@@ -1202,7 +1202,7 @@ function generateModularContract(){
     +'<div style="font-size:20px;font-weight:700;margin-top:4px;">'+m[0]+' Modular · '+c.units+' unit'+(c.units>1?'s':'')+'</div>'
     +'</div>'
     +'<table style="width:100%;border-collapse:collapse;font-size:12px;">'
-    +'<tr><td style="padding:5px 8px;border:1px solid #ccc;background:#5f5e5a;color:#fff;font-weight:600;">Scope of Work Item</td><td style="padding:5px 8px;border:1px solid #ccc;background:#5f5e5a;color:#fff;font-weight:600;text-align:center;width:110px;">'+(isMVP?'MVP':'Seller')+' Scope</td><td style="padding:5px 8px;border:1px solid #ccc;background:#5f5e5a;color:#fff;font-weight:600;text-align:center;width:110px;">Buyer Scope</td></tr>'
+    +'<tr><td style="padding:5px 8px;border:1px solid #ccc;background:#5f5e5a;color:#fff;font-weight:600;">Scope of Work Item</td><td style="padding:5px 8px;border:1px solid #ccc;background:#5f5e5a;color:#fff;font-weight:600;text-align:center;width:110px;">'+(isMVP?'MVP':'Zip Kit')+' Scope</td><td style="padding:5px 8px;border:1px solid #ccc;background:#5f5e5a;color:#fff;font-weight:600;text-align:center;width:110px;">Buyer Scope</td></tr>'
     +scopeRows
     +'</table>'
     +'<table style="width:100%;border-collapse:collapse;font-size:12px;margin-top:18px;">'
