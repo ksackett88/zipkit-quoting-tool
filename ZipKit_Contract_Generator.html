@@ -163,10 +163,26 @@
           <div><label for="cm-miles">Shipping distance (miles)</label><input type="number" id="cm-miles" min="0" step="10" value="0"></div>
         </div>
         <p class="note" id="cm-ship-note"></p>
+
+        <label for="cm-negotiated" style="margin-top:8px;">Negotiated total price (override)</label>
+        <input type="number" id="cm-negotiated" min="0" step="100" placeholder="leave blank to use base × units + shipping">
+        <p class="note" id="cm-negotiated-note">Optional — type a custom contract total if you negotiated a different price with the customer. Replaces the calculated total.</p>
+
         <label style="margin-top:8px;">Custom line items</label>
         <div id="cm-custom"></div>
         <button class="btn sm" onclick="addModularCustom()">+ Add custom line</button>
         <p class="note" style="margin-top:10px;">Adjustments to the standard unit price — use negatives for credits (e.g. "No fireplaces" as -$8,400 for 6 units at -$1,400 each).</p>
+      </div>
+
+      <div class="card">
+        <h2>Payment schedule override (optional)</h2>
+        <p class="note" style="margin-top:0;">Leave empty to use the standard 30/30/30/10 modular split. Fill this in when you want a different breakdown (e.g. 6 payments instead of 4). Percentages apply to the full contract total and must sum to 100%.</p>
+        <div id="cm-sched-edit"></div>
+        <div style="display:flex; gap:8px; align-items:center; margin-top:6px; flex-wrap:wrap;">
+          <button type="button" class="btn sm" onclick="addModContractStage()">+ Add stage</button>
+          <button type="button" class="btn sm" onclick="resetModContractSchedule()">Reset to default</button>
+          <span class="note" style="margin-left:auto;">Sum: <b id="cm-sched-sum" style="font-family:Menlo,Consolas,monospace;">—</b></span>
+        </div>
       </div>
 
       <div class="card">
@@ -939,8 +955,9 @@ function initModularContract(){
     });
     sel.appendChild(og);
   });
-  ['cm-model','cm-units','cm-miles'].forEach(function(id){
+  ['cm-model','cm-units','cm-miles','cm-negotiated'].forEach(function(id){
     var el = document.getElementById(id);
+    if(!el) return;
     el.addEventListener('input', calcModular);
     el.addEventListener('change', calcModular);
   });
@@ -1051,7 +1068,19 @@ function calcModular(){
 
   var customs = getModularCustoms();
   var customTotal = customs.reduce(function(a,c){return a+c.amt;},0);
-  var total = base*units + shipPer*units + customTotal;
+  var calcTotal = base*units + shipPer*units + customTotal;
+
+  // Negotiated total price override — leave blank to use the calculated total.
+  var negRaw = (document.getElementById('cm-negotiated').value || '').trim();
+  var negOverride = negRaw ? Math.max(0, parseFloat(negRaw) || 0) : 0;
+  var isNegOverride = negRaw !== '';
+  var total = isNegOverride ? negOverride : calcTotal;
+  var negNoteEl = document.getElementById('cm-negotiated-note');
+  if(negNoteEl){
+    negNoteEl.textContent = isNegOverride
+      ? 'Override active: contract total is '+fmt(negOverride)+' (calculated would have been '+fmt(calcTotal)+'). Clear to revert.'
+      : 'Optional — type a custom contract total if you negotiated a different price with the customer. Replaces the calculated total.';
+  }
 
   // Right-column summary
   var rows = '';
@@ -1060,6 +1089,11 @@ function calcModular(){
   customs.forEach(function(c){ rows += row(c.desc, c.amt, 'custom'); });
   if(shipPer>0) rows += row('Shipping', shipPer*units, units>1?fmt(shipPer)+' × '+units:'from Idaho Falls, ID');
   else rows += '<tr><td class="label">Shipping<div class="sub">enter miles or include in unit price</div></td><td class="amt" style="color:var(--hint);">included / TBD</td></tr>';
+  if(isNegOverride){
+    var delta = negOverride - calcTotal;
+    var deltaLabel = delta >= 0 ? '+'+fmt(delta) : '-'+fmt(Math.abs(delta));
+    rows += '<tr><td class="label" style="color:#0f6e56;"><b>Negotiated total override</b><div class="sub" style="color:#0f6e56;">delta '+deltaLabel+' vs calculated</div></td><td class="amt" style="color:#0f6e56; font-weight:600;">'+fmt(negOverride)+'</td></tr>';
+  }
   document.getElementById('c-lines').innerHTML = rows;
   document.getElementById('c-total').textContent = fmt(total);
 
@@ -1067,18 +1101,88 @@ function calcModular(){
   var dRow = document.getElementById('c-design-row');
   if(dRow) dRow.style.display = 'none';
 
-  // 30/30/30/10 payment schedule
-  var p1 = Math.round(total*0.30), p2 = Math.round(total*0.30), p3 = Math.round(total*0.30);
-  var p4 = total - p1 - p2 - p3;
+  // Payment schedule — custom override if valid, else default 30/30/30/10.
+  var modSched = (typeof getModContractSchedule === 'function') ? getModContractSchedule() : { stages:[], sum:0, isValid:false };
+  var modSumEl = document.getElementById('cm-sched-sum');
+  if(modSumEl){
+    modSumEl.textContent = modSched.stages.length===0 ? '—' : ((Math.round(modSched.sum*100)/100) + '%');
+    modSumEl.style.color = modSched.isValid ? '#0f6e56' : (modSched.stages.length===0 ? '#888' : '#993c1d');
+  }
+
+  var p1, p2, p3, p4, customStages = null;
   var prows = '';
   function prow(l,a,sub){var s=sub?'<div class="sub">'+sub+'</div>':''; return '<tr><td class="label">'+l+s+'</td><td class="amt">'+fmt(a)+'</td></tr>';}
-  prows += prow('Payment 1 (30%)', p1, 'upon signing contract · deposit to order windows, doors, trusses & long lead time items');
-  prows += prow('Payment 2 (30%)', p2, 'when framing is completed on all units');
-  prows += prow('Payment 3 (30%)', p3, 'when exterior siding & interior painting are completed');
-  prows += prow('Final Payment (10%)', p4, 'when unit is set & connected to foundation');
+
+  if(modSched.isValid){
+    var lastIdx = modSched.stages.length - 1;
+    var assigned = 0;
+    customStages = modSched.stages.map(function(s, i){
+      var amt = (i === lastIdx) ? (total - assigned) : Math.round(total * s.pct / 100);
+      assigned += amt;
+      return { name: s.name, pct: s.pct, desc: s.desc, amount: amt };
+    });
+    customStages.forEach(function(s){ prows += prow(s.name + ' ('+(Math.round(s.pct*100)/100)+'%)', s.amount, s.desc); });
+    p1 = customStages[0] ? customStages[0].amount : 0;
+    p2 = customStages[1] ? customStages[1].amount : 0;
+    p3 = customStages[2] ? customStages[2].amount : 0;
+    p4 = customStages[customStages.length-1] ? customStages[customStages.length-1].amount : 0;
+  } else {
+    p1 = Math.round(total*0.30); p2 = Math.round(total*0.30); p3 = Math.round(total*0.30);
+    p4 = total - p1 - p2 - p3;
+    prows += prow('Payment 1 (30%)', p1, 'upon signing contract · deposit to order windows, doors, trusses & long lead time items');
+    prows += prow('Payment 2 (30%)', p2, 'when framing is completed on all units');
+    prows += prow('Payment 3 (30%)', p3, 'when exterior siding & interior painting are completed');
+    prows += prow('Final Payment (10%)', p4, 'when unit is set & connected to foundation');
+  }
   document.getElementById('c-payments').innerHTML = prows;
 
-  CURRENT_MODULAR = {m:m, units:units, miles:miles, shipPer:shipPer, shipLow:shipLow, shipHigh:shipHigh, customs:customs, total:total, p1:p1, p2:p2, p3:p3, p4:p4};
+  CURRENT_MODULAR = {m:m, units:units, miles:miles, shipPer:shipPer, shipLow:shipLow, shipHigh:shipHigh, customs:customs, calcTotal:calcTotal, total:total, isNegOverride:isNegOverride, p1:p1, p2:p2, p3:p3, p4:p4, customStages:customStages};
+}
+
+// Editable modular contract schedule — safe pattern: constants + function
+// declarations only, no auto-seed at parse time. Left empty by default; the rep
+// clicks "Reset to default" or "+ Add stage" to start filling it in.
+var MOD_CONTRACT_SCHEDULE_DEFAULT = [
+  { name: 'Payment 1',     pct: 30, desc: 'upon signing contract · deposit to order windows, doors, trusses & long-lead items' },
+  { name: 'Payment 2',     pct: 30, desc: 'when framing is completed on all units' },
+  { name: 'Payment 3',     pct: 30, desc: 'when exterior siding & interior painting are completed' },
+  { name: 'Final Payment', pct: 10, desc: 'when unit is set & connected to foundation' }
+];
+
+function addModContractStage(name, pct, desc){
+  var box = document.getElementById('cm-sched-edit'); if(!box) return;
+  var div = document.createElement('div');
+  div.className = 'lineitem cm-sched-row';
+  div.style.cssText = 'display:grid; grid-template-columns:1.4fr 80px 2fr 32px; gap:6px; margin-bottom:6px; align-items:center;';
+  div.innerHTML = '<input type="text" placeholder="Stage name (e.g. Payment 1)" data-cms="name" style="margin:0;">'
+    +'<input type="number" placeholder="0.0" step="0.5" min="0" max="100" data-cms="pct" style="margin:0;">'
+    +'<input type="text" placeholder="Description / trigger event" data-cms="desc" style="margin:0;">'
+    +'<button type="button" class="remove" title="Remove" style="height:34px;">×</button>';
+  if(name != null) div.querySelector('[data-cms="name"]').value = name;
+  if(pct  != null) div.querySelector('[data-cms="pct"]').value  = pct;
+  if(desc != null) div.querySelector('[data-cms="desc"]').value = desc;
+  box.appendChild(div);
+  div.querySelectorAll('input').forEach(function(i){ i.addEventListener('input', calcModular); });
+  div.querySelector('.remove').addEventListener('click', function(){ div.remove(); calcModular(); });
+  calcModular();
+}
+
+function resetModContractSchedule(){
+  var box = document.getElementById('cm-sched-edit'); if(!box) return;
+  box.innerHTML = '';
+  MOD_CONTRACT_SCHEDULE_DEFAULT.forEach(function(s){ addModContractStage(s.name, s.pct, s.desc); });
+}
+
+function getModContractSchedule(){
+  var stages = [];
+  document.querySelectorAll('#cm-sched-edit .cm-sched-row').forEach(function(row){
+    var n = row.querySelector('[data-cms="name"]').value.trim();
+    var p = parseFloat(row.querySelector('[data-cms="pct"]').value) || 0;
+    var d = row.querySelector('[data-cms="desc"]').value.trim();
+    if(n || p > 0) stages.push({ name: n || 'Payment', pct: p, desc: d });
+  });
+  var sum = stages.reduce(function(a,s){ return a + s.pct; }, 0);
+  return { stages: stages, sum: sum, isValid: stages.length > 0 && Math.abs(sum - 100) < 0.01 };
 }
 
 function generateModularContract(){
@@ -1184,10 +1288,14 @@ function generateModularContract(){
     +'</table>'
     +'<table style="width:100%;border-collapse:collapse;margin-top:14px;font-size:12px;">'
     +'<tr><td style="padding:5px 8px;border:1px solid #ccc;background:#5f5e5a;color:#fff;font-weight:600;" colspan="3">ESTIMATED TIMING &amp; PAYMENT SCHEDULE</td></tr>'
-    +'<tr><td style="padding:5px 8px;border:1px solid #ccc;">Payment 1 (30%)</td><td style="padding:5px 8px;border:1px solid #ccc;text-align:right;">'+fmt(c.p1)+'</td><td style="padding:5px 8px;border:1px solid #ccc;font-size:11px;color:#555;">Upon signing contract — deposit to order windows, doors, trusses and all long lead time items.</td></tr>'
-    +'<tr><td style="padding:5px 8px;border:1px solid #ccc;">Payment 2 (30%)</td><td style="padding:5px 8px;border:1px solid #ccc;text-align:right;">'+fmt(c.p2)+'</td><td style="padding:5px 8px;border:1px solid #ccc;font-size:11px;color:#555;">When framing is completed on all units.</td></tr>'
-    +'<tr><td style="padding:5px 8px;border:1px solid #ccc;">Payment 3 (30%)</td><td style="padding:5px 8px;border:1px solid #ccc;text-align:right;">'+fmt(c.p3)+'</td><td style="padding:5px 8px;border:1px solid #ccc;font-size:11px;color:#555;">When exterior siding is completed and interior painting is completed.</td></tr>'
-    +'<tr><td style="padding:5px 8px;border:1px solid #ccc;">Final Payment (10%)</td><td style="padding:5px 8px;border:1px solid #ccc;text-align:right;">'+fmt(c.p4)+'</td><td style="padding:5px 8px;border:1px solid #ccc;font-size:11px;color:#555;">Final payment (contract price, less all deposits and payments) — due when the modular unit is set and connected to the foundation.</td></tr>'
+    +(c.customStages && c.customStages.length
+      ? c.customStages.map(function(s){
+          return '<tr><td style="padding:5px 8px;border:1px solid #ccc;">'+s.name+' ('+(Math.round(s.pct*100)/100)+'%)</td><td style="padding:5px 8px;border:1px solid #ccc;text-align:right;">'+fmt(s.amount)+'</td><td style="padding:5px 8px;border:1px solid #ccc;font-size:11px;color:#555;">'+(s.desc||'')+'</td></tr>';
+        }).join('')
+      : '<tr><td style="padding:5px 8px;border:1px solid #ccc;">Payment 1 (30%)</td><td style="padding:5px 8px;border:1px solid #ccc;text-align:right;">'+fmt(c.p1)+'</td><td style="padding:5px 8px;border:1px solid #ccc;font-size:11px;color:#555;">Upon signing contract — deposit to order windows, doors, trusses and all long lead time items.</td></tr>'
+        +'<tr><td style="padding:5px 8px;border:1px solid #ccc;">Payment 2 (30%)</td><td style="padding:5px 8px;border:1px solid #ccc;text-align:right;">'+fmt(c.p2)+'</td><td style="padding:5px 8px;border:1px solid #ccc;font-size:11px;color:#555;">When framing is completed on all units.</td></tr>'
+        +'<tr><td style="padding:5px 8px;border:1px solid #ccc;">Payment 3 (30%)</td><td style="padding:5px 8px;border:1px solid #ccc;text-align:right;">'+fmt(c.p3)+'</td><td style="padding:5px 8px;border:1px solid #ccc;font-size:11px;color:#555;">When exterior siding is completed and interior painting is completed.</td></tr>'
+        +'<tr><td style="padding:5px 8px;border:1px solid #ccc;">Final Payment (10%)</td><td style="padding:5px 8px;border:1px solid #ccc;text-align:right;">'+fmt(c.p4)+'</td><td style="padding:5px 8px;border:1px solid #ccc;font-size:11px;color:#555;">Final payment (contract price, less all deposits and payments) — due when the modular unit is set and connected to the foundation.</td></tr>')
     +'</table>'
     +'<div style="margin-top:30px;display:flex;justify-content:space-between;font-size:12px;">'
     +'<div style="width:45%;"><div style="border-top:1px solid #1c1c1a;padding-top:4px;">Seller: Sven Heistad</div><div style="margin-top:18px;border-top:1px solid #1c1c1a;padding-top:4px;">Signature / Date</div></div>'
