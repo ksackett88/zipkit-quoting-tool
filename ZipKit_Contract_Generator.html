@@ -2170,6 +2170,16 @@ function generateChangeOrder(){
     toolbar.style.display='flex';
     emailLbl.textContent = (user && user.email) || '';
     document.body.style.overflow='';
+    // Cross-tool handoff: if the page was opened from the quoting tool with a
+    // ?fromQuote=<id> param, pre-load that project once the user is signed in.
+    if(!window._zkAutoLoaded){
+      var params = new URLSearchParams(window.location.search);
+      var quoteId = params.get('fromQuote');
+      if(quoteId){
+        window._zkAutoLoaded = true;
+        zkAutoLoadFromQuote(quoteId);
+      }
+    }
   }
 
   var user = await zkAuth.getCurrentUser();
@@ -2195,6 +2205,89 @@ function generateChangeOrder(){
 })();
 
 async function zkSignOut(){ await zkAuth.signOut(); }
+
+// ==========================================================================
+// Cross-tool handoff: load a saved project from the quoting tool into the
+// contract generator. Called when this page is opened with ?fromQuote=<id>.
+// Populates the shared buyer card + switches to the right mode + pre-fills
+// mode-specific fields so the rep isn't re-typing everything they already
+// entered upstream. Best-effort — anything we can't map is left blank.
+// ==========================================================================
+async function zkAutoLoadFromQuote(quoteId){
+  try {
+    var q = await zkQuotes.get(quoteId);
+    var cfg = q.config || {};
+    var fields = cfg.fields || {};
+    var buyer = cfg.buyer || {};
+
+    // 1. Shared buyer card fields (top of page — same set for every mode).
+    // Fall back to the row's top-level fields if the config blob doesn't have them.
+    function setVal(id, val){
+      if(val == null || val === '') return;
+      var el = document.getElementById(id);
+      if(el) el.value = val;
+    }
+    setVal('c-buyer',      buyer['prop-buyer']    || q.buyer_name);
+    setVal('c-project',    buyer['prop-project']  || q.project_name);
+    setVal('c-phone',      buyer['prop-phone']    || q.buyer_phone);
+    setVal('c-email',      buyer['prop-email']    || q.buyer_email);
+    setVal('c-city',       buyer['prop-location'] || q.project_location);
+    setVal('c-date',       new Date().toLocaleDateString('en-US'));
+    // Salesman — pull from rep-name if we saved it in the buyer blob, else leave blank.
+    setVal('c-salesman',   buyer['rep-name']);
+
+    // 2. Switch to the matching contract mode. Contract generator only supports
+    // shell / modular / custom — if the quote was Garage / Hangar / Steel, fall
+    // back to Shell Kit and warn.
+    var kind = (q.product_kind || 'shell').toLowerCase();
+    var mode;
+    if(kind === 'modular') mode = 'modular';
+    else if(kind === 'custom') mode = 'custom';
+    else if(kind === 'shell') mode = 'shell';
+    else { mode = 'custom'; zkContractToast('Note: contracts for '+kind+' aren\'t templated yet — dropped into Custom Home. Fill in build cost + engineering to match the quote.', true); }
+    if(typeof setContractMode === 'function') setContractMode(mode);
+
+    // 3. Mode-specific field population.
+    if(mode === 'shell'){
+      setVal('c-model',           fields['s-model']);
+      setVal('c-snow',            fields['s-snow']);
+      setVal('c-win',             fields['s-win']);
+      setVal('c-miles',           fields['s-miles']);
+      setVal('c-design-override', fields['s-design-override']);
+      if(fields['s-design-paid']) document.getElementById('c-design-paid') && (document.getElementById('c-design-paid').checked = !!fields['s-design-paid']);
+      if(fields['s-eng-paid'])    document.getElementById('c-eng-paid')    && (document.getElementById('c-eng-paid').checked    = !!fields['s-eng-paid']);
+      if(typeof calc === 'function') calc();
+    } else if(mode === 'modular'){
+      setVal('cm-model',      fields['m-model']);
+      setVal('cm-units',      fields['m-units']);
+      setVal('cm-miles',      fields['m-miles']);
+      // Negotiated total: prefer the quote's final total (accounts for overrides, discounts).
+      if(q.total || q.contract_amount) setVal('cm-negotiated', q.contract_amount || q.total);
+      if(typeof calcModular === 'function') calcModular();
+    } else if(mode === 'custom'){
+      setVal('cu-name',            fields['c-name']       || q.model);
+      setVal('cu-sqft',            fields['c-sqft']);
+      setVal('cu-build',           fields['c-build']);
+      setVal('cu-eng',             fields['c-eng']);
+      setVal('cu-miles',           fields['c-miles']);
+      setVal('cu-rate',            fields['c-rate']);
+      setVal('cu-design-override', fields['c-design-override']);
+      if(fields['c-design-paid']) document.getElementById('cu-design-paid') && (document.getElementById('cu-design-paid').checked = !!fields['c-design-paid']);
+      if(fields['c-eng-paid'])    document.getElementById('cu-eng-paid')    && (document.getElementById('cu-eng-paid').checked    = !!fields['c-eng-paid']);
+      if(typeof calcCustom === 'function') calcCustom();
+    }
+
+    // 4. Toast confirmation. Uses the same style as the save/delete toasts.
+    if(typeof zkContractToast === 'function'){
+      zkContractToast('Loaded from quote ' + (q.quote_number || '') + ' — buyer + model + pricing pre-filled. Fill in the remaining contract fields (site address, salesman) before generating.');
+    }
+  } catch(e){
+    console.error('zkAutoLoadFromQuote failed', e);
+    if(typeof zkContractToast === 'function'){
+      zkContractToast('Couldn\'t load quote: ' + (e.message || e), true);
+    }
+  }
+}
 
 /* ============================================================================
    SAVE / LOAD CONTRACTS — uses the same Supabase quotes table as the quoting

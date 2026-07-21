@@ -2602,6 +2602,7 @@ async function zkShowMyQuotes(){
         +'<td style="padding:10px 8px;text-align:right;white-space:nowrap;">'
         +'<button onclick="zkShowPayments(\''+q.id+'\')" style="height:28px;padding:0 10px;font-size:11.5px;border:1px solid #0e6b53;background:#fff;color:#0e6b53;border-radius:6px;cursor:pointer;font-family:inherit;margin-right:4px;">$ Payments</button>'
         +'<button onclick="zkOpenQuote(\''+q.id+'\')" style="height:28px;padding:0 10px;font-size:11.5px;border:1px solid #d85a30;background:#d85a30;color:#fff;border-radius:6px;cursor:pointer;font-family:inherit;margin-right:4px;">Open</button>'
+        +'<button onclick="zkContinueToContract(\''+q.id+'\')" title="Open the contract generator with this project pre-loaded" style="height:28px;padding:0 10px;font-size:11.5px;border:1px solid #1c1c1a;background:#1c1c1a;color:#fff;border-radius:6px;cursor:pointer;font-family:inherit;margin-right:4px;">→ Contract</button>'
         +'<button onclick="zkDeleteQuote(\''+q.id+'\',\''+q.quote_number+'\')" style="height:28px;padding:0 8px;font-size:11.5px;border:1px solid #c9c7bd;background:#fff;color:#993c1d;border-radius:6px;cursor:pointer;font-family:inherit;">×</button>'
         +'</td></tr>';
     });
@@ -2688,6 +2689,16 @@ async function zkDeleteQuote(id, num){
   } catch(e){
     zkToast('Delete failed: ' + (e.message || e), true);
   }
+}
+
+// Navigate to the contract generator with the project pre-loaded. The contract
+// generator picks up ?fromQuote=<id> on load, fetches this row, and pre-fills
+// buyer info + model + pricing so the rep isn't re-typing everything.
+function zkContinueToContract(id){
+  // Same folder as this HTML file — relative link works whether we're at /
+  // or /some/subpath on GitHub Pages.
+  var url = 'ZipKit_Contract_Generator.html?fromQuote=' + encodeURIComponent(id);
+  window.open(url, '_blank');
 }
 
 // ---------- Payments modal ----------
