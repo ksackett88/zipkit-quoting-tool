@@ -2126,6 +2126,27 @@ function generateChangeOrder(){
   </div>
 </div>
 
+<!-- ============ PAYMENTS MODAL (nested — opened from a contract row) ============ -->
+<div id="zk-payments-overlay" style="display:none;position:fixed;inset:0;background:rgba(28,28,26,0.7);z-index:10001;align-items:flex-start;justify-content:center;padding:60px 20px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;overflow-y:auto;">
+  <div style="background:#fff;border-radius:14px;padding:24px 28px;max-width:640px;width:100%;max-height:80vh;overflow-y:auto;box-shadow:0 24px 60px rgba(0,0,0,0.4);">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+      <h2 id="zk-payments-title" style="margin:0;font-size:18px;font-weight:600;color:#1c1c1a;">Payments</h2>
+      <button onclick="document.getElementById('zk-payments-overlay').style.display='none';" style="background:none;border:none;cursor:pointer;font-size:26px;color:#5f5e5a;line-height:1;">×</button>
+    </div>
+    <div id="zk-payments-summary" style="margin:8px 0 18px; font-size:12.5px; color:#5f5e5a; line-height:1.55;"></div>
+    <div id="zk-payments-list" style="margin-bottom:18px;"></div>
+    <div style="border-top:1px solid #e2e0d8; padding-top:14px;">
+      <div style="font-size:13px; font-weight:600; color:#1c1c1a; margin-bottom:10px; text-transform:uppercase; letter-spacing:0.05em;">Record a payment</div>
+      <div style="display:grid; grid-template-columns:120px 1fr 110px; gap:8px; margin-bottom:8px;">
+        <input type="number" id="zk-pmt-amount" placeholder="Amount $" step="0.01" min="0" style="height:36px; padding:0 10px; font-size:14px; border:1px solid #c9c7bd; border-radius:6px; font-family:inherit;">
+        <input type="text" id="zk-pmt-note" placeholder="Note (e.g. Check #1234, wire — engineering)" style="height:36px; padding:0 10px; font-size:14px; border:1px solid #c9c7bd; border-radius:6px; font-family:inherit;">
+        <input type="date" id="zk-pmt-date" style="height:36px; padding:0 10px; font-size:14px; border:1px solid #c9c7bd; border-radius:6px; font-family:inherit;">
+      </div>
+      <button id="zk-pmt-add" style="height:36px; padding:0 18px; font-size:13px; font-weight:600; background:#0e6b53; color:#fff; border:none; border-radius:6px; cursor:pointer; font-family:inherit;">Record payment</button>
+    </div>
+  </div>
+</div>
+
 <!-- ============ TOAST ============ -->
 <div id="zk-contract-toast" style="display:none;position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:10000;background:#1c1c1a;color:#fff;padding:12px 20px;border-radius:8px;font-size:13px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;box-shadow:0 6px 20px rgba(0,0,0,0.3);"></div>
 
@@ -2321,31 +2342,44 @@ async function zkShowMyContracts(){
       return;
     }
     var html = '<table style="width:100%;border-collapse:collapse;font-size:13px;">'
-      +'<thead><tr style="border-bottom:2px solid #1c1c1a;color:#888;text-transform:uppercase;font-size:11px;letter-spacing:0.05em;">'
+      +'<thead><tr style="border-bottom:2px solid #1c1c1a;color:#888;text-transform:uppercase;font-size:10px;letter-spacing:0.05em;">'
       +'<th style="text-align:left;padding:10px 8px;">Contract #</th>'
       +'<th style="text-align:left;padding:10px 8px;">Buyer / Project</th>'
       +'<th style="text-align:left;padding:10px 8px;">Type</th>'
-      +'<th style="text-align:right;padding:10px 8px;">Total</th>'
+      +'<th style="text-align:right;padding:10px 8px;">Contract</th>'
+      +'<th style="text-align:right;padding:10px 8px;">Paid</th>'
+      +'<th style="text-align:right;padding:10px 8px;">Remaining</th>'
       +'<th style="text-align:left;padding:10px 8px;">Updated</th>'
       +'<th></th>'
       +'</tr></thead><tbody>';
     contracts.forEach(function(c){
       var d = new Date(c.updated_at);
-      var dateStr = d.toLocaleDateString('en-US') + ' ' + d.toLocaleTimeString('en-US', {hour:'2-digit',minute:'2-digit'});
-      var totalStr = c.total ? '$' + Number(c.total).toLocaleString('en-US') : '—';
+      var dateStr = d.toLocaleDateString('en-US');
       var kind = c.product_kind.replace('contract-','');
       kind = kind.charAt(0).toUpperCase() + kind.slice(1);
       var typeStr = kind + (c.model ? ' · ' + c.model : '') + (c.units > 1 ? ' × ' + c.units : '');
       var buyerStr = (c.buyer_name || '—') + (c.project_name ? '<div style="color:#888;font-size:11px;">'+c.project_name+'</div>' : '');
+      // Payment tracking
+      var bal = window.zkProjectBalance ? window.zkProjectBalance(c) : {contract:Number(c.contract_amount||c.total||0), paid:0, remaining:0, pctPaid:0};
+      var pmtCount = Array.isArray(c.payments) ? c.payments.length : 0;
+      var pctColor = bal.pctPaid === 0 ? '#888' : (bal.pctPaid >= 100 ? '#0e6b53' : '#d85a30');
+      var remainingStr = bal.contract > 0 ? '<b style="color:'+(bal.remaining===0?'#0e6b53':'#1c1c1a')+';">'+window.zkFmtMoney(bal.remaining)+'</b>' : '—';
+      var paidStr = bal.paid > 0
+        ? '<span style="color:#0e6b53;font-weight:500;">'+window.zkFmtMoney(bal.paid)+'</span><div style="font-size:10px;color:'+pctColor+';">'+bal.pctPaid+'% · '+pmtCount+' pmt'+(pmtCount===1?'':'s')+'</div>'
+        : '<span style="color:#888;">—</span>';
+      var contractStr = bal.contract > 0 ? window.zkFmtMoney(bal.contract) : '—';
       html += '<tr style="border-bottom:1px solid #e2e0d8;">'
-        +'<td style="padding:10px 8px;font-weight:500;font-family:Menlo,Consolas,monospace;font-size:12px;">'+c.quote_number+'</td>'
+        +'<td style="padding:10px 8px;font-weight:500;font-family:Menlo,Consolas,monospace;font-size:11.5px;">'+c.quote_number+'</td>'
         +'<td style="padding:10px 8px;">'+buyerStr+'</td>'
-        +'<td style="padding:10px 8px;">'+typeStr+'</td>'
-        +'<td style="padding:10px 8px;text-align:right;font-weight:500;">'+totalStr+'</td>'
-        +'<td style="padding:10px 8px;color:#888;font-size:12px;">'+dateStr+'</td>'
+        +'<td style="padding:10px 8px;color:#5f5e5a;">'+typeStr+'</td>'
+        +'<td style="padding:10px 8px;text-align:right;font-weight:500;">'+contractStr+'</td>'
+        +'<td style="padding:10px 8px;text-align:right;">'+paidStr+'</td>'
+        +'<td style="padding:10px 8px;text-align:right;">'+remainingStr+'</td>'
+        +'<td style="padding:10px 8px;color:#888;font-size:11.5px;">'+dateStr+'</td>'
         +'<td style="padding:10px 8px;text-align:right;white-space:nowrap;">'
-        +'<button onclick="zkOpenContract(\''+c.id+'\')" style="height:30px;padding:0 12px;font-size:12px;border:1px solid #d85a30;background:#d85a30;color:#fff;border-radius:6px;cursor:pointer;font-family:inherit;margin-right:4px;">Open</button>'
-        +'<button onclick="zkDeleteContract(\''+c.id+'\',\''+c.quote_number+'\')" style="height:30px;padding:0 10px;font-size:12px;border:1px solid #c9c7bd;background:#fff;color:#993c1d;border-radius:6px;cursor:pointer;font-family:inherit;">Delete</button>'
+        +'<button onclick="zkShowPayments(\''+c.id+'\')" style="height:28px;padding:0 10px;font-size:11.5px;border:1px solid #0e6b53;background:#fff;color:#0e6b53;border-radius:6px;cursor:pointer;font-family:inherit;margin-right:4px;">$ Payments</button>'
+        +'<button onclick="zkOpenContract(\''+c.id+'\')" style="height:28px;padding:0 10px;font-size:11.5px;border:1px solid #d85a30;background:#d85a30;color:#fff;border-radius:6px;cursor:pointer;font-family:inherit;margin-right:4px;">Open</button>'
+        +'<button onclick="zkDeleteContract(\''+c.id+'\',\''+c.quote_number+'\')" style="height:28px;padding:0 8px;font-size:11.5px;border:1px solid #c9c7bd;background:#fff;color:#993c1d;border-radius:6px;cursor:pointer;font-family:inherit;">×</button>'
         +'</td></tr>';
     });
     html += '</tbody></table>';
@@ -2449,6 +2483,109 @@ async function zkDeleteContract(id, num){
     zkContractToast('Delete failed: ' + (e.message || e), true);
   }
 }
+
+// ---------- Payments modal ----------
+// Same UX as the quoting tool's My Projects list. Payments live on the same
+// `payments` JSONB column on the shared `quotes` row.
+var _zkPmtProjectId = null;
+
+async function zkShowPayments(id){
+  _zkPmtProjectId = id;
+  var overlay  = document.getElementById('zk-payments-overlay');
+  var titleEl  = document.getElementById('zk-payments-title');
+  var sumEl    = document.getElementById('zk-payments-summary');
+  var listEl   = document.getElementById('zk-payments-list');
+  var amtEl    = document.getElementById('zk-pmt-amount');
+  var noteEl   = document.getElementById('zk-pmt-note');
+  var dateEl   = document.getElementById('zk-pmt-date');
+  overlay.style.display = 'flex';
+  listEl.innerHTML = '<p style="text-align:center;color:#888;padding:16px 0;">Loading…</p>';
+  sumEl.textContent = '';
+  amtEl.value = ''; noteEl.value = '';
+  dateEl.value = new Date().toISOString().slice(0,10);
+  try {
+    var q = await zkQuotes.get(id);
+    titleEl.textContent = 'Payments · ' + (q.buyer_name || q.project_name || q.quote_number);
+    _zkRenderPayments(q);
+  } catch(e){
+    listEl.innerHTML = '<p style="color:#993c1d;padding:14px;">Failed to load: '+(e.message||e)+'</p>';
+  }
+}
+
+function _zkRenderPayments(q){
+  var sumEl  = document.getElementById('zk-payments-summary');
+  var listEl = document.getElementById('zk-payments-list');
+  var bal = window.zkProjectBalance(q);
+  var payments = Array.isArray(q.payments) ? q.payments.slice() : [];
+  payments.sort(function(a,b){ return (b.date||'').localeCompare(a.date||''); });
+  sumEl.innerHTML = ''
+    +'<div style="display:flex; justify-content:space-between; padding:10px 12px; background:#f5f3ec; border-radius:8px; gap:12px;">'
+    +'  <div><div style="font-size:10px; color:#888; text-transform:uppercase; letter-spacing:0.06em;">Contract</div><div style="font-size:16px; font-weight:600; margin-top:2px;">'+window.zkFmtMoney(bal.contract)+'</div></div>'
+    +'  <div><div style="font-size:10px; color:#888; text-transform:uppercase; letter-spacing:0.06em;">Paid</div><div style="font-size:16px; font-weight:600; color:#0e6b53; margin-top:2px;">'+window.zkFmtMoney(bal.paid)+' <span style="font-size:11px; color:#888; font-weight:400;">('+bal.pctPaid+'%)</span></div></div>'
+    +'  <div><div style="font-size:10px; color:#888; text-transform:uppercase; letter-spacing:0.06em;">Remaining</div><div style="font-size:16px; font-weight:600; color:'+(bal.remaining===0?'#0e6b53':'#1c1c1a')+'; margin-top:2px;">'+window.zkFmtMoney(bal.remaining)+'</div></div>'
+    +'</div>';
+  if(!payments.length){
+    listEl.innerHTML = '<p style="text-align:center;color:#888;padding:20px 0;font-size:13px;">No payments recorded yet. Add one below.</p>';
+    return;
+  }
+  var html = '<table style="width:100%;border-collapse:collapse;font-size:13px;">'
+    +'<thead><tr style="border-bottom:1px solid #e2e0d8;color:#888;text-transform:uppercase;font-size:10px;letter-spacing:0.05em;">'
+    +'<th style="text-align:left;padding:6px 4px;">Date</th>'
+    +'<th style="text-align:left;padding:6px 4px;">Note</th>'
+    +'<th style="text-align:right;padding:6px 4px;">Amount</th>'
+    +'<th></th></tr></thead><tbody>';
+  payments.forEach(function(p){
+    html += '<tr style="border-bottom:1px solid #f0ede3;">'
+      +'<td style="padding:8px 4px;color:#5f5e5a;">'+(p.date||'—')+'</td>'
+      +'<td style="padding:8px 4px;">'+((p.note||'').replace(/</g,'&lt;')||'<span style="color:#888;">(no note)</span>')+'</td>'
+      +'<td style="padding:8px 4px;text-align:right;font-weight:500;">'+window.zkFmtMoney(p.amount)+'</td>'
+      +'<td style="padding:8px 4px;text-align:right;">'
+      +'<button onclick="zkDeletePayment(\''+p.id+'\')" title="Delete this payment" style="background:none;border:none;font-size:14px;color:#888;cursor:pointer;padding:2px 6px;">×</button>'
+      +'</td></tr>';
+  });
+  html += '</tbody></table>';
+  listEl.innerHTML = html;
+}
+
+async function zkRecordPayment(){
+  if(!_zkPmtProjectId) return;
+  var amt  = parseFloat(document.getElementById('zk-pmt-amount').value);
+  var note = document.getElementById('zk-pmt-note').value.trim();
+  var date = document.getElementById('zk-pmt-date').value;
+  if(!isFinite(amt) || amt <= 0){ zkContractToast('Enter a payment amount greater than $0.', true); return; }
+  try {
+    var updated = await zkQuotes.addPayment(_zkPmtProjectId, { amount: amt, note: note, date: date });
+    document.getElementById('zk-pmt-amount').value = '';
+    document.getElementById('zk-pmt-note').value = '';
+    _zkRenderPayments(updated);
+    zkContractToast('Payment recorded');
+    if(document.getElementById('zk-contracts-overlay').style.display !== 'none') zkShowMyContracts();
+  } catch(e){
+    zkContractToast('Save failed: ' + (e.message || e), true);
+  }
+}
+
+async function zkDeletePayment(pmtId){
+  if(!_zkPmtProjectId) return;
+  if(!confirm('Remove this payment?')) return;
+  try {
+    var updated = await zkQuotes.removePayment(_zkPmtProjectId, pmtId);
+    _zkRenderPayments(updated);
+    zkContractToast('Payment removed');
+    if(document.getElementById('zk-contracts-overlay').style.display !== 'none') zkShowMyContracts();
+  } catch(e){
+    zkContractToast('Delete failed: ' + (e.message || e), true);
+  }
+}
+
+document.addEventListener('DOMContentLoaded', function(){
+  var btn = document.getElementById('zk-pmt-add');
+  if(btn) btn.addEventListener('click', zkRecordPayment);
+  ['zk-pmt-amount','zk-pmt-note','zk-pmt-date'].forEach(function(id){
+    var el = document.getElementById(id);
+    if(el) el.addEventListener('keydown', function(e){ if(e.key === 'Enter') zkRecordPayment(); });
+  });
+});
 </script>
 </body>
 </html>
