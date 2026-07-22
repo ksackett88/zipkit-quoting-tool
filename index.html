@@ -212,6 +212,16 @@
   .pmt-list-table th { text-align: left; padding: 6px 4px; font-size: 10px; color: var(--hint); text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid var(--line); }
   .pmt-list-table td { padding: 8px 4px; border-bottom: 1px solid var(--line-soft); }
   .pmt-form-title { font-size: 13px; font-weight: 600; color: var(--ink); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 10px; }
+  .section-block { padding-top: 4px; }
+  .section-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 10px; padding-bottom: 6px; border-bottom: 1px solid var(--line); }
+  .section-title { font-size: 13px; font-weight: 600; color: var(--ink); text-transform: uppercase; letter-spacing: 0.05em; }
+  .section-sub { font-size: 11.5px; color: var(--hint); font-variant-numeric: tabular-nums; }
+  .pmt-summary-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; padding: 12px 14px; background: var(--surface-2); border-radius: var(--radius-sm); margin: 10px 0 18px; }
+  .pmt-summary-4 .pmt-label { font-size: 10px; color: var(--hint); text-transform: uppercase; letter-spacing: 0.06em; font-weight: 500; }
+  .pmt-summary-4 .pmt-value { font-size: 16px; font-weight: 600; margin-top: 3px; font-variant-numeric: tabular-nums; }
+  .pmt-summary-4 .pmt-value.paid { color: var(--success); }
+  .pmt-summary-4 .pmt-value.info { color: var(--info); }
+  .pmt-summary-4 .pmt-value.done { color: var(--success); }
 
   /* Responsive */
   @media (max-width: 780px) {
@@ -282,15 +292,36 @@
 </div>
 
 <div id="zk-payments-overlay" class="modal-overlay">
-  <div class="modal">
+  <div class="modal" style="max-width:780px;">
     <div class="modal-head">
-      <h2 id="zk-payments-title">Payments</h2>
+      <h2 id="zk-payments-title">Invoices &amp; Payments</h2>
       <button class="modal-close" onclick="document.getElementById('zk-payments-overlay').style.display='none';">&times;</button>
     </div>
     <div id="zk-payments-summary"></div>
-    <div id="zk-payments-list"></div>
-    <div style="border-top:1px solid var(--line); padding-top:14px; margin-top:14px;">
-      <div class="pmt-form-title">Record a payment</div>
+
+    <!-- Invoices sent -->
+    <div class="section-block">
+      <div class="section-head">
+        <div class="section-title">Invoices sent</div>
+        <div class="section-sub" id="inv-count-sub">&mdash;</div>
+      </div>
+      <div id="zk-invoices-list"></div>
+      <div class="pmt-form-row" style="grid-template-columns: 120px 1fr 140px 120px;">
+        <input type="text" id="zk-inv-number" placeholder="Invoice #">
+        <input type="text" id="zk-inv-desc" placeholder="Description (e.g. Engineering payment)">
+        <input type="number" id="zk-inv-amount" placeholder="Amount $" step="0.01" min="0">
+        <input type="date" id="zk-inv-date">
+      </div>
+      <button class="pmt-form-btn" style="background:var(--info);" onclick="zkRecordInvoice()">Add invoice</button>
+    </div>
+
+    <!-- Payments received -->
+    <div class="section-block" style="margin-top:22px;">
+      <div class="section-head">
+        <div class="section-title">Payments received</div>
+        <div class="section-sub" id="pmt-count-sub">&mdash;</div>
+      </div>
+      <div id="zk-payments-list"></div>
       <div class="pmt-form-row">
         <input type="number" id="zk-pmt-amount" placeholder="Amount $" step="0.01" min="0">
         <input type="text" id="zk-pmt-note" placeholder="Note (Check #1234, wire &mdash; engineering, etc.)">
@@ -532,37 +563,98 @@ async function zkShowPayments(id){
   _zkPmtProjectId = id;
   var overlay  = document.getElementById('zk-payments-overlay');
   var titleEl  = document.getElementById('zk-payments-title');
+  var pListEl  = document.getElementById('zk-payments-list');
+  var iListEl  = document.getElementById('zk-invoices-list');
   var sumEl    = document.getElementById('zk-payments-summary');
-  var listEl   = document.getElementById('zk-payments-list');
   overlay.style.display = 'flex';
-  listEl.innerHTML = '<p style="text-align:center;color:var(--hint);padding:16px 0;">Loading...</p>';
+  pListEl.innerHTML = '<p style="text-align:center;color:var(--hint);padding:14px 0;">Loading...</p>';
+  iListEl.innerHTML = '';
   sumEl.innerHTML = '';
+  var today = new Date().toISOString().slice(0,10);
+  // Reset both forms
   document.getElementById('zk-pmt-amount').value = '';
   document.getElementById('zk-pmt-note').value = '';
-  document.getElementById('zk-pmt-date').value = new Date().toISOString().slice(0,10);
+  document.getElementById('zk-pmt-date').value = today;
+  document.getElementById('zk-inv-number').value = '';
+  document.getElementById('zk-inv-desc').value = '';
+  document.getElementById('zk-inv-amount').value = '';
+  document.getElementById('zk-inv-date').value = today;
   try {
     var q = await zkQuotes.get(id);
-    titleEl.textContent = 'Payments · ' + (q.buyer_name || q.project_name || q.quote_number);
-    _zkRenderPayments(q);
+    titleEl.textContent = 'Invoices & Payments · ' + (q.buyer_name || q.project_name || q.quote_number);
+    _zkRenderProject(q);
   } catch(e){
-    listEl.innerHTML = '<p style="color:var(--danger);padding:14px;">Failed to load: '+(e.message||e)+'</p>';
+    pListEl.innerHTML = '<p style="color:var(--danger);padding:14px;">Failed to load: '+(e.message||e)+'</p>';
   }
 }
 
+function _zkRenderProject(q){
+  // Store the current row so record/delete handlers can refresh from cache
+  // if a subsequent DB call fails. Also lets other UI update inline.
+  window._zkCurrentProject = q;
+  _zkRenderSummary(q);
+  _zkRenderInvoices(q);
+  _zkRenderPayments(q);
+}
+
+function _zkRenderSummary(q){
+  var sumEl = document.getElementById('zk-payments-summary');
+  var bal = window.zkProjectBalance(q);
+  sumEl.innerHTML = ''
+    +'<div class="pmt-summary-4">'
+    +'  <div><div class="pmt-label">Contract</div><div class="pmt-value">'+window.zkFmtMoney(bal.contract)+'</div></div>'
+    +'  <div><div class="pmt-label">Invoiced</div><div class="pmt-value info">'+window.zkFmtMoney(bal.invoiced)+' <span style="font-size:10px;color:var(--hint);font-weight:400;">('+bal.pctInvoiced+'%)</span></div></div>'
+    +'  <div><div class="pmt-label">Paid</div><div class="pmt-value paid">'+window.zkFmtMoney(bal.paid)+' <span style="font-size:10px;color:var(--hint);font-weight:400;">('+bal.pctPaid+'%)</span></div></div>'
+    +'  <div><div class="pmt-label">Remaining</div><div class="pmt-value '+(bal.remaining===0?'done':'')+'">'+window.zkFmtMoney(bal.remaining)+'</div></div>'
+    +'</div>';
+}
+
+function _zkRenderInvoices(q){
+  var listEl = document.getElementById('zk-invoices-list');
+  var countEl = document.getElementById('inv-count-sub');
+  var bal = window.zkProjectBalance(q);
+  var invoices = Array.isArray(q.invoices) ? q.invoices.slice() : [];
+  invoices.sort(function(a,b){ return (b.sent_date||'').localeCompare(a.sent_date||''); });
+  if(countEl){
+    countEl.textContent = invoices.length
+      ? invoices.length + ' invoice' + (invoices.length===1?'':'s') + ' · ' + window.zkFmtMoney(bal.outstanding) + ' outstanding'
+      : 'none sent yet';
+  }
+  if(!invoices.length){
+    listEl.innerHTML = '<p style="text-align:center;color:var(--hint);padding:14px 0;font-size:13px;">No invoices logged yet. Add the first one below when you send it.</p>';
+    return;
+  }
+  var html = '<table class="pmt-list-table">'
+    +'<thead><tr>'
+    +'<th>Sent</th><th>Number</th><th>Description</th><th style="text-align:right;">Amount</th><th></th>'
+    +'</tr></thead><tbody>';
+  invoices.forEach(function(i){
+    html += '<tr>'
+      +'<td style="color:var(--muted);">'+_esc(i.sent_date||'—')+'</td>'
+      +'<td style="font-family:var(--f-mono);font-size:12px;">'+(i.number ? _esc(i.number) : '<span style="color:var(--hint);">—</span>')+'</td>'
+      +'<td>'+(i.description ? _esc(i.description) : '<span style="color:var(--hint);">(no description)</span>')+'</td>'
+      +'<td style="text-align:right;font-weight:500;font-variant-numeric:tabular-nums;">'+window.zkFmtMoney(i.amount)+'</td>'
+      +'<td style="text-align:right;">'
+      +'<button onclick="zkDeleteInvoice(\''+i.id+'\')" title="Delete invoice" style="background:none;border:none;font-size:14px;color:var(--hint);cursor:pointer;padding:2px 6px;">×</button>'
+      +'</td></tr>';
+  });
+  html += '</tbody></table>';
+  listEl.innerHTML = html;
+}
+
 function _zkRenderPayments(q){
-  var sumEl  = document.getElementById('zk-payments-summary');
   var listEl = document.getElementById('zk-payments-list');
+  var countEl = document.getElementById('pmt-count-sub');
   var bal = window.zkProjectBalance(q);
   var payments = Array.isArray(q.payments) ? q.payments.slice() : [];
   payments.sort(function(a,b){ return (b.date||'').localeCompare(a.date||''); });
-  sumEl.innerHTML = ''
-    +'<div class="pmt-summary">'
-    +'  <div><div class="pmt-label">Contract</div><div class="pmt-value">'+window.zkFmtMoney(bal.contract)+'</div></div>'
-    +'  <div><div class="pmt-label">Paid</div><div class="pmt-value paid">'+window.zkFmtMoney(bal.paid)+' <span style="font-size:11px;color:var(--hint);font-weight:400;">('+bal.pctPaid+'%)</span></div></div>'
-    +'  <div><div class="pmt-label">Remaining</div><div class="pmt-value" style="color:'+(bal.remaining===0?'var(--success)':'var(--ink)')+';">'+window.zkFmtMoney(bal.remaining)+'</div></div>'
-    +'</div>';
+  if(countEl){
+    countEl.textContent = payments.length
+      ? payments.length + ' payment' + (payments.length===1?'':'s') + ' · ' + window.zkFmtMoney(bal.paid) + ' collected'
+      : 'none received yet';
+  }
   if(!payments.length){
-    listEl.innerHTML = '<p style="text-align:center;color:var(--hint);padding:16px 0;font-size:13px;">No payments recorded yet. Add one below.</p>';
+    listEl.innerHTML = '<p style="text-align:center;color:var(--hint);padding:14px 0;font-size:13px;">No payments recorded yet. Add one below when the money arrives.</p>';
     return;
   }
   var html = '<table class="pmt-list-table">'
@@ -592,7 +684,7 @@ async function zkRecordPayment(){
     var updated = await zkQuotes.addPayment(_zkPmtProjectId, { amount: amt, note: note, date: date });
     document.getElementById('zk-pmt-amount').value = '';
     document.getElementById('zk-pmt-note').value = '';
-    _zkRenderPayments(updated);
+    _zkRenderProject(updated);
     zkToast('Payment recorded');
     loadProjects();
   } catch(e){
@@ -605,8 +697,41 @@ async function zkDeletePayment(pmtId){
   if(!confirm('Remove this payment?')) return;
   try {
     var updated = await zkQuotes.removePayment(_zkPmtProjectId, pmtId);
-    _zkRenderPayments(updated);
+    _zkRenderProject(updated);
     zkToast('Payment removed');
+    loadProjects();
+  } catch(e){
+    zkToast('Delete failed: ' + (e.message || e), true);
+  }
+}
+
+async function zkRecordInvoice(){
+  if(!_zkPmtProjectId) return;
+  var number = document.getElementById('zk-inv-number').value.trim();
+  var desc   = document.getElementById('zk-inv-desc').value.trim();
+  var amt    = parseFloat(document.getElementById('zk-inv-amount').value);
+  var date   = document.getElementById('zk-inv-date').value;
+  if(!isFinite(amt) || amt <= 0){ zkToast('Enter an invoice amount greater than $0.', true); return; }
+  try {
+    var updated = await zkQuotes.addInvoice(_zkPmtProjectId, { number: number, description: desc, amount: amt, sent_date: date });
+    document.getElementById('zk-inv-number').value = '';
+    document.getElementById('zk-inv-desc').value = '';
+    document.getElementById('zk-inv-amount').value = '';
+    _zkRenderProject(updated);
+    zkToast('Invoice logged');
+    loadProjects();
+  } catch(e){
+    zkToast('Save failed: ' + (e.message || e), true);
+  }
+}
+
+async function zkDeleteInvoice(invId){
+  if(!_zkPmtProjectId) return;
+  if(!confirm('Remove this invoice?')) return;
+  try {
+    var updated = await zkQuotes.removeInvoice(_zkPmtProjectId, invId);
+    _zkRenderProject(updated);
+    zkToast('Invoice removed');
     loadProjects();
   } catch(e){
     zkToast('Delete failed: ' + (e.message || e), true);
@@ -616,6 +741,10 @@ async function zkDeletePayment(pmtId){
 ['zk-pmt-amount','zk-pmt-note','zk-pmt-date'].forEach(function(id){
   var el = document.getElementById(id);
   if(el) el.addEventListener('keydown', function(e){ if(e.key === 'Enter') zkRecordPayment(); });
+});
+['zk-inv-number','zk-inv-desc','zk-inv-amount','zk-inv-date'].forEach(function(id){
+  var el = document.getElementById(id);
+  if(el) el.addEventListener('keydown', function(e){ if(e.key === 'Enter') zkRecordInvoice(); });
 });
 </script>
 </body>
