@@ -312,7 +312,10 @@
         <input type="number" id="zk-inv-amount" placeholder="Amount $" step="0.01" min="0">
         <input type="date" id="zk-inv-date">
       </div>
-      <button class="pmt-form-btn" style="background:var(--info);" onclick="zkRecordInvoice()">Add invoice</button>
+      <div style="display:flex; gap:8px; flex-wrap:wrap;">
+        <button class="pmt-form-btn" style="background:var(--info);" onclick="zkRecordInvoice(false)">Log invoice</button>
+        <button class="pmt-form-btn" onclick="zkRecordInvoice(true)">Log + Generate PDF →</button>
+      </div>
     </div>
 
     <!-- Payments received -->
@@ -634,7 +637,8 @@ function _zkRenderInvoices(q){
       +'<td style="font-family:var(--f-mono);font-size:12px;">'+(i.number ? _esc(i.number) : '<span style="color:var(--hint);">—</span>')+'</td>'
       +'<td>'+(i.description ? _esc(i.description) : '<span style="color:var(--hint);">(no description)</span>')+'</td>'
       +'<td style="text-align:right;font-weight:500;font-variant-numeric:tabular-nums;">'+window.zkFmtMoney(i.amount)+'</td>'
-      +'<td style="text-align:right;">'
+      +'<td style="text-align:right;white-space:nowrap;">'
+      +'<button onclick="zkOpenInvoicePdf(\''+i.id+'\')" title="Generate PDF" style="background:none;border:1px solid var(--info);color:var(--info);font-size:11px;font-weight:500;cursor:pointer;padding:3px 8px;border-radius:4px;margin-right:4px;">PDF</button>'
       +'<button onclick="zkDeleteInvoice(\''+i.id+'\')" title="Delete invoice" style="background:none;border:none;font-size:14px;color:var(--hint);cursor:pointer;padding:2px 6px;">×</button>'
       +'</td></tr>';
   });
@@ -705,7 +709,7 @@ async function zkDeletePayment(pmtId){
   }
 }
 
-async function zkRecordInvoice(){
+async function zkRecordInvoice(alsoGeneratePdf){
   if(!_zkPmtProjectId) return;
   var number = document.getElementById('zk-inv-number').value.trim();
   var desc   = document.getElementById('zk-inv-desc').value.trim();
@@ -720,9 +724,121 @@ async function zkRecordInvoice(){
     _zkRenderProject(updated);
     zkToast('Invoice logged');
     loadProjects();
+    // If the user asked for the PDF too, find the freshly-added invoice (last in
+    // the array because addInvoice pushes) and open the branded doc in a new tab.
+    if(alsoGeneratePdf){
+      var justAdded = (updated.invoices || [])[(updated.invoices || []).length - 1];
+      if(justAdded) zkGenerateInvoicePdf(updated, justAdded);
+    }
   } catch(e){
     zkToast('Save failed: ' + (e.message || e), true);
   }
+}
+
+async function zkOpenInvoicePdf(invId){
+  // Fetch fresh project data so brand/buyer info is current, then locate the
+  // invoice and render.
+  if(!_zkPmtProjectId) return;
+  try {
+    var q = await zkQuotes.get(_zkPmtProjectId);
+    var inv = (q.invoices || []).filter(function(i){ return i.id === invId; })[0];
+    if(!inv){ zkToast('Invoice not found.', true); return; }
+    zkGenerateInvoicePdf(q, inv);
+  } catch(e){
+    zkToast('Load failed: ' + (e.message || e), true);
+  }
+}
+
+// ---------- Invoice PDF generator ----------
+// Renders a branded, print-ready invoice for a project + invoice record. Opens
+// in a new tab with a Print/Save button. Brand-aware: pulls logo, address, and
+// wire/mailing details from the shared zkPaymentInfo + zkBrandInfo.
+function zkGenerateInvoicePdf(project, invoice){
+  var brand = project.brand || 'zipkit';
+  var co = window.zkBrandInfo[brand] || window.zkBrandInfo.zipkit;
+  var pay = window.zkPaymentInfo[brand] || window.zkPaymentInfo.zipkit;
+  var bal = window.zkProjectBalance(project);
+
+  // Header: pull the logo from the images/ folder relative to the portal.
+  var logoImg = 'images/' + co.logoFile;
+  var logoH = brand === 'mvp' ? 72 : 54;
+  var num = invoice.number || '—';
+  var date = invoice.sent_date || new Date().toISOString().slice(0,10);
+  var desc = invoice.description || 'Invoice';
+  var amt  = Number(invoice.amount) || 0;
+  var buyer = project.buyer_name || '—';
+  var buyerEmail = project.buyer_email || '';
+  var buyerPhone = project.buyer_phone || '';
+  var projectName = project.project_name || '';
+  var modelInfo = (project.model || '') + (project.units > 1 ? ' × ' + project.units : '');
+  var contractCtx = bal.contract > 0
+    ? 'Contract total ' + window.zkFmtMoney(bal.contract) + ' · already paid ' + window.zkFmtMoney(bal.paid) + ' · remaining ' + window.zkFmtMoney(bal.remaining - amt < 0 ? 0 : bal.remaining - amt) + ' after this invoice clears'
+    : '';
+
+  var html = ''
+    +'<div class="invoice-page" style="max-width:760px; margin:0 auto; font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif; color:#1c1c1a; padding:22px 24px;">'
+    +'<div style="display:flex; justify-content:space-between; align-items:flex-start; border-bottom:2px solid #1c1c1a; padding-bottom:12px;">'
+    +'<div><img src="'+logoImg+'" alt="'+co.name+'" style="height:'+logoH+'px;" onerror="this.style.display=\'none\';"><div style="font-size:11px; color:#5f5e5a; margin-top:6px; line-height:1.5;">'+co.addr+'<br>'+co.tel+' &nbsp;|&nbsp; '+co.email+'</div></div>'
+    +'<div style="text-align:right;"><div style="font-size:26px; font-weight:700; letter-spacing:-0.02em;">INVOICE</div>'
+    +'<div style="font-size:12px; color:#5f5e5a; margin-top:4px; line-height:1.6;">Invoice #: <b>'+_esc(num)+'</b><br>Date: '+_esc(date)+'</div></div>'
+    +'</div>'
+
+    // Bill to + project block
+    +'<div style="display:flex; justify-content:space-between; margin-top:14px; font-size:12px;">'
+    +'<div><div style="color:#888; text-transform:uppercase; font-size:10px; letter-spacing:0.05em;">Bill to</div>'
+    +'<div style="font-size:14px; font-weight:500; margin-top:2px;">'+_esc(buyer)+'</div>'
+    +(buyerEmail || buyerPhone ? '<div style="color:#5f5e5a; font-size:11px; margin-top:2px; line-height:1.4;">'+[buyerEmail, buyerPhone].filter(function(x){return x;}).map(_esc).join('<br>')+'</div>' : '')
+    +'</div>'
+    +(projectName || modelInfo ? '<div style="text-align:right;"><div style="color:#888; text-transform:uppercase; font-size:10px; letter-spacing:0.05em;">Project</div><div style="font-size:14px; font-weight:500; margin-top:2px;">'+_esc(projectName)+'</div>'+(modelInfo?'<div style="font-size:11px; color:#5f5e5a; margin-top:2px;">'+_esc(modelInfo)+'</div>':'')+'</div>' : '')
+    +'</div>'
+
+    // Invoice line item
+    +'<table style="width:100%; border-collapse:collapse; margin-top:16px; font-size:13px;">'
+    +'<tr style="border-bottom:2px solid #1c1c1a;"><td style="padding:6px 0; text-transform:uppercase; font-size:10px; letter-spacing:0.05em; color:#888;">Description</td><td style="padding:6px 0; text-align:right; text-transform:uppercase; font-size:10px; letter-spacing:0.05em; color:#888;">Amount</td></tr>'
+    +'<tr style="border-bottom:1px solid #e2e0d8;"><td style="padding:10px 0;"><b>'+_esc(desc)+'</b>'+(contractCtx?'<div style="font-size:11px; color:#5f5e5a; margin-top:2px; line-height:1.45;">'+_esc(contractCtx)+'</div>':'')+'</td>'
+    +'<td style="padding:10px 0; text-align:right; font-size:16px; font-weight:600; white-space:nowrap;">'+window.zkFmtMoney(amt)+'</td></tr>'
+    +'</table>'
+    +'<div style="display:flex; justify-content:flex-end; margin-top:10px;">'
+    +'<table style="font-size:13px; min-width:260px;">'
+    +'<tr><td style="padding:2px 0; color:#5f5e5a;">Amount due this invoice</td><td style="padding:2px 0; text-align:right; font-size:18px; font-weight:700;">'+window.zkFmtMoney(amt)+'</td></tr>'
+    +'</table></div>'
+
+    // Payment info block
+    +'<div style="margin-top:18px; page-break-inside:avoid; break-inside:avoid;">'
+    +'<div style="font-size:12px; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; border-bottom:2px solid #1c1c1a; padding-bottom:4px; margin-bottom:8px;">How to pay</div>'
+    +'<div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">'
+    +'<div style="border:1px solid #e2e0d8; border-radius:6px; padding:10px 12px; font-size:11px; line-height:1.45;">'
+    +'<div style="font-weight:600; font-size:12px; margin-bottom:6px;">Check</div>'
+    +'<div style="color:#888; text-transform:uppercase; font-size:9px; letter-spacing:0.05em;">Make payable to</div>'
+    +'<div style="margin-bottom:6px;">'+pay.payable+'</div>'
+    +'<div style="color:#888; text-transform:uppercase; font-size:9px; letter-spacing:0.05em;">Mail to</div>'
+    +'<div>'+pay.mailing.join('<br>')+'</div>'
+    +'</div>'
+    +'<div style="border:1px solid #e2e0d8; border-radius:6px; padding:10px 12px; font-size:11px; line-height:1.45;">'
+    +'<div style="font-weight:600; font-size:12px; margin-bottom:6px;">Wire transfer</div>'
+    +'<table style="width:100%; font-size:11px; border-collapse:collapse;">'
+    +'<tr><td style="color:#888; padding:1px 6px 1px 0; vertical-align:top; white-space:nowrap;">Account name</td><td style="padding:1px 0; vertical-align:top;">'+pay.wire.accountName+'</td></tr>'
+    +'<tr><td style="color:#888; padding:1px 6px 1px 0; vertical-align:top; white-space:nowrap;">Account #</td><td style="padding:1px 0; vertical-align:top;">'+pay.wire.accountNumber+'</td></tr>'
+    +'<tr><td style="color:#888; padding:1px 6px 1px 0; vertical-align:top; white-space:nowrap;">Routing #</td><td style="padding:1px 0; vertical-align:top;">'+pay.wire.routingNumber+'</td></tr>'
+    +'<tr><td style="color:#888; padding:1px 6px 1px 0; vertical-align:top; white-space:nowrap;">Bank</td><td style="padding:1px 0; vertical-align:top;">'+pay.wire.bank+(pay.wire.bankBranch?'<br>'+pay.wire.bankBranch:'')+(pay.wire.bankAddress && pay.wire.bankAddress.length?'<br>'+pay.wire.bankAddress.join('<br>'):'')+'</td></tr>'
+    +(pay.wire.businessAddress?'<tr><td style="color:#888; padding:1px 6px 1px 0; vertical-align:top; white-space:nowrap;">Business addr</td><td style="padding:1px 0; vertical-align:top;">'+pay.wire.businessAddress.join('<br>')+'</td></tr>':'')
+    +'</table>'
+    +'</div></div>'
+    +'<div style="font-size:10px; color:#5f5e5a; margin-top:6px;">QuickBooks online payment also available — reply to this invoice and we\'ll send a payment link.</div>'
+    +'</div>'
+
+    // Footer disclaimer
+    +'<div style="margin-top:14px; font-size:10px; color:#888; line-height:1.5; border-top:1px solid #e2e0d8; padding-top:8px;">'
+    +'Invoice generated from the ZipKit Sales Portal. No sales tax applied. Pricing subject to change and correction. <b>Payments are non-refundable.</b> Contact your sales rep with any questions.'
+    +'</div>'
+    +'</div>';
+
+  var w = window.open('', '_blank');
+  if(!w){ zkToast('Please allow pop-ups to generate the invoice PDF.', true); return; }
+  w.document.write('<!DOCTYPE html><html><head><meta charset="utf-8"><title>Invoice '+_esc(num)+' — '+_esc(buyer)+'</title></head><body style="margin:0; background:#fff;">'+html
+    +'<div style="text-align:center; padding:20px;" class="noprint"><button onclick="window.print()" style="padding:10px 24px; font-size:14px; background:#d85a30; color:#fff; border:none; border-radius:8px; cursor:pointer;">Print / Save as PDF</button></div>'
+    +'<style>@page{size:letter;margin:0.35in;}@media print{.noprint{display:none;}.invoice-page{padding:0!important;}body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}}</style></body></html>');
+  w.document.close();
 }
 
 async function zkDeleteInvoice(invId){
