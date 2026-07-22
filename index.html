@@ -306,12 +306,23 @@
         <div class="section-sub" id="inv-count-sub">&mdash;</div>
       </div>
       <div id="zk-invoices-list"></div>
+      <div style="margin-bottom:6px;">
+        <select id="zk-inv-stage" onchange="_zkOnStageChange()" style="width:100%; margin:0;">
+          <option value="">— Select a billing stage (pre-fills description + amount) —</option>
+        </select>
+      </div>
       <div class="pmt-form-row" style="grid-template-columns: 120px 1fr 140px 120px;">
         <input type="text" id="zk-inv-number" placeholder="Invoice #">
         <input type="text" id="zk-inv-desc" placeholder="Description (e.g. Engineering payment)">
         <input type="number" id="zk-inv-amount" placeholder="Amount $" step="0.01" min="0">
         <input type="date" id="zk-inv-date">
       </div>
+      <div class="pmt-form-row" style="grid-template-columns: 1fr 1fr 160px; margin-top:6px;">
+        <input type="text" id="zk-rep-name"  placeholder="Sales rep name">
+        <input type="text" id="zk-rep-email" placeholder="Sales rep email">
+        <input type="text" id="zk-rep-phone" placeholder="Sales rep phone">
+      </div>
+      <div style="font-size:11px;color:var(--hint);margin:-2px 0 8px;">Sales rep info saves in this browser and appears on every invoice PDF you generate.</div>
       <div style="display:flex; gap:8px; flex-wrap:wrap;">
         <button class="pmt-form-btn" style="background:var(--info);" onclick="zkRecordInvoice(false)">Log invoice</button>
         <button class="pmt-form-btn" onclick="zkRecordInvoice(true)">Log + Generate PDF →</button>
@@ -582,9 +593,13 @@ async function zkShowPayments(id){
   document.getElementById('zk-inv-desc').value = '';
   document.getElementById('zk-inv-amount').value = '';
   document.getElementById('zk-inv-date').value = today;
+  var stageSel = document.getElementById('zk-inv-stage');
+  if(stageSel) stageSel.value = '';
+  _zkLoadRep();
   try {
     var q = await zkQuotes.get(id);
     titleEl.textContent = 'Invoices & Payments · ' + (q.buyer_name || q.project_name || q.quote_number);
+    _zkPopulateStagePicker(q);
     _zkRenderProject(q);
   } catch(e){
     pListEl.innerHTML = '<p style="color:var(--danger);padding:14px;">Failed to load: '+(e.message||e)+'</p>';
@@ -716,22 +731,50 @@ async function zkRecordInvoice(alsoGeneratePdf){
   var amt    = parseFloat(document.getElementById('zk-inv-amount').value);
   var date   = document.getElementById('zk-inv-date').value;
   if(!isFinite(amt) || amt <= 0){ zkToast('Enter an invoice amount greater than $0.', true); return; }
+
+  // Look up the picked stage (if any) so we can annotate the invoice record.
+  var stageSel = document.getElementById('zk-inv-stage');
+  var stageKey  = stageSel ? stageSel.value : '';
+  var stageName = '';
+  if(stageKey && stageKey !== '__custom'){
+    var st = (window._zkCurrentStages || []).filter(function(s){ return s.key === stageKey; })[0];
+    if(st) stageName = st.name;
+  } else {
+    stageKey = null;
+  }
+
+  var payload = { number: number, description: desc, amount: amt, sent_date: date, stage_key: stageKey, stage_name: stageName || null };
+
   try {
-    var updated = await zkQuotes.addInvoice(_zkPmtProjectId, { number: number, description: desc, amount: amt, sent_date: date });
+    var updated = await zkQuotes.addInvoice(_zkPmtProjectId, payload);
     document.getElementById('zk-inv-number').value = '';
     document.getElementById('zk-inv-desc').value = '';
     document.getElementById('zk-inv-amount').value = '';
+    if(stageSel) stageSel.value = '';
     _zkRenderProject(updated);
     zkToast('Invoice logged');
     loadProjects();
-    // If the user asked for the PDF too, find the freshly-added invoice (last in
-    // the array because addInvoice pushes) and open the branded doc in a new tab.
     if(alsoGeneratePdf){
       var justAdded = (updated.invoices || [])[(updated.invoices || []).length - 1];
       if(justAdded) zkGenerateInvoicePdf(updated, justAdded);
     }
   } catch(e){
+    // Save failed (usually: schema not migrated yet). Still let the rep get the
+    // PDF from the form values so they can send it now and log it later.
     zkToast('Save failed: ' + (e.message || e), true);
+    if(alsoGeneratePdf && window._zkCurrentProject){
+      var stub = {
+        id: 'unsaved-' + Date.now(),
+        number: number,
+        description: desc,
+        amount: amt,
+        sent_date: date || new Date().toISOString().slice(0,10),
+        stage_key: stageKey,
+        stage_name: stageName || null
+      };
+      zkGenerateInvoicePdf(window._zkCurrentProject, stub);
+      zkToast('PDF opened from form values (not saved to database).', true);
+    }
   }
 }
 
@@ -749,93 +792,279 @@ async function zkOpenInvoicePdf(invId){
   }
 }
 
+// ---------- Portal-side port of the quoting tool's invoiceStages() ----------
+// Reads from project.quote_data (the QUOTE object stored at save time). Falls
+// back to top-level fields when quote_data is absent (legacy rows).
+function _zkPortalInvoiceStages(project){
+  var q = project.quote_data || {};
+  var kind        = q.kind || (project.product_kind === 'modular' ? 'Modular' : (project.product_kind === 'custom' ? 'Custom Home' : 'Shell Kit'));
+  var total       = Number(q.total    != null ? q.total    : project.total || 0);
+  var contract    = Number(q.contract != null ? q.contract : project.contract_amount || total);
+  var design      = Number(q.design || 0);
+  var engineering = Number(q.engineering || 0);
+  var designPaid        = !!q.designPaid;
+  var engineeringPaid   = !!q.engineeringPaid;
+  var designCreditPromo = !!q.designCreditPromo;
+  var stages = [];
+
+  if(kind === 'Modular'){
+    var p1 = Math.round(total * 0.30), p2 = Math.round(total * 0.30), p3 = Math.round(total * 0.30);
+    var p4 = total - p1 - p2 - p3;
+    stages.push({key:'pay1',  name:'Payment 1 (30%)',     desc:'Upon signing contract — deposit to order windows, doors, trusses and all long lead time items', amount:p1});
+    stages.push({key:'pay2',  name:'Payment 2 (30%)',     desc:'When framing is completed on all units', amount:p2});
+    stages.push({key:'pay3',  name:'Payment 3 (30%)',     desc:'When exterior siding is completed and interior painting is completed', amount:p3});
+    stages.push({key:'final', name:'Final Payment (10%)', desc:'Final payment (contract price, less all deposits and payments) — due when the modular unit is set and connected to the foundation', amount:p4});
+    return stages;
+  }
+  if(design > 0 && !designPaid){
+    stages.push({key:'design', name:'Design', desc:'Architectural design fee · due at project start', amount:design});
+  }
+  if(kind === 'Custom Home' && Array.isArray(q.customSchedule) && q.customSchedule.length){
+    var promoCredit = (designCreditPromo && design > 0 && engineering > 0 && !engineeringPaid) ? Math.min(design, engineering) : 0;
+    if(engineering > 0 && !engineeringPaid){
+      var engAmtCS = Math.max(0, engineering - promoCredit);
+      var engDescCS = promoCredit > 0
+        ? 'Full submittal engineering ('+window.zkFmtMoney(engineering)+' less '+window.zkFmtMoney(promoCredit)+' design-retainer credit) · due after contract signing'
+        : 'Full submittal engineering · due after contract signing';
+      stages.push({key:'engineering', name:'Engineering', desc:engDescCS, amount:engAmtCS});
+    }
+    var schedBase = contract, lastIdx = q.customSchedule.length - 1, assigned = 0;
+    q.customSchedule.forEach(function(s, i){
+      var amt = (i === lastIdx) ? (schedBase - assigned) : Math.round(schedBase * s.pct / 100);
+      assigned += amt;
+      stages.push({key:'custom-'+i, name:s.name, desc:s.desc || '', amount:amt});
+    });
+    return stages;
+  }
+  if(engineering > 0 && !engineeringPaid){
+    var engAmt = engineering;
+    var engDesc = 'Full submittal engineering · due after contract signing';
+    if(designCreditPromo && design > 0){
+      engAmt = Math.max(0, engineering - design);
+      engDesc = 'Full submittal engineering ('+window.zkFmtMoney(engineering)+' less '+window.zkFmtMoney(design)+' design-retainer credit) · due after contract signing';
+    }
+    if(engAmt > 0) stages.push({key:'engineering', name:'Engineering', desc:engDesc, amount:engAmt});
+    else stages.push({key:'engineering', name:'Engineering', desc:'Fully covered by '+window.zkFmtMoney(design)+' design-retainer credit — no additional invoice', amount:0});
+  }
+  stages.push({key:'materials', name:'Materials (45%)', desc:'45% of contract · due after engineering', amount:Math.round(contract * 0.45)});
+  stages.push({key:'preship',   name:'Pre-ship (45%)',  desc:'45% of contract · due when kit ready to ship', amount:Math.round(contract * 0.45)});
+  stages.push({key:'final',     name:'Final set (10%)', desc:'10% of contract · due when set on site', amount:contract - Math.round(contract * 0.45) * 2});
+  return stages;
+}
+
+// Match an invoice record to a stage in the schedule. Prefers stored stage_key
+// (set when the rep picks from the stage dropdown); falls back to name/desc.
+function _zkFindStageForInvoice(stages, invoice){
+  if(invoice.stage_key){
+    var byKey = stages.filter(function(s){ return s.key === invoice.stage_key; })[0];
+    if(byKey) return byKey;
+  }
+  var hay = ((invoice.description || '') + ' ' + (invoice.stage_name || '')).toLowerCase();
+  for(var i = 0; i < stages.length; i++){
+    var first = (stages[i].name || '').toLowerCase().split(' ')[0];
+    if(first && hay.indexOf(first) !== -1) return stages[i];
+  }
+  return null;
+}
+
+// Populate the invoice modal's stage picker from the current project.
+function _zkPopulateStagePicker(project){
+  var sel = document.getElementById('zk-inv-stage');
+  if(!sel) return;
+  var stages = _zkPortalInvoiceStages(project);
+  window._zkCurrentStages = stages;
+  var opts = ['<option value="">— Select a billing stage (pre-fills description + amount) —</option>'];
+  stages.filter(function(s){ return s.amount > 0; }).forEach(function(s){
+    opts.push('<option value="'+_esc(s.key)+'">'+_esc(s.name+' — '+window.zkFmtMoney(s.amount))+'</option>');
+  });
+  opts.push('<option value="__custom">— Other (enter manually) —</option>');
+  sel.innerHTML = opts.join('');
+}
+
+function _zkOnStageChange(){
+  var sel = document.getElementById('zk-inv-stage');
+  var key = sel && sel.value;
+  if(!key || key === '__custom') return;
+  var stage = (window._zkCurrentStages || []).filter(function(s){ return s.key === key; })[0];
+  if(!stage) return;
+  document.getElementById('zk-inv-desc').value = stage.name;
+  document.getElementById('zk-inv-amount').value = stage.amount;
+}
+
+// Load rep info from localStorage on modal open; wire inputs to auto-save.
+function _zkLoadRep(){
+  ['name','email','phone'].forEach(function(f){
+    var el = document.getElementById('zk-rep-'+f);
+    if(!el) return;
+    el.value = localStorage.getItem('zk_rep_'+f) || '';
+    if(!el.dataset.zkRepBound){
+      el.dataset.zkRepBound = '1';
+      el.addEventListener('change', function(){ localStorage.setItem('zk_rep_'+f, el.value); });
+      el.addEventListener('blur',   function(){ localStorage.setItem('zk_rep_'+f, el.value); });
+    }
+  });
+}
+
 // ---------- Invoice PDF generator ----------
-// Renders a branded, print-ready invoice for a project + invoice record. Opens
-// in a new tab with a Print/Save button. Brand-aware: pulls logo, address, and
-// wire/mailing details from the shared zkPaymentInfo + zkBrandInfo.
+// Renders a branded, print-ready invoice matching the quoting tool's layout —
+// header with Stage, sales rep row, contract payment schedule, kind-aware
+// footer. Brand-aware; pulls logo/address/wire from zkPaymentInfo + zkBrandInfo.
 function zkGenerateInvoicePdf(project, invoice){
   var brand = project.brand || 'zipkit';
   var co = window.zkBrandInfo[brand] || window.zkBrandInfo.zipkit;
   var pay = window.zkPaymentInfo[brand] || window.zkPaymentInfo.zipkit;
-  var bal = window.zkProjectBalance(project);
+  var fmt = window.zkFmtMoney;
 
-  // Header: pull the logo from the images/ folder relative to the portal.
   var logoImg = 'images/' + co.logoFile;
-  var logoH = brand === 'mvp' ? 72 : 54;
-  var num = invoice.number || '—';
+  var logoH = brand === 'mvp' ? 76 : 54;
+  var num  = invoice.number || '—';
   var date = invoice.sent_date || new Date().toISOString().slice(0,10);
-  var desc = invoice.description || 'Invoice';
   var amt  = Number(invoice.amount) || 0;
-  var buyer = project.buyer_name || '—';
+
+  var buyer      = project.buyer_name || '—';
   var buyerEmail = project.buyer_email || '';
   var buyerPhone = project.buyer_phone || '';
+
   var projectName = project.project_name || '';
-  var modelInfo = (project.model || '') + (project.units > 1 ? ' × ' + project.units : '');
-  var contractCtx = bal.contract > 0
-    ? 'Contract total ' + window.zkFmtMoney(bal.contract) + ' · already paid ' + window.zkFmtMoney(bal.paid) + ' · remaining ' + window.zkFmtMoney(bal.remaining - amt < 0 ? 0 : bal.remaining - amt) + ' after this invoice clears'
-    : '';
+  var q = project.quote_data || {};
+  var kind    = q.kind    || (project.product_kind === 'modular' ? 'Modular' : (project.product_kind === 'custom' ? 'Custom Home' : 'Shell Kit'));
+  var modelStr = (q.model || project.model || '') + ((q.units || project.units) > 1 ? ' ×' + (q.units || project.units) : '');
+  var projectHead = [kind, modelStr].filter(function(x){return x;}).join(' · ');
+
+  // Rep info from localStorage (auto-saved from the invoice modal inputs).
+  var repName  = localStorage.getItem('zk_rep_name')  || '';
+  var repEmail = localStorage.getItem('zk_rep_email') || '';
+  var repPhone = localStorage.getItem('zk_rep_phone') || '';
+
+  // Rebuild the payment schedule from the stored quote data. Then match this
+  // invoice to a specific stage so we can show "← this invoice" and grey out
+  // paid/upcoming rows.
+  var stages       = _zkPortalInvoiceStages(project);
+  var stage        = _zkFindStageForInvoice(stages, invoice);
+  var stageName    = stage ? stage.name : (invoice.stage_name || invoice.description || 'Invoice');
+  var stageDesc    = stage ? stage.desc : (invoice.description || '');
+
+  // For the schedule block: exclude 'design' — the design retainer is its own
+  // standalone doc, separate from the contract's payment schedule.
+  var isDesignInvoice = stage && stage.key === 'design';
+  var contractStages  = stages.filter(function(s){ return s.key !== 'design'; });
+
+  // Which stage keys have already been invoiced BEFORE this one — used to grey
+  // out prior schedule rows and label them PAID.
+  var loggedInvoices = Array.isArray(project.invoices) ? project.invoices : [];
+  var invoicedKeys = {};
+  loggedInvoices.forEach(function(inv){
+    if(inv.id === invoice.id) return; // don't count the current invoice
+    if(inv.stage_key) invoicedKeys[inv.stage_key] = true;
+  });
+
+  var thisIdx = stage ? contractStages.indexOf(stage) : -1;
+  var scheduleRows = contractStages.map(function(s, i){
+    var isThis  = stage && s.key === stage.key;
+    var isPrior = !isDesignInvoice && (invoicedKeys[s.key] || (thisIdx > 0 && i < thisIdx));
+    var rowStyle = isThis ? 'background:#faeeda;' : (isPrior ? 'opacity:0.6;' : '');
+    var rightCell = isPrior
+      ? '<span style="color:#0f6e56; font-weight:600; letter-spacing:0.04em;">PAID</span><div style="font-size:10px; color:#888; font-weight:400;">was '+fmt(s.amount)+'</div>'
+      : fmt(s.amount);
+    var rowTag = isThis ? ' &nbsp;<b style="color:#993c1d;">← this invoice</b>' : '';
+    return '<tr style="'+rowStyle+'">'
+      +'<td style="padding:7px 10px;">'+_esc(s.name)+rowTag+'</td>'
+      +'<td style="padding:7px 10px; text-align:right;">'+rightCell+'</td></tr>';
+  }).join('');
+  var contractTotal = contractStages.reduce(function(a,s){return a+s.amount;}, 0);
+  var priorInvoiced = contractStages.reduce(function(a,s,i){
+    var isPrior = !isDesignInvoice && (invoicedKeys[s.key] || (thisIdx > 0 && i < thisIdx));
+    return isPrior ? a + s.amount : a;
+  }, 0);
+  var remaining = contractTotal - priorInvoiced - amt;
+
+  var brandHead = '<img src="'+logoImg+'" alt="'+_esc(co.name)+'" style="height:'+logoH+'px;" onerror="this.style.display=\'none\'; this.nextSibling && (this.nextSibling.style.display=\'block\');"><div style="display:none; font-size:22px; font-weight:700;">'+_esc(co.name)+'</div>';
 
   var html = ''
     +'<div class="invoice-page" style="max-width:760px; margin:0 auto; font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif; color:#1c1c1a; padding:22px 24px;">'
+    // ---- Header ----
     +'<div style="display:flex; justify-content:space-between; align-items:flex-start; border-bottom:2px solid #1c1c1a; padding-bottom:12px;">'
-    +'<div><img src="'+logoImg+'" alt="'+co.name+'" style="height:'+logoH+'px;" onerror="this.style.display=\'none\';"><div style="font-size:11px; color:#5f5e5a; margin-top:6px; line-height:1.5;">'+co.addr+'<br>'+co.tel+' &nbsp;|&nbsp; '+co.email+'</div></div>'
+    +'<div>'+brandHead+'<div style="font-size:11px; color:#5f5e5a; margin-top:6px; line-height:1.5;">'+_esc(co.addr)+'<br>'+_esc(co.tel)+' &nbsp;|&nbsp; '+_esc(co.email)+'</div></div>'
     +'<div style="text-align:right;"><div style="font-size:26px; font-weight:700; letter-spacing:-0.02em;">INVOICE</div>'
-    +'<div style="font-size:12px; color:#5f5e5a; margin-top:4px; line-height:1.6;">Invoice #: <b>'+_esc(num)+'</b><br>Date: '+_esc(date)+'</div></div>'
+    +'<div style="font-size:12px; color:#5f5e5a; margin-top:4px; line-height:1.6;">Invoice #: <b>'+_esc(num)+'</b><br>Date: '+_esc(date)+(stage ? '<br>Stage: <b>'+_esc(stageName)+'</b>' : '')+'</div></div>'
     +'</div>'
 
-    // Bill to + project block
+    // ---- Bill To / Project ----
     +'<div style="display:flex; justify-content:space-between; margin-top:14px; font-size:12px;">'
     +'<div><div style="color:#888; text-transform:uppercase; font-size:10px; letter-spacing:0.05em;">Bill to</div>'
     +'<div style="font-size:14px; font-weight:500; margin-top:2px;">'+_esc(buyer)+'</div>'
     +(buyerEmail || buyerPhone ? '<div style="color:#5f5e5a; font-size:11px; margin-top:2px; line-height:1.4;">'+[buyerEmail, buyerPhone].filter(function(x){return x;}).map(_esc).join('<br>')+'</div>' : '')
     +'</div>'
-    +(projectName || modelInfo ? '<div style="text-align:right;"><div style="color:#888; text-transform:uppercase; font-size:10px; letter-spacing:0.05em;">Project</div><div style="font-size:14px; font-weight:500; margin-top:2px;">'+_esc(projectName)+'</div>'+(modelInfo?'<div style="font-size:11px; color:#5f5e5a; margin-top:2px;">'+_esc(modelInfo)+'</div>':'')+'</div>' : '')
+    +(projectHead || projectName ? '<div style="text-align:right;"><div style="color:#888; text-transform:uppercase; font-size:10px; letter-spacing:0.05em;">Project</div><div style="font-size:14px; font-weight:500; margin-top:2px;">'+_esc(projectHead || projectName)+'</div>'+(projectHead && projectName ? '<div style="font-size:11px; color:#5f5e5a; margin-top:2px;">'+_esc(projectName)+'</div>' : '')+'</div>' : '')
     +'</div>'
 
-    // Invoice line item
+    // ---- Sales rep row ----
+    +(repName ? '<div style="margin-top:8px; padding-top:8px; border-top:1px solid #e2e0d8; display:flex; justify-content:space-between; font-size:11px;"><div><span style="color:#888; text-transform:uppercase; font-size:10px; letter-spacing:0.05em;">Sales rep</span> &nbsp;<b>'+_esc(repName)+'</b></div><div style="color:#5f5e5a;">'+[repEmail, repPhone].filter(function(x){return x;}).map(_esc).join(' &nbsp;·&nbsp; ')+'</div></div>' : '')
+
+    // ---- Line item ----
     +'<table style="width:100%; border-collapse:collapse; margin-top:16px; font-size:13px;">'
     +'<tr style="border-bottom:2px solid #1c1c1a;"><td style="padding:6px 0; text-transform:uppercase; font-size:10px; letter-spacing:0.05em; color:#888;">Description</td><td style="padding:6px 0; text-align:right; text-transform:uppercase; font-size:10px; letter-spacing:0.05em; color:#888;">Amount</td></tr>'
-    +'<tr style="border-bottom:1px solid #e2e0d8;"><td style="padding:10px 0;"><b>'+_esc(desc)+'</b>'+(contractCtx?'<div style="font-size:11px; color:#5f5e5a; margin-top:2px; line-height:1.45;">'+_esc(contractCtx)+'</div>':'')+'</td>'
-    +'<td style="padding:10px 0; text-align:right; font-size:16px; font-weight:600; white-space:nowrap;">'+window.zkFmtMoney(amt)+'</td></tr>'
+    +'<tr style="border-bottom:1px solid #e2e0d8;"><td style="padding:10px 0;"><b>'+_esc(stageName)+'</b>'+(stageDesc ? '<div style="font-size:11px; color:#5f5e5a; margin-top:2px; line-height:1.45;">'+_esc(stageDesc)+'</div>' : '')+'</td>'
+    +'<td style="padding:10px 0; text-align:right; font-size:16px; font-weight:600; white-space:nowrap;">'+fmt(amt)+'</td></tr>'
     +'</table>'
     +'<div style="display:flex; justify-content:flex-end; margin-top:10px;">'
     +'<table style="font-size:13px; min-width:260px;">'
-    +'<tr><td style="padding:2px 0; color:#5f5e5a;">Amount due this invoice</td><td style="padding:2px 0; text-align:right; font-size:18px; font-weight:700;">'+window.zkFmtMoney(amt)+'</td></tr>'
+    +'<tr><td style="padding:2px 0; color:#5f5e5a;">Amount due this invoice</td><td style="padding:2px 0; text-align:right; font-size:18px; font-weight:700;">'+fmt(amt)+'</td></tr>'
     +'</table></div>'
 
-    // Payment info block
-    +'<div style="margin-top:18px; page-break-inside:avoid; break-inside:avoid;">'
+    // ---- Schedule block ----
+    +(isDesignInvoice
+      ? '<div style="margin-top:16px; background:#f5f3ec; border-radius:8px; padding:10px 14px; page-break-inside:avoid; break-inside:avoid; font-size:11px; color:#5f5e5a; line-height:1.55;">'
+        +'<div style="font-size:11px; text-transform:uppercase; letter-spacing:0.05em; color:#888; margin-bottom:4px;">What\'s next</div>'
+        +'This is the architectural design retainer — paid up front and separate from the contract. Once received, we\'ll prepare a contract for signature. The contract\'s full payment schedule (engineering first, then 45% / 45% / 10% of the remainder) will be invoiced separately as the project moves through production.'
+        +'</div>'
+      : (contractStages.length
+          ? '<div style="margin-top:16px; background:#f5f3ec; border-radius:8px; padding:10px 14px; page-break-inside:avoid; break-inside:avoid;">'
+            +'<div style="font-size:11px; text-transform:uppercase; letter-spacing:0.05em; color:#888; margin-bottom:4px;">Contract payment schedule</div>'
+            +'<table style="width:100%; border-collapse:collapse; font-size:12px;">'+scheduleRows
+            +'<tr style="border-top:1px solid #c9c7bd;"><td style="padding:5px 8px; font-weight:600;">Contract total</td><td style="padding:5px 8px; text-align:right; font-weight:600;">'+fmt(contractTotal)+'</td></tr>'
+            +'</table>'
+            +'<div style="font-size:11px; color:#5f5e5a; margin-top:4px;">Previously invoiced: '+fmt(priorInvoiced)+' &nbsp;·&nbsp; Remaining after this invoice: '+fmt(Math.max(0, remaining))+'</div>'
+            +'</div>'
+          : ''))
+
+    // ---- How to pay ----
+    +'<div style="margin-top:14px; page-break-inside:avoid; break-inside:avoid;">'
     +'<div style="font-size:12px; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; border-bottom:2px solid #1c1c1a; padding-bottom:4px; margin-bottom:8px;">How to pay</div>'
     +'<div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">'
     +'<div style="border:1px solid #e2e0d8; border-radius:6px; padding:10px 12px; font-size:11px; line-height:1.45;">'
     +'<div style="font-weight:600; font-size:12px; margin-bottom:6px;">Check</div>'
     +'<div style="color:#888; text-transform:uppercase; font-size:9px; letter-spacing:0.05em;">Make payable to</div>'
-    +'<div style="margin-bottom:6px;">'+pay.payable+'</div>'
+    +'<div style="margin-bottom:6px;">'+_esc(pay.payable)+'</div>'
     +'<div style="color:#888; text-transform:uppercase; font-size:9px; letter-spacing:0.05em;">Mail to</div>'
-    +'<div>'+pay.mailing.join('<br>')+'</div>'
+    +'<div>'+pay.mailing.map(_esc).join('<br>')+'</div>'
     +'</div>'
     +'<div style="border:1px solid #e2e0d8; border-radius:6px; padding:10px 12px; font-size:11px; line-height:1.45;">'
     +'<div style="font-weight:600; font-size:12px; margin-bottom:6px;">Wire transfer</div>'
     +'<table style="width:100%; font-size:11px; border-collapse:collapse;">'
-    +'<tr><td style="color:#888; padding:1px 6px 1px 0; vertical-align:top; white-space:nowrap;">Account name</td><td style="padding:1px 0; vertical-align:top;">'+pay.wire.accountName+'</td></tr>'
-    +'<tr><td style="color:#888; padding:1px 6px 1px 0; vertical-align:top; white-space:nowrap;">Account #</td><td style="padding:1px 0; vertical-align:top;">'+pay.wire.accountNumber+'</td></tr>'
-    +'<tr><td style="color:#888; padding:1px 6px 1px 0; vertical-align:top; white-space:nowrap;">Routing #</td><td style="padding:1px 0; vertical-align:top;">'+pay.wire.routingNumber+'</td></tr>'
-    +'<tr><td style="color:#888; padding:1px 6px 1px 0; vertical-align:top; white-space:nowrap;">Bank</td><td style="padding:1px 0; vertical-align:top;">'+pay.wire.bank+(pay.wire.bankBranch?'<br>'+pay.wire.bankBranch:'')+(pay.wire.bankAddress && pay.wire.bankAddress.length?'<br>'+pay.wire.bankAddress.join('<br>'):'')+'</td></tr>'
-    +(pay.wire.businessAddress?'<tr><td style="color:#888; padding:1px 6px 1px 0; vertical-align:top; white-space:nowrap;">Business addr</td><td style="padding:1px 0; vertical-align:top;">'+pay.wire.businessAddress.join('<br>')+'</td></tr>':'')
+    +'<tr><td style="color:#888; padding:1px 6px 1px 0; vertical-align:top; white-space:nowrap;">Account name</td><td style="padding:1px 0; vertical-align:top;">'+_esc(pay.wire.accountName)+'</td></tr>'
+    +'<tr><td style="color:#888; padding:1px 6px 1px 0; vertical-align:top; white-space:nowrap;">Account #</td><td style="padding:1px 0; vertical-align:top;">'+_esc(pay.wire.accountNumber)+'</td></tr>'
+    +'<tr><td style="color:#888; padding:1px 6px 1px 0; vertical-align:top; white-space:nowrap;">Routing #</td><td style="padding:1px 0; vertical-align:top;">'+_esc(pay.wire.routingNumber)+'</td></tr>'
+    +'<tr><td style="color:#888; padding:1px 6px 1px 0; vertical-align:top; white-space:nowrap;">Bank</td><td style="padding:1px 0; vertical-align:top;">'+_esc(pay.wire.bank)+(pay.wire.bankBranch?'<br>'+_esc(pay.wire.bankBranch):'')+(pay.wire.bankAddress && pay.wire.bankAddress.length?'<br>'+pay.wire.bankAddress.map(_esc).join('<br>'):'')+'</td></tr>'
+    +(pay.wire.businessAddress?'<tr><td style="color:#888; padding:1px 6px 1px 0; vertical-align:top; white-space:nowrap;">Business addr</td><td style="padding:1px 0; vertical-align:top;">'+pay.wire.businessAddress.map(_esc).join('<br>')+'</td></tr>':'')
     +'</table>'
     +'</div></div>'
     +'<div style="font-size:10px; color:#5f5e5a; margin-top:6px;">QuickBooks online payment also available — reply to this invoice and we\'ll send a payment link.</div>'
     +'</div>'
 
-    // Footer disclaimer
+    // ---- Kind-aware footer disclaimer ----
     +'<div style="margin-top:14px; font-size:10px; color:#888; line-height:1.5; border-top:1px solid #e2e0d8; padding-top:8px;">'
-    +'Invoice generated from the ZipKit Sales Portal. No sales tax applied. Pricing subject to change and correction. <b>Payments are non-refundable.</b> Contact your sales rep with any questions.'
+    +(isDesignInvoice
+      ? 'Architectural design retainer · paid up front, separate from the contract. The contract document and its payment schedule (engineering first, then 45% / 45% / 10% of the remainder) will follow once the design retainer is received. Pricing subject to change and correction. No sales tax applied. <b>Payments are non-refundable.</b>'
+      : (kind === 'Modular'
+          ? 'Modular contract is billed 30% at signing (long-lead materials deposit), 30% at framing complete, 30% at exterior siding + interior paint complete, and a final 10% when the unit is set and connected to the foundation. Design, engineering, and standard windows are included in the contract price. Shipping is included. No sales tax applied. Pricing subject to change and correction. This invoice reflects one stage of a multi-stage billing schedule. <b>Payments are non-refundable.</b>'
+          : 'Contract is billed engineering first, then 45% / 45% / 10% of the remainder. Shipping is included in the contract. No sales tax applied. Pricing subject to change and correction. This invoice reflects one stage of a multi-stage billing schedule. <b>Payments are non-refundable.</b>'))
     +'</div>'
     +'</div>';
 
   var w = window.open('', '_blank');
   if(!w){ zkToast('Please allow pop-ups to generate the invoice PDF.', true); return; }
-  w.document.write('<!DOCTYPE html><html><head><meta charset="utf-8"><title>Invoice '+_esc(num)+' — '+_esc(buyer)+'</title></head><body style="margin:0; background:#fff;">'+html
+  w.document.write('<!DOCTYPE html><html><head><meta charset="utf-8"><title>Invoice '+_esc(num)+' — '+_esc(stageName)+'</title></head><body style="margin:0; background:#fff;">'+html
     +'<div style="text-align:center; padding:20px;" class="noprint"><button onclick="window.print()" style="padding:10px 24px; font-size:14px; background:#d85a30; color:#fff; border:none; border-radius:8px; cursor:pointer;">Print / Save as PDF</button></div>'
     +'<style>@page{size:letter;margin:0.35in;}@media print{.noprint{display:none;}.invoice-page{padding:0!important;}body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}}</style></body></html>');
   w.document.close();
