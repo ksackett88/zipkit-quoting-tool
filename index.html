@@ -796,6 +796,14 @@ async function zkOpenInvoicePdf(invId){
 // Reads from project.quote_data (the QUOTE object stored at save time). Falls
 // back to top-level fields when quote_data is absent (legacy rows).
 function _zkPortalInvoiceStages(project){
+  // Contract rows (saved from the Contract Generator) stash the exact schedule
+  // that was on the printed contract. That's the definitive source of truth —
+  // use it verbatim so invoices match the contract to the dollar (rather than
+  // recomputing from contract_amount, which includes engineering and would
+  // over-count the 45/45/10 base).
+  if(project.config && Array.isArray(project.config.payment_schedule) && project.config.payment_schedule.length){
+    return project.config.payment_schedule.slice();
+  }
   var q = project.quote_data || {};
   var kind        = q.kind || (project.product_kind === 'modular' ? 'Modular' : (project.product_kind === 'custom' ? 'Custom Home' : 'Shell Kit'));
   var total       = Number(q.total    != null ? q.total    : project.total || 0);

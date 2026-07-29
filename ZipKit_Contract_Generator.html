@@ -2374,6 +2374,56 @@ function zkCaptureContract(){
   return cfg;
 }
 
+// Build a normalized payment-schedule array from the active CURRENT_* global.
+// Attached to config on save so the Sales Portal can render invoices with the
+// exact same schedule rows (Engineering / Materials / Pre-ship / Final) that
+// were shown on the printed contract — no re-derivation, no drift.
+function zkContractPaymentSchedule(mode){
+  var stages = [];
+  if(mode === 'shell' && window.CURRENT){
+    var c = window.CURRENT;
+    if(c.eng > 0 && !c.engPaid){
+      var engDesc = c.promoCredit > 0
+        ? 'Full submittal engineering ('+fmt(c.p1Base || c.eng)+' less '+fmt(c.promoCredit)+' design-retainer credit) · due after contract signing'
+        : 'Full submittal engineering · due after contract signing';
+      stages.push({key:'engineering', name:'Engineering', desc:engDesc, amount:c.p1});
+    }
+    stages.push({key:'materials', name:'Materials (45%)', desc:'45% of remainder · long-lead materials, begins production', amount:c.p2});
+    stages.push({key:'preship',   name:'Pre-ship (45%)',  desc:'45% of remainder · due before shipment',                   amount:c.p3});
+    stages.push({key:'final',     name:'Final set (10%)', desc:'10% of remainder · due at completion',                     amount:c.p4});
+    return stages;
+  }
+  if(mode === 'modular' && window.CURRENT_MODULAR){
+    var m = window.CURRENT_MODULAR;
+    if(Array.isArray(m.customStages) && m.customStages.length){
+      m.customStages.forEach(function(s, i){
+        stages.push({key:'pay'+(i+1), name:s.name || ('Payment '+(i+1)), desc:s.desc || '', amount:Number(s.amount) || 0});
+      });
+      return stages;
+    }
+    stages.push({key:'pay1',  name:'Payment 1 (30%)',     desc:'Upon signing contract — deposit to order windows, doors, trusses and all long lead time items', amount:m.p1});
+    stages.push({key:'pay2',  name:'Payment 2 (30%)',     desc:'When framing is completed on all units',                                                        amount:m.p2});
+    stages.push({key:'pay3',  name:'Payment 3 (30%)',     desc:'When exterior siding is completed and interior painting is completed',                          amount:m.p3});
+    stages.push({key:'final', name:'Final Payment (10%)', desc:'Final payment (contract price, less all deposits and payments) — due when unit is set on the foundation', amount:m.p4});
+    return stages;
+  }
+  if(mode === 'custom' && window.CURRENT_CUSTOM){
+    var cu = window.CURRENT_CUSTOM;
+    if(cu.eng > 0 && !cu.engPaid){
+      var engDescC = cu.promoCredit > 0
+        ? 'Full submittal engineering ('+fmt(cu.p1Base || cu.eng)+' less '+fmt(cu.promoCredit)+' design-retainer credit) · due after contract signing'
+        : 'Full submittal engineering · due after contract signing';
+      stages.push({key:'engineering', name:'Engineering', desc:engDescC, amount:cu.p1});
+    }
+    stages.push({key:'materials', name:'Materials (45%)', desc:'45% of remainder · due after engineering', amount:cu.p2});
+    stages.push({key:'preship',   name:'Pre-ship (45%)',  desc:'45% of remainder · due before shipment',   amount:cu.p3});
+    stages.push({key:'final',     name:'Final set (10%)', desc:'10% of remainder · due on set',            amount:cu.p4});
+    return stages;
+  }
+  // Change orders don't have a stage schedule — they collapse into a single revised total.
+  return stages;
+}
+
 async function zkSaveCurrentContract(){
   if(!window.zkQuotes){ zkContractToast('Save unavailable — auth not loaded.', true); return; }
   var cfg = zkCaptureContract();
@@ -2404,6 +2454,10 @@ async function zkSaveCurrentContract(){
   var project= (document.getElementById('c-project')||{}).value || null;
   var email  = (document.getElementById('c-email')||{}).value || null;
   var phone  = (document.getElementById('c-phone')||{}).value || null;
+
+  // Stash the exact schedule the contract just rendered — the portal reads
+  // this back verbatim so invoice PDFs match the contract to the dollar.
+  cfg.payment_schedule = zkContractPaymentSchedule(mode);
 
   var data = {
     product_kind: 'contract-' + mode,
