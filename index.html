@@ -796,14 +796,47 @@ async function zkOpenInvoicePdf(invId){
 // Reads from project.quote_data (the QUOTE object stored at save time). Falls
 // back to top-level fields when quote_data is absent (legacy rows).
 function _zkPortalInvoiceStages(project){
-  // Contract rows (saved from the Contract Generator) stash the exact schedule
-  // that was on the printed contract. That's the definitive source of truth —
-  // use it verbatim so invoices match the contract to the dollar (rather than
-  // recomputing from contract_amount, which includes engineering and would
-  // over-count the 45/45/10 base).
+  // 1) Contract rows saved AFTER the schedule-stash fix carry the exact rows
+  // that were on the printed contract — use them verbatim.
   if(project.config && Array.isArray(project.config.payment_schedule) && project.config.payment_schedule.length){
     return project.config.payment_schedule.slice();
   }
+
+  // 2) LEGACY contract rows (saved before the fix): quote_data is null and
+  // contract_amount is the full total INCLUDING engineering. Recover the
+  // engineering figure from the captured form fields so the 45/45/10 split
+  // is computed against the correct post-engineering base.
+  if(project.product_kind && project.product_kind.indexOf('contract-') === 0 && !project.quote_data){
+    var mode   = project.product_kind.slice(9); // 'shell' / 'modular' / 'custom' / 'changeorder'
+    var fields = (project.config && project.config.fields) || {};
+    var full   = Number(project.contract_amount || project.total || 0);
+    var legacy = [];
+    if(mode === 'custom'){
+      var eng     = Number(fields['cu-eng'] || 0);
+      var engPaid = !!fields['cu-eng-paid'];
+      var postEng = Math.max(0, full - (engPaid ? 0 : eng));
+      if(eng > 0 && !engPaid){
+        legacy.push({key:'engineering', name:'Engineering', desc:'Full submittal engineering · due after contract signing', amount:eng});
+      }
+      legacy.push({key:'materials', name:'Materials (45%)', desc:'45% of remainder · due after engineering', amount:Math.round(postEng * 0.45)});
+      legacy.push({key:'preship',   name:'Pre-ship (45%)',  desc:'45% of remainder · due before shipment',   amount:Math.round(postEng * 0.45)});
+      legacy.push({key:'final',     name:'Final set (10%)', desc:'10% of remainder · due on set',            amount:postEng - Math.round(postEng * 0.45) * 2});
+      return legacy;
+    }
+    if(mode === 'modular'){
+      // Engineering is baked into the modular base — plain 30/30/30/10 of total.
+      var p1 = Math.round(full * 0.30), p2 = Math.round(full * 0.30), p3 = Math.round(full * 0.30);
+      legacy.push({key:'pay1',  name:'Payment 1 (30%)',     desc:'Upon signing contract — deposit to order windows, doors, trusses and all long lead time items', amount:p1});
+      legacy.push({key:'pay2',  name:'Payment 2 (30%)',     desc:'When framing is completed on all units',                                                        amount:p2});
+      legacy.push({key:'pay3',  name:'Payment 3 (30%)',     desc:'When exterior siding + interior paint completed',                                               amount:p3});
+      legacy.push({key:'final', name:'Final Payment (10%)', desc:'Final payment — due when unit is set on the foundation',                                        amount:full - p1 - p2 - p3});
+      return legacy;
+    }
+    // Shell / changeorder: engineering isn't captured on the row, so we can't
+    // reconstruct exactly. Fall through and let the recompute-from-total path
+    // run — user should re-save the contract to backfill payment_schedule.
+  }
+
   var q = project.quote_data || {};
   var kind        = q.kind || (project.product_kind === 'modular' ? 'Modular' : (project.product_kind === 'custom' ? 'Custom Home' : 'Shell Kit'));
   var total       = Number(q.total    != null ? q.total    : project.total || 0);
