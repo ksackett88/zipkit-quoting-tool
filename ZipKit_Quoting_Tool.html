@@ -283,6 +283,8 @@
         <div class="checkrow"><input type="checkbox" id="s-design-paid"><label for="s-design-paid" style="margin:0;color:var(--ink);">Design retainer</label></div>
         <div class="checkrow"><input type="checkbox" id="s-eng-paid"><label for="s-eng-paid" style="margin:0;color:var(--ink);">Engineering submittal</label></div>
 
+        <div class="zk-assembly-slot" data-prefix="s" data-calc="calcShell"></div>
+
         <label>Add-ons &amp; extras</label>
         <div id="s-custom"></div>
         <button type="button" class="btn-sm" onclick="addCustomItem('s')">+ Add line item</button>
@@ -352,6 +354,8 @@
           <span class="slider-out" id="m-disc-out">0%</span>
         </div>
 
+        <div class="zk-assembly-slot" data-prefix="m" data-calc="calcModular"></div>
+
         <label>Add-ons &amp; extras</label>
         <div id="m-custom"></div>
         <button type="button" class="btn-sm" onclick="addCustomItem('m')">+ Add line item</button>
@@ -407,6 +411,8 @@
 
         <label style="margin-top:8px;">Already paid (remove from total &amp; payment schedule)</label>
         <div class="checkrow"><input type="checkbox" id="g-design-paid"><label for="g-design-paid" style="margin:0;color:var(--ink);">Design &amp; engineering</label></div>
+
+        <div class="zk-assembly-slot" data-prefix="g" data-calc="calcGarage"></div>
 
         <label>Add-ons &amp; extras</label>
         <div id="g-custom"></div>
@@ -467,6 +473,8 @@
 
         <label style="margin-top:8px;">Already paid (remove from total &amp; payment schedule)</label>
         <div class="checkrow"><input type="checkbox" id="h-design-paid"><label for="h-design-paid" style="margin:0;color:var(--ink);">Design retainer</label></div>
+
+        <div class="zk-assembly-slot" data-prefix="h" data-calc="calcHangar"></div>
 
         <label>Add-ons &amp; extras</label>
         <div id="h-custom"></div>
@@ -531,6 +539,8 @@
         <label style="margin-top:8px;">Already paid (remove from total &amp; payment schedule)</label>
         <div class="checkrow"><input type="checkbox" id="st-design-paid"><label for="st-design-paid" style="margin:0;color:var(--ink);">Design retainer</label></div>
         <div class="checkrow"><input type="checkbox" id="st-eng-paid"><label for="st-eng-paid" style="margin:0;color:var(--ink);">Engineering</label></div>
+
+        <div class="zk-assembly-slot" data-prefix="st" data-calc="calcSteel"></div>
 
         <label>Add-ons &amp; extras</label>
         <div id="st-custom"></div>
@@ -615,6 +625,8 @@
         <label style="margin-top:8px;">Already paid (remove from total &amp; payment schedule)</label>
         <div class="checkrow"><input type="checkbox" id="c-design-paid"><label for="c-design-paid" style="margin:0;color:var(--ink);">Design retainer ($3,500)</label></div>
         <div class="checkrow"><input type="checkbox" id="c-eng-paid"><label for="c-eng-paid" style="margin:0;color:var(--ink);">Engineering</label></div>
+
+        <div class="zk-assembly-slot" data-prefix="c" data-calc="calcCustom"></div>
 
         <label style="margin-top:16px;">Payment schedule override (optional)</label>
         <p class="note">Leave empty to use the standard flow (Engineering is a fixed $, then 45/45/10 of the contract). Only fill this in when you want a different split — e.g. 6 payments instead of 3. Engineering stays as its own fixed-$ line either way; these percentages apply to the contract portion only and must total 100%.</p>
@@ -751,6 +763,69 @@ function fmt(n){ return '$' + Math.round(n).toLocaleString('en-US'); }
 function rowRate(l,val,o){o=o||{};var s=o.sub?'<div class="sub">'+o.sub+'</div>':'';return '<tr><td class="label">'+l+s+'</td><td class="amt" style="color:var(--hint);font-weight:400;">'+val+'</td></tr>';}
 
 var QUOTE = null;
+
+// ---------- Site assembly (Zip Kit Assembly LLC — separate legal entity) ----------
+// Assembly = 10% of the base shell / kit / build price per unit. Two mutually
+// exclusive toggles per mode (`<prefix>-no-assembly`, `<prefix>-add-assembly`):
+//   • Remove assembly (−10%): customer takes curb delivery, arranges own set.
+//     Contract AND total drop by the assembly amount.
+//   • Add site assembly (+10%): our assembly crew handles site set.
+//     Total goes up by the assembly amount, but it's billed via a SEPARATE
+//     contract (Zip Kit Assembly LLC) — so the manufacturing contract amount
+//     stays unchanged, keeping the invoice/payment schedule clean.
+function zkAssembly(prefix, shellPerUnit, units){
+  var noEl  = document.getElementById(prefix + '-no-assembly');
+  var addEl = document.getElementById(prefix + '-add-assembly');
+  var no    = !!(noEl  && noEl.checked);
+  var add   = !!(addEl && addEl.checked);
+  if(no && add && addEl){ addEl.checked = false; add = false; }
+  var per   = Math.round(Number(shellPerUnit) * 0.10);
+  var total = per * Math.max(1, units);
+  return {
+    no: no, add: add, per: per, total: total,
+    // Sign for the CUSTOMER-FACING total (proposal)
+    displayAdj:  no ? -total : (add ?  total : 0),
+    // Sign for the MANUFACTURING contract (payment schedule). Add-assembly
+    // is billed via a separate assembly contract, so it does NOT flow here.
+    contractAdj: no ? -total : 0
+  };
+}
+
+// Clear both assembly toggles for a mode — called from each mode's reset fn.
+function zkResetAssembly(prefix){
+  var a = document.getElementById(prefix+'-no-assembly');
+  var b = document.getElementById(prefix+'-add-assembly');
+  if(a) a.checked = false;
+  if(b) b.checked = false;
+}
+
+// Populate every <div class="zk-assembly-slot" data-prefix="..." data-calc="..."></div>
+// with the toggle block. Deferred to DOMContentLoaded so the initial calc*()
+// calls that happen at IIFE-init time see the checkbox elements in place.
+document.addEventListener('DOMContentLoaded', function(){
+  document.querySelectorAll('.zk-assembly-slot').forEach(function(slot){
+    var prefix = slot.getAttribute('data-prefix');
+    var calc   = slot.getAttribute('data-calc');
+    if(prefix && calc && !slot.innerHTML) slot.innerHTML = zkAssemblyToggleHTML(prefix, calc);
+  });
+});
+
+// Standard HTML block for the two assembly toggles. Insert into each mode's
+// input panel. Pass the mode's prefix (s/m/g/h/st/c) and its calc fn name.
+function zkAssemblyToggleHTML(prefix, calcFnName){
+  return ''
+    +'<label style="margin-top:12px;">Site assembly <span class="sub" style="font-weight:400;">(Zip Kit Assembly LLC · separate contract)</span></label>'
+    +'<div style="background:#fff7e6; border-left:3px solid #d85a30; padding:10px 12px; border-radius:4px; margin-bottom:8px; font-size:13px;">'
+    +'<div class="checkrow" style="margin:0 0 6px;">'
+    +'<input type="checkbox" id="'+prefix+'-no-assembly" onchange="if(this.checked){document.getElementById(\''+prefix+'-add-assembly\').checked=false;} '+calcFnName+'();">'
+    +'<label for="'+prefix+'-no-assembly" style="margin:0; color:var(--ink); line-height:1.4;"><b>Remove assembly (&minus;10% of shell)</b> &mdash; customer takes curb delivery, arranges own set</label>'
+    +'</div>'
+    +'<div class="checkrow" style="margin:0;">'
+    +'<input type="checkbox" id="'+prefix+'-add-assembly" onchange="if(this.checked){document.getElementById(\''+prefix+'-no-assembly\').checked=false;} '+calcFnName+'();">'
+    +'<label for="'+prefix+'-add-assembly" style="margin:0; color:var(--ink); line-height:1.4;"><b>Add site assembly (+10% of shell)</b> &mdash; billed via separate Zip Kit Assembly LLC contract</label>'
+    +'</div>'
+    +'</div>';
+}
 
 function invoiceStages(q){
   // Returns the ordered list of billing stages for the current quote.
@@ -1441,10 +1516,16 @@ function generateProposal(){
     +'<h3 style="font-size:13px; text-transform:uppercase; letter-spacing:0.08em; color:#1c1c1a; border-bottom:2px solid #1c1c1a; padding-bottom:6px; margin:0 0 14px;">Pricing breakdown</h3>'
     +'<table style="width:100%; border-collapse:collapse; font-size:13px; margin-bottom:18px;">'
     +'<tbody>'+pricingRows+'</tbody></table>'
-    +'<div style="display:flex; justify-content:flex-end; border-top:2px solid #1c1c1a; padding-top:12px; margin-bottom:30px;">'
-    +'<div style="font-size:14px; color:#555; margin-right:18px; align-self:center;">Project total</div>'
-    +'<div style="font-size:26px; font-weight:700; color:'+brandColor+';">'+fmt(displayedTotal)+'</div>'
-    +'</div>'
+    +(QUOTE.assembly && QUOTE.assembly.mode === 'added'
+        ? '<div style="border-top:2px solid #1c1c1a; padding-top:12px; margin-bottom:30px; font-size:13px;">'
+          +'<div style="display:flex; justify-content:space-between; padding:2px 0; color:#5f5e5a;"><span>Manufacturing subtotal <span style="font-size:11px; color:#888;">(billed by '+co.name+')</span></span><span style="font-family:menlo,consolas,monospace;">'+fmt(displayedTotal - QUOTE.assembly.amount)+'</span></div>'
+          +'<div style="display:flex; justify-content:space-between; padding:2px 0; color:#5f5e5a;"><span>Site assembly <span style="font-size:11px; color:#888;">(billed separately by Zip Kit Assembly LLC)</span></span><span style="font-family:menlo,consolas,monospace;">'+fmt(QUOTE.assembly.amount)+'</span></div>'
+          +'<div style="display:flex; justify-content:space-between; padding:8px 0 0; margin-top:6px; border-top:1px solid #1c1c1a; font-size:15px; font-weight:700;"><span>Combined total <span style="font-size:11px; font-weight:400; color:#888;">(two contracts)</span></span><span style="color:'+brandColor+'; font-size:22px;">'+fmt(displayedTotal)+'</span></div>'
+          +'</div>'
+        : '<div style="display:flex; justify-content:flex-end; border-top:2px solid #1c1c1a; padding-top:12px; margin-bottom:30px;">'
+          +'<div style="font-size:14px; color:#555; margin-right:18px; align-self:center;">Project total</div>'
+          +'<div style="font-size:26px; font-weight:700; color:'+brandColor+';">'+fmt(displayedTotal)+'</div>'
+          +'</div>')
 
     +'<div style="display:grid; grid-template-columns:1fr 1fr; gap:24px; margin-bottom:30px;">'
     +'<div>'
@@ -1458,10 +1539,19 @@ function generateProposal(){
     +'</div>'
 
     +'<div style="page-break-before:always; break-before:page; padding-top:8px;">'
-    +'<h3 style="font-size:13px; text-transform:uppercase; letter-spacing:0.08em; color:#1c1c1a; border-bottom:2px solid #1c1c1a; padding-bottom:6px; margin:0 0 14px;">Payment schedule</h3>'
+    +'<h3 style="font-size:13px; text-transform:uppercase; letter-spacing:0.08em; color:#1c1c1a; border-bottom:2px solid #1c1c1a; padding-bottom:6px; margin:0 0 14px;">Payment schedule <span style="font-size:11px; font-weight:400; color:#888; text-transform:none; letter-spacing:0;">'+(QUOTE.assembly && QUOTE.assembly.mode==='added'?'· manufacturing contract only':'')+'</span></h3>'
     +'<table style="width:100%; border-collapse:collapse; font-size:13px; page-break-inside:avoid; break-inside:avoid;"><tbody>'+scheduleRows
     +'<tr><td style="padding:10px 12px; font-weight:700;">Total</td><td style="padding:10px 12px; text-align:right; font-weight:700;">'+fmt(schedTotal)+'</td></tr>'
     +'</tbody></table>'
+    +(QUOTE.assembly && QUOTE.assembly.mode === 'added'
+      ? '<div style="margin-top:14px; padding:12px 16px; background:#fff7e6; border-left:3px solid #d85a30; border-radius:4px; font-size:12px; color:#5f5e5a; line-height:1.6;">'
+        +'<b style="color:#993c1d;">Site assembly ('+fmt(QUOTE.assembly.amount)+') is billed via a separate contract</b> from Zip Kit Assembly LLC and is <b>not included</b> in the schedule above. The manufacturing contract and payment schedule shown here cover our scope through curb delivery. Site set and assembly are covered by a separate assembly contract with its own scope, deliverables, and payment terms — you\'ll receive that contract alongside this one.'
+        +'</div>'
+      : (QUOTE.assembly && QUOTE.assembly.mode === 'removed'
+        ? '<div style="margin-top:14px; padding:12px 16px; background:#f5f3ec; border-left:3px solid #888; border-radius:4px; font-size:12px; color:#5f5e5a; line-height:1.6;">'
+          +'<b>Curb delivery only</b> — this proposal excludes site assembly. Our scope ends when the kit is delivered to the curb; the customer is responsible for site set and assembly.'
+          +'</div>'
+        : ''))
     +'</div>'
 
     +'<div style="margin-top:30px; background:'+brandColor+'; color:#fff; padding:22px 24px; border-radius:8px;">'
@@ -1598,6 +1688,7 @@ function resetShell(){
   document.getElementById('s-eng-paid').checked=false;
   document.getElementById('s-eng-modified').checked=false;
   document.getElementById('s-custom').innerHTML='';
+  zkResetAssembly('s');
   calcShell();
 }
 
@@ -1720,24 +1811,31 @@ function calcShell(){
   var customTotal = customs.reduce(function(a,c){return a+c.amt;}, 0);
   customs.forEach(function(c){ rows += row(c.desc, c.amt, {sub:'add-on'}); });
 
+  // Site assembly toggle (Zip Kit Assembly LLC — separate legal entity)
+  var asm = zkAssembly('s', shell, units);
+  if(asm.no)  rows += row('Assembly credit (curb delivery)', asm.total, {d:true, sub:'10% of shell · customer takes curb delivery, arranges own site set'});
+  if(asm.add) rows += row('Site assembly',                    asm.total,           {sub:'10% of shell · billed via separate Zip Kit Assembly LLC contract'});
+
   document.getElementById('s-lines').innerHTML=rows;
   document.getElementById('s-summary-model').textContent = m[0] + (units>1?' × '+units:'');
 
   var designAmt = designPaid ? 0 : effectiveDesign;
   var totalEng  = eng + additionalEng;        // base + half-price per modified unit
   var engAmt    = engPaid    ? 0 : totalEng;
-  var total = (shell-discPer)*units + designAmt + engAmt + snow*units + win*units + shipPer*units + customTotal;
+  var total = (shell-discPer)*units + designAmt + engAmt + snow*units + win*units + shipPer*units + customTotal + asm.displayAdj;
   document.getElementById('s-total').textContent=fmt(total);
   document.getElementById('s-per-unit').textContent = units>1?fmt(total/units)+' per unit':'';
 
   // contract = everything except design & engineering (incl. shipping + customs), after discount
-  var contract = (shell-discPer)*units + snow*units + win*units + shipPer*units + customTotal;
+  // Add-assembly is BILLED SEPARATELY so it does NOT flow into contract (only Remove reduces it).
+  var contract = (shell-discPer)*units + snow*units + win*units + shipPer*units + customTotal + asm.contractAdj;
   QUOTE = {
     kind: 'Shell Kit', model: m[0], units: units,
     design: effectiveDesign, engineering: totalEng,
     designPaid: designPaid, engineeringPaid: engPaid,
     contract: contract, total: total,
-    company: 'zipkit'
+    company: 'zipkit',
+    assembly: (asm.no || asm.add) ? { mode: asm.no ? 'removed' : 'added', amount: asm.total, per_unit: asm.per } : null
   };
   renderInvoiceStages();
 }
@@ -1797,6 +1895,7 @@ function resetModular(){
   document.getElementById('m-custom').innerHTML='';
   var w=document.getElementById('m-win'); if(w.options.length) w.value=-1;
   document.querySelectorAll('#m-addons input').forEach(function(c){c.checked=false;});
+  zkResetAssembly('m');
   calcModular();
 }
 function calcModular(){
@@ -1866,18 +1965,26 @@ function calcModular(){
   var customTotal = customs.reduce(function(a,c){return a+c.amt;}, 0);
   customs.forEach(function(c){ rows += rowM(c.desc, c.amt, {sub: c.amt<0 ? 'credit' : 'add-on'}); });
 
+  // Site assembly toggle
+  var asm = zkAssembly('m', base, units);
+  if(asm.no)  rows += rowM('Assembly credit (curb delivery)', asm.total, {d:true, sub:'10% of base · customer arranges own site set'});
+  if(asm.add) rows += rowM('Site assembly',                   asm.total,           {sub:'10% of base · billed via separate Zip Kit Assembly LLC contract'});
+
   document.getElementById('m-lines').innerHTML=rows;
   document.getElementById('m-summary-model').textContent = m[0] + (units>1?(m[13]==='per-module'?' × '+units+' modules':' × '+units+' units'):'');
 
-  var total=(base-discPer)*units + winCost*units + addonTotal*units + snow*units + shipPer*units + customTotal;
+  var contractBase = (base-discPer)*units + winCost*units + addonTotal*units + snow*units + shipPer*units + customTotal;
+  var total = contractBase + asm.displayAdj;
+  var contract = contractBase + asm.contractAdj;
   document.getElementById('m-total').textContent=fmt(total);
   var label = m[13]==='per-module' ? ' per module' : ' per unit';
   document.getElementById('m-per-unit').textContent = units>1?fmt(total/units)+label:'';
 
   QUOTE = {
     kind: 'Modular', model: m[0], units: units,
-    design: 0, engineering: 0, contract: total, total: total,
-    company: (m[1]==='Mountain Valley Prefab' ? 'mvp' : 'zipkit')
+    design: 0, engineering: 0, contract: contract, total: total,
+    company: (m[1]==='Mountain Valley Prefab' ? 'mvp' : 'zipkit'),
+    assembly: (asm.no || asm.add) ? { mode: asm.no ? 'removed' : 'added', amount: asm.total, per_unit: asm.per } : null
   };
   renderInvoiceStages();
 }
@@ -1896,6 +2003,7 @@ function resetGarage(){
   document.getElementById('g-miles').value=0;
   document.getElementById('g-design-paid').checked=false;
   document.getElementById('g-custom').innerHTML='';
+  zkResetAssembly('g');
   calcGarage();
 }
 function calcGarage(){
@@ -1950,11 +2058,16 @@ function calcGarage(){
   var customTotal = customs.reduce(function(a,c){return a+c.amt;}, 0);
   customs.forEach(function(c){ rows += rowG(c.desc, c.amt, {sub: c.amt<0 ? 'credit' : 'add-on'}); });
 
+  // Site assembly toggle (10% of the garage shell)
+  var asm = zkAssembly('g', g[2], units);
+  if(asm.no)  rows += rowG('Assembly credit (curb delivery)', asm.total, {sub:'−'+fmt(asm.total)+' · 10% of shell · customer arranges own site set'});
+  if(asm.add) rows += rowG('Site assembly',                    asm.total, {sub:'10% of shell · billed via separate Zip Kit Assembly LLC contract'});
+
   document.getElementById('g-lines').innerHTML=rows;
   document.getElementById('g-summary-model').textContent = g[0] + ' garage' + (units>1?' × '+units:'');
 
   var designAmt = designPaid ? 0 : design;
-  var total=g[2]*units + designAmt + shipPer*units + customTotal;
+  var total=g[2]*units + designAmt + shipPer*units + customTotal + asm.displayAdj;
   document.getElementById('g-total').textContent=fmt(total);
   document.getElementById('g-per-unit').textContent=units>1?fmt(total/units)+' per unit':'';
 
@@ -1962,8 +2075,9 @@ function calcGarage(){
     kind: 'Garage', model: g[0]+' garage', units: units,
     design: design, engineering: 0,
     designPaid: designPaid, engineeringPaid: false,
-    contract: g[2]*units + shipPer*units + customTotal, total: total,
-    company: 'zipkit'
+    contract: g[2]*units + shipPer*units + customTotal + asm.contractAdj, total: total,
+    company: 'zipkit',
+    assembly: (asm.no || asm.add) ? { mode: asm.no ? 'removed' : 'added', amount: asm.total, per_unit: asm.per } : null
   };
   renderInvoiceStages();
 }
@@ -1994,6 +2108,7 @@ function resetHangar(){
   document.getElementById('h-disc').value=0;
   document.getElementById('h-design-paid').checked=false;
   document.getElementById('h-custom').innerHTML='';
+  zkResetAssembly('h');
   calcHangar();
 }
 
@@ -2061,22 +2176,28 @@ function calcHangar(){
   var customTotal = customs.reduce(function(a,c){return a+c.amt;}, 0);
   customs.forEach(function(c){ rows += rowH(c.desc, c.amt, {sub: c.amt<0 ? 'credit' : 'add-on'}); });
 
+  // Site assembly toggle (10% of the hangar shell)
+  var asm = zkAssembly('h', base, units);
+  if(asm.no)  rows += rowH('Assembly credit (curb delivery)', asm.total, {d:true, sub:'10% of shell · customer arranges own site set'});
+  if(asm.add) rows += rowH('Site assembly',                    asm.total,           {sub:'10% of shell · billed via separate Zip Kit Assembly LLC contract'});
+
   document.getElementById('h-lines').innerHTML = rows;
   document.getElementById('h-summary-model').textContent = h[0] + ' hangar' + (units>1?' × '+units:'');
 
   var designAmt = designPaid ? 0 : hEffectiveDesign;
-  var total = (base-discPer)*units + designAmt + shipPer*units + customTotal;
+  var total = (base-discPer)*units + designAmt + shipPer*units + customTotal + asm.displayAdj;
   document.getElementById('h-total').textContent = fmt(total);
   document.getElementById('h-per-unit').textContent = units>1 ? fmt(total/units)+' per unit' : '';
 
   // Contract = everything except design (incl. shipping + customs), after discount
-  var contract = (base-discPer)*units + shipPer*units + customTotal;
+  var contract = (base-discPer)*units + shipPer*units + customTotal + asm.contractAdj;
   QUOTE = {
     kind: 'Hangar', model: h[0]+' hangar', units: units,
     design: hEffectiveDesign, engineering: 0,
     designPaid: designPaid, engineeringPaid: false,
     contract: contract, total: total,
-    company: 'zksteel'
+    company: 'zksteel',
+    assembly: (asm.no || asm.add) ? { mode: asm.no ? 'removed' : 'added', amount: asm.total, per_unit: asm.per } : null
   };
   renderInvoiceStages();
 }
@@ -2170,6 +2291,7 @@ function resetCustom(){
   document.getElementById('c-design-paid').checked = false;
   document.getElementById('c-eng-paid').checked = false;
   document.getElementById('c-custom').innerHTML = '';
+  zkResetAssembly('c');
   calcCustom();
 }
 
@@ -2217,17 +2339,23 @@ function calcCustom(){
   var customTotal = customs.reduce(function(a,c){return a+c.amt;}, 0);
   customs.forEach(function(c){ rows += row(c.desc, c.amt, {sub: c.amt<0 ? 'credit' : 'add-on'}); });
 
+  // Site assembly toggle (10% of the negotiated build cost)
+  var asm = zkAssembly('c', build, 1);
+  if(asm.no)  rows += row('Assembly credit (curb delivery)', asm.total, {d:true, sub:'10% of build · customer arranges own site set'});
+  if(asm.add) rows += row('Site assembly',                    asm.total,           {sub:'10% of build · billed via separate Zip Kit Assembly LLC contract'});
+
   document.getElementById('c-lines').innerHTML = rows;
   document.getElementById('c-summary-model').textContent = name || 'Custom Home';
 
   var designAmt = designPaid ? 0 : cEffectiveDesign;
   var engAmt    = engPaid    ? 0 : eng;
-  var total = build + designAmt + engAmt + ship + customTotal;
+  var total = build + designAmt + engAmt + ship + customTotal + asm.displayAdj;
   document.getElementById('c-total').textContent = fmt(total);
   document.getElementById('c-per-sqft').textContent = (sqft>0 && total>0) ? fmt(total/sqft)+' / sqft' : '';
 
-  // contract excludes design + engineering (billed as their own stages); matches shell-kit pattern
-  var contract = build + ship + customTotal;
+  // contract excludes design + engineering (billed as their own stages); matches shell-kit pattern.
+  // Add-assembly is billed separately, so only Remove flows into the manufacturing contract.
+  var contract = build + ship + customTotal + asm.contractAdj;
 
   // Build dynamic scope from the textarea (one bullet per line)
   var scopeLines = scopeText.split(/\r?\n/).map(function(s){return s.trim();}).filter(function(s){return s.length>0;});
@@ -2252,7 +2380,8 @@ function calcCustom(){
     company: 'zipkit',
     customSchedule: cSched.isValid ? cSched.stages : null,
     sqft: sqft,
-    customScope: scopeLines   // consumed by generateProposal when present
+    customScope: scopeLines,   // consumed by generateProposal when present
+    assembly: (asm.no || asm.add) ? { mode: asm.no ? 'removed' : 'added', amount: asm.total, per_unit: asm.per } : null
   };
   renderInvoiceStages();
 }
@@ -2276,6 +2405,7 @@ function resetSteel(){
   document.getElementById('st-design-paid').checked=false;
   document.getElementById('st-eng-paid').checked=false;
   document.getElementById('st-custom').innerHTML='';
+  zkResetAssembly('st');
   calcSteel();
 }
 
@@ -2320,17 +2450,22 @@ function calcSteel(){
   var customTotal = customs.reduce(function(a,c){return a+c.amt;}, 0);
   customs.forEach(function(c){ rows += row(c.desc, c.amt, {sub: c.amt<0?'credit':'add-on'}); });
 
+  // Site assembly toggle (10% of the frame package cost)
+  var asm = zkAssembly('st', build, 1);
+  if(asm.no)  rows += row('Assembly credit (curb delivery)', asm.total, {d:true, sub:'10% of frame package · customer arranges own site set'});
+  if(asm.add) rows += row('Site assembly',                    asm.total,           {sub:'10% of frame package · billed via separate Zip Kit Assembly LLC contract'});
+
   document.getElementById('st-lines').innerHTML = rows;
   document.getElementById('st-summary-model').textContent = name || 'Light-gauge steel frame';
 
   var designAmt = designPaid ? 0 : stEffectiveDesign;
   var engAmt    = engPaid    ? 0 : eng;
-  var total = build + designAmt + engAmt + ship + customTotal;
+  var total = build + designAmt + engAmt + ship + customTotal + asm.displayAdj;
   document.getElementById('st-total').textContent = fmt(total);
   document.getElementById('st-per-sqft').textContent = (sqft>0 && total>0) ? fmt(total/sqft)+' / sqft' : '';
 
   // Contract excludes design + engineering (billed as their own stages); matches shell-kit pattern
-  var contract = build + ship + customTotal;
+  var contract = build + ship + customTotal + asm.contractAdj;
 
   var scopeLines = scopeText.split(/\r?\n/).map(function(s){return s.trim();}).filter(function(s){return s.length>0;});
 
@@ -2345,7 +2480,8 @@ function calcSteel(){
     total: total,
     company: 'zksteel',
     sqft: sqft,
-    customScope: scopeLines
+    customScope: scopeLines,
+    assembly: (asm.no || asm.add) ? { mode: asm.no ? 'removed' : 'added', amount: asm.total, per_unit: asm.per } : null
   };
   renderInvoiceStages();
 }
@@ -2490,12 +2626,12 @@ document.getElementById('zk-quotes-close').addEventListener('click', function(){
 /* ---------- Capture / restore current mode state ---------- */
 
 var ZK_MODE_FIELDS = {
-  shell:   ['s-model','s-units','s-snow','s-win','s-win-override','s-miles','s-ship-override','s-disc','s-design-override','s-design-paid','s-eng-paid','s-eng-modified'],
-  modular: ['m-model','m-units','m-base-override','m-snow','m-win','m-win-override','m-miles','m-ship-override','m-disc'],
-  garage:  ['g-model','g-units','g-design','g-design-override','g-miles','g-ship-override','g-design-paid'],
-  hangar:  ['h-model','h-units','h-base-override','h-miles','h-ship-override','h-disc','h-design-override','h-design-paid'],
-  steel:   ['st-name','st-sqft','st-build','st-eng','st-miles','st-rate','st-scope','st-design-override','st-design-paid','st-eng-paid'],
-  custom:  ['c-name','c-sqft','c-build','c-design-tier','c-design-override','c-eng','c-miles','c-rate','c-scope','c-design-paid','c-eng-paid']
+  shell:   ['s-model','s-units','s-snow','s-win','s-win-override','s-miles','s-ship-override','s-disc','s-design-override','s-design-paid','s-eng-paid','s-eng-modified','s-no-assembly','s-add-assembly'],
+  modular: ['m-model','m-units','m-base-override','m-snow','m-win','m-win-override','m-miles','m-ship-override','m-disc','m-no-assembly','m-add-assembly'],
+  garage:  ['g-model','g-units','g-design','g-design-override','g-miles','g-ship-override','g-design-paid','g-no-assembly','g-add-assembly'],
+  hangar:  ['h-model','h-units','h-base-override','h-miles','h-ship-override','h-disc','h-design-override','h-design-paid','h-no-assembly','h-add-assembly'],
+  steel:   ['st-name','st-sqft','st-build','st-eng','st-miles','st-rate','st-scope','st-design-override','st-design-paid','st-eng-paid','st-no-assembly','st-add-assembly'],
+  custom:  ['c-name','c-sqft','c-build','c-design-tier','c-design-override','c-eng','c-miles','c-rate','c-scope','c-design-paid','c-eng-paid','c-no-assembly','c-add-assembly']
 };
 
 var ZK_BUYER_FIELDS = ['prop-buyer','prop-project','prop-location','prop-email','prop-phone','prop-num','prop-date'];
