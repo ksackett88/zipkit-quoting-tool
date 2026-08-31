@@ -269,6 +269,10 @@
   <div class="actions-bar">
     <a class="btn primary" href="ZipKit_Quoting_Tool.html">+ New quote / proposal</a>
     <a class="btn info" href="ZipKit_Contract_Generator.html">+ New contract</a>
+    <div id="admin-view-toggle" style="display:none; margin-left:auto; align-items:center; gap:0; border:1px solid var(--line-strong); border-radius:var(--radius); overflow:hidden; height:38px; background:var(--surface);">
+      <button type="button" id="view-mine" class="view-mode-btn active" onclick="zkSetViewMode('mine')" style="height:100%; padding:0 14px; border:none; background:var(--accent); color:#fff; font-size:13px; font-weight:500; cursor:pointer;">My projects</button>
+      <button type="button" id="view-all"  class="view-mode-btn"        onclick="zkSetViewMode('all')"  style="height:100%; padding:0 14px; border:none; background:transparent; color:var(--muted); font-size:13px; font-weight:500; cursor:pointer;">All projects <span style="opacity:0.7; font-weight:400;">(admin)</span></button>
+    </div>
     <input type="search" id="project-search" placeholder="Search by buyer, project, model, or number...">
   </div>
 
@@ -349,7 +353,7 @@
 <div id="zk-toast"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="lib/supabase.js?v=3"></script>
+<script src="lib/supabase.js?v=4"></script>
 <script>
 /* ============================================================================
    Sales Portal landing page. Renders all saved projects (quotes + contracts)
@@ -377,10 +381,20 @@ function zkToast(msg, isError){
   var emailLbl= document.getElementById('zk-user-email');
 
   function showAuth(){ overlay.style.display='flex'; document.body.style.overflow='hidden'; }
-  function hideAuth(user){
+  async function hideAuth(user){
     overlay.style.display='none';
     document.body.style.overflow='';
     emailLbl.textContent = (user && user.email) || '';
+    // Check admin status. If admin, reveal the My/All view toggle.
+    try {
+      window.ZK_IS_ADMIN = await zkAuth.isAdmin();
+    } catch(e){ window.ZK_IS_ADMIN = false; }
+    if(window.ZK_IS_ADMIN){
+      var tog = document.getElementById('admin-view-toggle');
+      if(tog) tog.style.display = 'inline-flex';
+      var badge = document.getElementById('zk-user-email');
+      if(badge && badge.textContent) badge.innerHTML = badge.textContent + ' <span style="background:var(--accent); color:#fff; font-size:10px; font-weight:600; padding:2px 6px; border-radius:3px; letter-spacing:0.05em; margin-left:4px;">ADMIN</span>';
+    }
     loadProjects();
   }
   var user = await zkAuth.getCurrentUser();
@@ -410,12 +424,34 @@ async function zkSignOut(){ await zkAuth.signOut(); }
 var _projects = [];
 var _filter = 'all';
 var _query = '';
+var _viewMode = 'mine';   // 'mine' (default, own rows) | 'all' (admin, every rep)
+
+// Admin-only toggle. Switches the data source and re-renders. Guards against
+// non-admins clicking it manually via devtools (listAll will 401 without the
+// RLS policy anyway).
+async function zkSetViewMode(mode){
+  if(mode === 'all' && !window.ZK_IS_ADMIN) return;
+  _viewMode = mode;
+  var btnMine = document.getElementById('view-mine');
+  var btnAll  = document.getElementById('view-all');
+  if(btnMine && btnAll){
+    var on  = { background: 'var(--accent)', color: '#fff' };
+    var off = { background: 'transparent', color: 'var(--muted)' };
+    var active = mode === 'all' ? btnAll : btnMine;
+    var inactive = mode === 'all' ? btnMine : btnAll;
+    active.style.background = on.background; active.style.color = on.color;
+    inactive.style.background = off.background; inactive.style.color = off.color;
+  }
+  await loadProjects();
+}
 
 async function loadProjects(){
   var listEl = document.getElementById('project-list');
   listEl.innerHTML = '<div class="loading-state">Loading projects...</div>';
   try {
-    _projects = await zkQuotes.list();
+    _projects = (_viewMode === 'all' && window.ZK_IS_ADMIN)
+      ? await zkQuotes.listAll()
+      : await zkQuotes.list();
     renderStats();
     renderCounts();
     renderProjects();
@@ -444,7 +480,8 @@ function filterProjects(list){
       if(b.contract === 0 || b.remaining > 0) return false;
     }
     if(q){
-      var haystack = ((p.buyer_name||'')+' '+(p.project_name||'')+' '+(p.model||'')+' '+(p.quote_number||'')+' '+(p.product_kind||'')).toLowerCase();
+      var repBits = p._rep ? ' ' + (p._rep.email || '') + ' ' + (p._rep.full_name || '') : '';
+      var haystack = ((p.buyer_name||'')+' '+(p.project_name||'')+' '+(p.model||'')+' '+(p.quote_number||'')+' '+(p.product_kind||'')+repBits).toLowerCase();
       if(haystack.indexOf(q) < 0) return false;
     }
     return true;
@@ -500,6 +537,13 @@ function renderProjects(){
     var project = p.project_name ? _esc(p.project_name) : '<span class="empty">(no project name)</span>';
     var meta = _esc(kindLabel) + (p.model ? ' · ' + _esc(p.model) : '') + (p.units > 1 ? ' × ' + p.units : '') + ' · ' + _esc(p.quote_number || '');
     var subLine = pmts > 0 ? '<div class="pc-num-sub">'+bal.pctPaid+'% · '+pmts+' pmt'+(pmts===1?'':'s')+'</div>' : '';
+    // Rep chip — only when we're in admin/all-projects view and the row has
+    // an enriched _rep from zkQuotes.listAll().
+    var repChip = '';
+    if(_viewMode === 'all' && p._rep){
+      var repLabel = _esc(p._rep.full_name || p._rep.email || '(unknown rep)');
+      repChip = '<div style="display:inline-block; background:#f5f3ec; color:#5f5e5a; font-size:11px; font-weight:500; padding:3px 8px; border-radius:10px; margin-bottom:6px;">Rep: '+repLabel+'</div>';
+    }
 
     html += ''
       +'<div class="project-card">'
@@ -507,6 +551,7 @@ function renderProjects(){
       +'    <div class="pc-buyer">'+buyer+'</div>'
       +'    <div class="pc-stage '+stageClass+'">'+stageLabel+'</div>'
       +'  </div>'
+      +   repChip
       +'  <div class="pc-project'+(p.project_name?'':' empty')+'">'+project+'</div>'
       +'  <div class="pc-meta">'+meta+'</div>'
       +'  <div class="pc-numbers">'
