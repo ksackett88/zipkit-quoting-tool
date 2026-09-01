@@ -287,6 +287,7 @@
         <div class="checkrow"><input type="checkbox" id="s-eng-paid"><label for="s-eng-paid" style="margin:0;color:var(--ink);">Engineering submittal</label></div>
 
         <div class="zk-assembly-slot" data-prefix="s" data-calc="calcShell"></div>
+        <div class="zk-dryin-slot"    data-prefix="s" data-calc="calcShell"></div>
 
         <label>Add-ons &amp; extras</label>
         <div id="s-custom"></div>
@@ -416,6 +417,7 @@
         <div class="checkrow"><input type="checkbox" id="g-design-paid"><label for="g-design-paid" style="margin:0;color:var(--ink);">Design &amp; engineering</label></div>
 
         <div class="zk-assembly-slot" data-prefix="g" data-calc="calcGarage"></div>
+        <div class="zk-dryin-slot"    data-prefix="g" data-calc="calcGarage"></div>
 
         <label>Add-ons &amp; extras</label>
         <div id="g-custom"></div>
@@ -478,6 +480,7 @@
         <div class="checkrow"><input type="checkbox" id="h-design-paid"><label for="h-design-paid" style="margin:0;color:var(--ink);">Design retainer</label></div>
 
         <div class="zk-assembly-slot" data-prefix="h" data-calc="calcHangar"></div>
+        <div class="zk-dryin-slot"    data-prefix="h" data-calc="calcHangar"></div>
 
         <label>Add-ons &amp; extras</label>
         <div id="h-custom"></div>
@@ -806,16 +809,49 @@ function zkResetAssembly(prefix){
   if(none) none.checked = true;
 }
 
-// Populate every <div class="zk-assembly-slot" data-prefix="..." data-calc="..."></div>
-// with the toggle block. Deferred to DOMContentLoaded so the initial calc*()
-// calls that happen at IIFE-init time see the checkbox elements in place.
+// Populate every <div class="zk-assembly-slot"> and <div class="zk-dryin-slot">
+// with the appropriate toggle block. Deferred to DOMContentLoaded so the
+// initial calc*() calls that happen at IIFE-init time see the checkbox
+// elements in place.
 document.addEventListener('DOMContentLoaded', function(){
   document.querySelectorAll('.zk-assembly-slot').forEach(function(slot){
     var prefix = slot.getAttribute('data-prefix');
     var calc   = slot.getAttribute('data-calc');
     if(prefix && calc && !slot.innerHTML) slot.innerHTML = zkAssemblyToggleHTML(prefix, calc);
   });
+  document.querySelectorAll('.zk-dryin-slot').forEach(function(slot){
+    var prefix = slot.getAttribute('data-prefix');
+    var calc   = slot.getAttribute('data-calc');
+    if(prefix && calc && !slot.innerHTML) slot.innerHTML = zkDryinToggleHTML(prefix, calc);
+  });
 });
+
+// ---------- Roof dry-in (opt-in inclusion) ----------
+// Dry-in (ice & water shield + labor to close the structure to weather) is
+// OFF by default across every mode. Reps opt-in per project via the toggle.
+// When ON:
+//   * The mode's calc row subtitle gains an "incl. dry-in" tag
+//   * The generated proposal's "What's included" list gets a dry-in bullet
+//   * QUOTE.dryin === true is stashed for downstream consumers
+// When OFF: dry-in is absent from every generated document.
+function zkDryin(prefix){
+  var el = document.getElementById(prefix + '-dryin');
+  return !!(el && el.checked);
+}
+function zkResetDryin(prefix){
+  var el = document.getElementById(prefix + '-dryin');
+  if(el) el.checked = false;
+}
+function zkDryinToggleHTML(prefix, calcFnName){
+  return ''
+    +'<label style="margin-top:12px;">Roof dry-in <span class="sub" style="font-weight:400;">(ice &amp; water shield + labor to close to weather)</span></label>'
+    +'<div style="background:#f5f3ec; border-left:3px solid #5f5e5a; padding:10px 12px; border-radius:4px; margin-bottom:8px; font-size:13px;">'
+    +'<div class="checkrow" style="margin:0;">'
+    +  '<input type="checkbox" id="'+prefix+'-dryin" onchange="'+calcFnName+'();">'
+    +  '<label for="'+prefix+'-dryin" style="margin:0; color:var(--ink); line-height:1.4;"><b>Include dry-in</b> &mdash; adds roof-sheathing ice &amp; water shield plus dry-in labor to the proposal and contract scope. Off by default; only appears on documents when checked.</label>'
+    +'</div>'
+    +'</div>';
+}
 
 // Standard HTML block for the assembly toggle. One question, three radios —
 // clearer than two mutually-exclusive checkboxes. Insert into each mode's
@@ -1298,19 +1334,28 @@ function modelPhotoUrls(modelName){
   return urls;
 }
 
+// Dry-in bullets are OFF by default and only appear on the proposal when the
+// mode's dry-in toggle is on. See generateProposal() for the injection.
 var PROPOSAL_SCOPE = {
   'Shell Kit': {
-    included: ['Pre-framed wall, floor, and roof panels','Zip Wall sheathing with taped seams','All structural posts, beams, headers, and metal hardware','All windows and exterior entry doors (with selected window package)','Roof sheathing and ice & water shield dry-in','Standard interior stairs','Labor to set and erect panels, framing, trusses, roof dry-in, window/door install','Shipping to the job site'],
-    notIncluded: ['Foundation','Crane to set panels (scheduled by GC)','Siding — materials and installation','Finished roofing (metal, shingles, etc.)','Mechanical, electrical, plumbing — materials and labor','Insulation, drywall, and interior finishes','General Contractor fee / profit','Sales tax']
+    included: ['Pre-framed wall, floor, and roof panels','Zip Wall sheathing with taped seams','All structural posts, beams, headers, and metal hardware','All windows and exterior entry doors (with selected window package)','Standard interior stairs','Labor to set and erect panels, framing, trusses, window/door install','Shipping to the job site'],
+    notIncluded: ['Foundation','Crane to set panels (scheduled by GC)','Roof sheathing dry-in (ice & water shield + labor)','Siding — materials and installation','Finished roofing (metal, shingles, etc.)','Mechanical, electrical, plumbing — materials and labor','Insulation, drywall, and interior finishes','General Contractor fee / profit','Sales tax']
   },
   'Modular': {
     included: ['Completed move-in-ready modular unit','Architectural design and full engineering','Standard window and exterior door package','Interior finishes — cabinets, countertops, flooring, fixtures','Mechanical, electrical, plumbing fully installed','Appliances per standard spec','Shipping within UT, ID, MT, and WY'],
     notIncluded: ['Site prep and foundation','Crane set on site','Utility connections (water, sewer, power, gas)','Building permits and inspections','Sales tax']
   },
   'Garage': {
-    included: ['Pre-framed 2×6 panel shell with structural dry-in','Design and engineering','Shipping to the job site'],
-    notIncluded: ['Foundation','Garage doors','Windows and exterior entry doors','Siding and finished roofing','Mechanical, electrical, plumbing','Interior finishes','Sales tax']
+    included: ['Pre-framed 2×6 panel shell','Design and engineering','Shipping to the job site'],
+    notIncluded: ['Foundation','Garage doors','Windows and exterior entry doors','Roof sheathing dry-in (ice & water shield + labor)','Siding and finished roofing','Mechanical, electrical, plumbing','Interior finishes','Sales tax']
   }
+};
+// Bullets to inject into scope.included WHEN the mode's dry-in toggle is on.
+// Kind-keyed so we can vary the language per product (shell vs garage vs hangar).
+var DRYIN_BULLETS = {
+  'Shell Kit': ['Roof sheathing and ice & water shield dry-in','Labor to install roof dry-in (ice & water shield + close-to-weather)'],
+  'Garage':    ['Roof sheathing and ice & water shield dry-in','Labor to install roof dry-in'],
+  'Hangar':    ['Roof sheathing and ice & water shield dry-in','Labor to install roof dry-in']
 };
 
 var PROPOSAL_FIELDS = ['prop-buyer','prop-project','prop-location','prop-email','prop-phone','prop-num','prop-date'];
@@ -1433,6 +1478,21 @@ function generateProposal(){
     };
   } else {
     scope = PROPOSAL_SCOPE[QUOTE.kind] || PROPOSAL_SCOPE['Shell Kit'];
+    // Dry-in injection: if QUOTE.dryin is on, move the dry-in bullets from
+    // "Not included" into "Included". Otherwise leave them in the Not-Included
+    // list so the customer sees explicitly that dry-in is not in scope.
+    if(QUOTE.dryin){
+      var addBullets = DRYIN_BULLETS[QUOTE.kind] || [];
+      var dryinNeedles = ['dry-in','dry in'];
+      // Copy the scope to avoid mutating the shared PROPOSAL_SCOPE object.
+      scope = {
+        included:    scope.included.slice().concat(addBullets),
+        notIncluded: scope.notIncluded.filter(function(t){
+          var lower = t.toLowerCase();
+          return !dryinNeedles.some(function(n){ return lower.indexOf(n) !== -1; });
+        })
+      };
+    }
   }
 
   // Pull pricing rows from the active mode's table (already calculated)
@@ -1702,6 +1762,7 @@ function resetShell(){
   document.getElementById('s-eng-modified').checked=false;
   document.getElementById('s-custom').innerHTML='';
   zkResetAssembly('s');
+  zkResetDryin('s');
   calcShell();
 }
 
@@ -1791,7 +1852,9 @@ function calcShell(){
     ? 'Override active: using '+fmt(effectiveDesign)+' instead of the standard '+fmt(SHELL_DESIGN)+'. Clear to revert.'
     : 'Optional — type a custom amount (or 0 to waive) to discount or upcharge the design retainer for this customer. Standard is '+fmt(SHELL_DESIGN)+'.';
 
-  rows+=row('Panelized shell kit', shell*units, {sub: units>1?fmt(shell)+' × '+units+' units':'pre-framed + dry-in labor'});
+  var sDryin = zkDryin('s');
+  var sShellSubBase = units>1 ? fmt(shell)+' × '+units+' units' : 'pre-framed panel shell';
+  rows+=row('Panelized shell kit', shell*units, {sub: sShellSubBase + (sDryin?' · incl. dry-in':'')});
   if(disc>0) rows+=row('Multi-unit discount', discPer*units, {d:true, sub:disc+'% off shell kits'});
   if(designPaid) rows+=rowRate('Architectural design', 'PAID', {sub:'already received · was '+fmt(effectiveDesign)+(sDIsOverride?' (custom amount)':'')});
   else if(effectiveDesign>0) rows+=row('Architectural design', effectiveDesign, {sub: sDIsOverride ? 'full conceptual drawings · custom amount (standard '+fmt(SHELL_DESIGN)+')' : 'full conceptual drawings'});
@@ -1848,7 +1911,8 @@ function calcShell(){
     designPaid: designPaid, engineeringPaid: engPaid,
     contract: contract, total: total,
     company: 'zipkit',
-    assembly: (asm.no || asm.add) ? { mode: asm.no ? 'removed' : 'added', amount: asm.total, per_unit: asm.per } : null
+    assembly: (asm.no || asm.add) ? { mode: asm.no ? 'removed' : 'added', amount: asm.total, per_unit: asm.per } : null,
+    dryin: sDryin
   };
   renderInvoiceStages();
 }
@@ -2017,6 +2081,7 @@ function resetGarage(){
   document.getElementById('g-design-paid').checked=false;
   document.getElementById('g-custom').innerHTML='';
   zkResetAssembly('g');
+  zkResetDryin('g');
   calcGarage();
 }
 function calcGarage(){
@@ -2056,7 +2121,9 @@ function calcGarage(){
 
   function rowG(l,a,o){o=o||{};var s=o.sub?'<div class="sub">'+o.sub+'</div>':'';return '<tr><td class="label">'+l+s+'</td><td class="amt">'+fmt(a)+'</td></tr>';}
   var rows='';
-  rows+=rowG('Garage shell kit', g[2]*units, {sub:units>1?fmt(g[2])+' × '+units+' units':'pre-framed 2×6 panel shell · structural dry-in'});
+  var gDryin = zkDryin('g');
+  var gShellSubBase = units>1 ? fmt(g[2])+' × '+units+' units' : 'pre-framed 2×6 panel shell';
+  rows+=rowG('Garage shell kit', g[2]*units, {sub: gShellSubBase + (gDryin?' · incl. dry-in':'')});
   if(designPaid) rows+=rowRate('Design & engineering', 'PAID', {sub:'already received · was '+fmt(design)+(gDIsOverride?' (custom amount)':'')});
   else if(design>0) rows+=rowG('Design & engineering', design, {sub: 'full conceptual drawings + submittal docs · '+(gDIsOverride ? 'custom amount (standard '+fmt(stdDesign)+')' : (stdDesign===562?'bundled with a home':'standalone'))});
   else rows+=rowRate('Design & engineering', 'WAIVED', {sub:'fee waived for this customer'});
@@ -2090,7 +2157,8 @@ function calcGarage(){
     designPaid: designPaid, engineeringPaid: false,
     contract: g[2]*units + shipPer*units + customTotal + asm.contractAdj, total: total,
     company: 'zipkit',
-    assembly: (asm.no || asm.add) ? { mode: asm.no ? 'removed' : 'added', amount: asm.total, per_unit: asm.per } : null
+    assembly: (asm.no || asm.add) ? { mode: asm.no ? 'removed' : 'added', amount: asm.total, per_unit: asm.per } : null,
+    dryin: gDryin
   };
   renderInvoiceStages();
 }
@@ -2122,6 +2190,7 @@ function resetHangar(){
   document.getElementById('h-design-paid').checked=false;
   document.getElementById('h-custom').innerHTML='';
   zkResetAssembly('h');
+  zkResetDryin('h');
   calcHangar();
 }
 
@@ -2159,9 +2228,11 @@ function calcHangar(){
 
   function rowH(l,a,o){o=o||{};var s=o.sub?'<div class="sub">'+o.sub+'</div>':'';var c=o.d?' class="discount"':'';var sg=o.d?'−':'';return '<tr><td class="label">'+l+s+'</td><td class="amt"'+c+'>'+sg+fmt(a)+'</td></tr>';}
   var rows = '';
+  var hDryin = zkDryin('h');
   var unitSub = isOverride
     ? (units>1 ? fmt(base)+' × '+units+' units · negotiated' : 'negotiated price per unit')
-    : (units>1 ? fmt(base)+' × '+units+' units' : 'pre-framed hangar shell · structural dry-in');
+    : (units>1 ? fmt(base)+' × '+units+' units' : 'pre-framed hangar shell');
+  if(hDryin) unitSub += ' · incl. dry-in';
   var designPaid = document.getElementById('h-design-paid').checked;
 
   // Design retainer override
@@ -2210,7 +2281,8 @@ function calcHangar(){
     designPaid: designPaid, engineeringPaid: false,
     contract: contract, total: total,
     company: 'zksteel',
-    assembly: (asm.no || asm.add) ? { mode: asm.no ? 'removed' : 'added', amount: asm.total, per_unit: asm.per } : null
+    assembly: (asm.no || asm.add) ? { mode: asm.no ? 'removed' : 'added', amount: asm.total, per_unit: asm.per } : null,
+    dryin: hDryin
   };
   renderInvoiceStages();
 }
@@ -2642,10 +2714,10 @@ document.getElementById('zk-quotes-close').addEventListener('click', function(){
 /* ---------- Capture / restore current mode state ---------- */
 
 var ZK_MODE_FIELDS = {
-  shell:   ['s-model','s-units','s-snow','s-win','s-win-override','s-miles','s-ship-override','s-disc','s-design-override','s-design-paid','s-eng-paid','s-eng-modified','s-assembly-none','s-no-assembly','s-add-assembly'],
+  shell:   ['s-model','s-units','s-snow','s-win','s-win-override','s-miles','s-ship-override','s-disc','s-design-override','s-design-paid','s-eng-paid','s-eng-modified','s-assembly-none','s-no-assembly','s-add-assembly','s-dryin'],
   modular: ['m-model','m-units','m-base-override','m-snow','m-win','m-win-override','m-miles','m-ship-override','m-disc','m-assembly-none','m-no-assembly','m-add-assembly'],
-  garage:  ['g-model','g-units','g-design','g-design-override','g-miles','g-ship-override','g-design-paid','g-assembly-none','g-no-assembly','g-add-assembly'],
-  hangar:  ['h-model','h-units','h-base-override','h-miles','h-ship-override','h-disc','h-design-override','h-design-paid','h-assembly-none','h-no-assembly','h-add-assembly'],
+  garage:  ['g-model','g-units','g-design','g-design-override','g-miles','g-ship-override','g-design-paid','g-assembly-none','g-no-assembly','g-add-assembly','g-dryin'],
+  hangar:  ['h-model','h-units','h-base-override','h-miles','h-ship-override','h-disc','h-design-override','h-design-paid','h-assembly-none','h-no-assembly','h-add-assembly','h-dryin'],
   steel:   ['st-name','st-sqft','st-build','st-eng','st-miles','st-rate','st-scope','st-design-override','st-design-paid','st-eng-paid','st-assembly-none','st-no-assembly','st-add-assembly'],
   custom:  ['c-name','c-sqft','c-build','c-design-tier','c-design-override','c-eng','c-miles','c-rate','c-scope','c-design-paid','c-eng-paid','c-assembly-none','c-no-assembly','c-add-assembly']
 };
