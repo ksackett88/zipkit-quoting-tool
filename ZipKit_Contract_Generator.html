@@ -2256,8 +2256,10 @@ function generateModularContract(){
 
 /* =========================================================================
    CUSTOM HOME CONTRACT MODE
-   Uses the panelized shell kit purchase agreement (LEGAL_HTML) but with
-   sales-rep-entered pricing instead of model lookup.
+   Rendered by generateCustomContract() — v8 template adapted for custom
+   home (Home as defined term, build cost + engineering, scope pulled from
+   the rep-editable c-scope UI via getCuScopeItems()). Uses the shared
+   zkContractDoc / zkContractCallout / zkContractSigBlock skeleton.
    ========================================================================= */
 
 var CUSTOM_DESIGN = 3500;
@@ -2457,119 +2459,306 @@ function generateCustomContract(){
   var g = function(id){return document.getElementById(id).value.trim();};
   var c = CURRENT_CUSTOM;
 
-  var buyer = g('c-buyer')||'__________';
-  var project = g('c-project')||(c.name+' project');
-  var phone = g('c-phone')||'__________';
-  var email = g('c-email')||'__________';
-  var buyerAddr = g('c-buyer-addr')||'__________';
-  var siteAddr = g('c-site-addr')||'__________';
-  var city = g('c-city')||'__________';
-  var date = g('c-date')||new Date().toLocaleDateString('en-US');
-  var salesman = g('c-salesman')||'__________';
-
-  // Custom homes always go through ZipKit (panelized shell kit purchase agreement)
-  var sumRows = '';
-  function sr(l,a,comment){return '<tr><td style="padding:5px 8px;border:1px solid #ccc;">'+l+'</td><td style="padding:5px 8px;border:1px solid #ccc;text-align:right;white-space:nowrap;">'+fmt(a)+'</td><td style="padding:5px 8px;border:1px solid #ccc;font-size:11px;color:#555;">'+(comment||'')+'</td></tr>';}
-  function srPaid(l,a){return '<tr><td style="padding:5px 8px;border:1px solid #ccc;">'+l+'</td><td style="padding:5px 8px;border:1px solid #ccc;text-align:right;white-space:nowrap;color:#888;">PAID</td><td style="padding:5px 8px;border:1px solid #ccc;font-size:11px;color:#555;">already received · was '+fmt(a)+'</td></tr>';}
-  if(c.engPaid) sumRows += srPaid('Engineered plans', c.eng);
-  else          sumRows += sr('Engineered plans', c.eng, 'payment 1 of contract');
-  if(c.promoCredit>0) sumRows += '<tr><td style="padding:5px 8px;border:1px solid #ccc;color:#0f6e56;font-weight:600;">Promo credit — design retainer toward engineering</td><td style="padding:5px 8px;border:1px solid #ccc;text-align:right;white-space:nowrap;color:#0f6e56;font-weight:600;">-'+fmt(c.promoCredit)+'</td><td style="padding:5px 8px;border:1px solid #ccc;font-size:11px;color:#555;">limited-time credit — design retainer credited against Payment 1</td></tr>';
-  sumRows += sr('Custom build', c.build, c.sqft>0 ? c.sqft.toLocaleString()+' sqft livable' : 'negotiated build cost');
-  if(c.winPrice>0) sumRows += sr('Window & door package', c.winPrice, c.winLabel || 'custom selection');
-  c.customs.forEach(function(x){ sumRows += sr(x.desc, x.amt, ''); });
-  if(c.ship>0) sumRows += sr('Shipping', c.ship, c.miles+' miles at $'+c.rate+'/mile');
+  var buyer     = g('c-buyer')     || '________________________';
+  var project   = g('c-project')   || (c.name+' project');
+  var phone     = g('c-phone')     || '______________';
+  var email     = g('c-email')     || '______________';
+  var buyerAddr = g('c-buyer-addr')|| '________________________';
+  var siteAddr  = g('c-site-addr') || '________________________';
+  var city      = g('c-city')      || '________________________';
+  var date      = g('c-date')      || new Date().toLocaleDateString('en-US');
+  var salesman  = g('c-salesman')  || '________________________';
 
   var photoUrls = c.photo ? modelPhotoUrls(c.photo) : [];
 
-  var html = ''
-  // Photo title page
-  +'<div style="max-width:780px;margin:0 auto;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#1c1c1a;padding:32px;">'
-  +'<div style="page-break-after:always;">'
-  +'<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px;">'
-  +'<img src="'+ZIPKIT_LOGO+'" alt="Zip Kit Homes" style="height:56px;">'
-  +'<div style="text-align:right; font-size:11px; color:#888; text-transform:uppercase; letter-spacing:0.08em;">Custom Home Contract · '+date+'</div>'
-  +'</div>'
-  +'<div id="zk-custom-cover-box" style="width:100%; height:440px; background:linear-gradient(135deg,#d85a30,#993c1d); background-size:cover; background-position:center center; background-repeat:no-repeat; border-radius:8px; overflow:hidden; display:flex; flex-direction:column; justify-content:flex-end;">'
-  +'<div style="background:linear-gradient(to top, rgba(0,0,0,0.82), rgba(0,0,0,0.15) 60%, rgba(0,0,0,0)); padding:90px 32px 28px; color:#fff;">'
-  +'<div style="font-size:13px; text-transform:uppercase; letter-spacing:0.12em; opacity:0.9; margin-bottom:8px;">Custom home contract prepared for</div>'
-  +'<div style="font-size:30px; font-weight:700; line-height:1.15;">'+buyer+'</div>'
-  +(city && city!=='__________' ? '<div style="font-size:15px; margin-top:4px; opacity:0.95;">'+city+'</div>' : '')
-  +'<div style="font-size:14px; margin-top:8px; opacity:0.92;">'+c.name+' · '+(c.sqft>0?c.sqft.toLocaleString()+' sqft · ':'')+date+'</div>'
-  +'</div>'
-  +'</div>'
-  +(photoUrls.length ? '<script>(function(){var urls='+JSON.stringify(photoUrls)+';var box=document.getElementById("zk-custom-cover-box");function tryUrl(idx){if(idx>=urls.length)return;var t=new Image();t.onload=function(){box.style.backgroundImage="url(\\""+urls[idx]+"\\")";};t.onerror=function(){tryUrl(idx+1);};t.src=urls[idx];}tryUrl(0);})();<\/script>' : '')
-  +'<div style="margin-top:240px; background:#f5f3ec; border-radius:8px; padding:18px 22px; font-size:13px; color:#5f5e5a; line-height:1.6;">'
-  +'<b>Panelized Shell Kit Purchase Agreement (Custom Home).</b> Prepared by Zip Kit Homes, LLC · Cedar City, Utah. This is a legally binding agreement — please review the full document carefully before signing.'
-  +'</div>'
-  +'</div>'
+  // ---- Cover-page cost summary rows (original inline-styled table) ----
+  function _sr(l,a,note){ return '<tr><td style="padding:5px 8px;border:1px solid #ccc;">'+l+'</td><td style="padding:5px 8px;border:1px solid #ccc;text-align:right;white-space:nowrap;">'+fmt(a)+'</td><td style="padding:5px 8px;border:1px solid #ccc;font-size:11px;color:#555;">'+(note||'')+'</td></tr>'; }
+  function _srPaid(l,a){ return '<tr><td style="padding:5px 8px;border:1px solid #ccc;">'+l+'</td><td style="padding:5px 8px;border:1px solid #ccc;text-align:right;white-space:nowrap;color:#888;">PAID</td><td style="padding:5px 8px;border:1px solid #ccc;font-size:11px;color:#555;">already received · was '+fmt(a)+'</td></tr>'; }
+  var coverSumRows = '';
+  if(c.engPaid) coverSumRows += _srPaid('Engineered plans', c.eng);
+  else          coverSumRows += _sr('Engineered plans', c.eng, 'payment 1 of contract');
+  if(c.promoCredit>0) coverSumRows += '<tr><td style="padding:5px 8px;border:1px solid #ccc;color:#0f6e56;font-weight:600;">Promo credit — design retainer toward engineering</td><td style="padding:5px 8px;border:1px solid #ccc;text-align:right;white-space:nowrap;color:#0f6e56;font-weight:600;">-'+fmt(c.promoCredit)+'</td><td style="padding:5px 8px;border:1px solid #ccc;font-size:11px;color:#555;">limited-time credit — design retainer credited against Payment 1</td></tr>';
+  coverSumRows += _sr('Custom build', c.build, c.sqft>0 ? c.sqft.toLocaleString()+' sqft livable' : 'negotiated build cost');
+  if(c.winPrice>0) coverSumRows += _sr('Window & door package', c.winPrice, c.winLabel || 'custom selection');
+  c.customs.forEach(function(x){ coverSumRows += _sr(x.desc, x.amt, ''); });
+  if(c.ship>0) coverSumRows += _sr('Shipping', c.ship, c.miles+' miles at $'+c.rate+'/mile');
 
-  // Cover/summary page
-  +'<div style="text-align:center;border-bottom:2px solid #1c1c1a;padding-bottom:18px;">'
-  +'<img src="'+ZIPKIT_LOGO+'" alt="Zip Kit Homes" style="height:56px;">'
-  +'<div style="font-size:22px;font-weight:700;margin-top:10px;">Custom Home Contract</div>'
-  +'<div style="font-size:13px;color:#555;margin-top:6px;">Prepared by Zip Kit Homes · Cedar City, Utah · Uses Panelized Shell Kit Purchase Agreement</div>'
-  +'</div>'
-  +'<div style="display:flex;justify-content:space-between;margin-top:20px;font-size:13px;">'
-  +'<div><div style="color:#888;text-transform:uppercase;font-size:11px;">Buyer</div><div style="font-weight:500;font-size:15px;">'+buyer+'</div><div style="color:#555;">'+city+'</div><div style="color:#555;">'+c.name+' · '+date+'</div></div>'
-  +'<div style="text-align:right;"><div style="color:#888;text-transform:uppercase;font-size:11px;">Seller</div><div style="font-weight:500;">Zip Kit Homes, LLC</div><div style="color:#555;">3665 W 2700 S, Cedar City UT 84720</div></div>'
-  +'</div>'
-  +'<table style="width:100%;border-collapse:collapse;margin-top:24px;font-size:12px;">'
-  +'<tr><td style="padding:5px 8px;border:1px solid #ccc;background:#f5f3ec;font-weight:600;" colspan="2">Buyer Information</td><td style="padding:5px 8px;border:1px solid #ccc;background:#f5f3ec;font-weight:600;" colspan="2">Seller Information</td></tr>'
-  +'<tr><td style="padding:5px 8px;border:1px solid #ccc;">Customer</td><td style="padding:5px 8px;border:1px solid #ccc;">'+buyer+'</td><td style="padding:5px 8px;border:1px solid #ccc;">Salesman</td><td style="padding:5px 8px;border:1px solid #ccc;">'+salesman+'</td></tr>'
-  +'<tr><td style="padding:5px 8px;border:1px solid #ccc;">Project</td><td style="padding:5px 8px;border:1px solid #ccc;">'+project+'</td><td style="padding:5px 8px;border:1px solid #ccc;">General Manager</td><td style="padding:5px 8px;border:1px solid #ccc;">Sven Heistad</td></tr>'
-  +'<tr><td style="padding:5px 8px;border:1px solid #ccc;">Contract Date</td><td style="padding:5px 8px;border:1px solid #ccc;">'+date+'</td><td style="padding:5px 8px;border:1px solid #ccc;">Phone</td><td style="padding:5px 8px;border:1px solid #ccc;">435-340-1171</td></tr>'
-  +'<tr><td style="padding:5px 8px;border:1px solid #ccc;">Ship to Address</td><td style="padding:5px 8px;border:1px solid #ccc;">'+siteAddr+'</td><td style="padding:5px 8px;border:1px solid #ccc;">Email</td><td style="padding:5px 8px;border:1px solid #ccc;">sales@ZipKitHomes.com</td></tr>'
-  +'<tr><td style="padding:5px 8px;border:1px solid #ccc;">House Sq ft</td><td style="padding:5px 8px;border:1px solid #ccc;">'+(c.sqft>0?c.sqft.toLocaleString()+' livable':'—')+'</td><td style="padding:5px 8px;border:1px solid #ccc;">Floor Plan</td><td style="padding:5px 8px;border:1px solid #ccc;">'+c.name+' (custom)</td></tr>'
-  +'<tr><td style="padding:5px 8px;border:1px solid #ccc;">Phone</td><td style="padding:5px 8px;border:1px solid #ccc;">'+phone+'</td><td style="padding:5px 8px;border:1px solid #ccc;"></td><td style="padding:5px 8px;border:1px solid #ccc;"></td></tr>'
-  +'</table>'
-  +'<div style="font-size:11px;font-style:italic;color:#555;margin-top:6px;">Pricing is valid for a period of nine (9) months from the contract date.</div>'
-  // Design retainer
-  +'<table style="width:100%;border-collapse:collapse;margin-top:18px;font-size:12px;">'
-  +'<tr><td style="padding:5px 8px;border:1px solid #ccc;background:#5f5e5a;color:#fff;font-weight:600;" colspan="3">DESIGN RETAINER (separate from contract)</td></tr>'
-  +(c.designPaid
-    ? '<tr><td style="padding:5px 8px;border:1px solid #ccc;">Architectural design retainer</td><td style="padding:5px 8px;border:1px solid #ccc;text-align:right;color:#888;">PAID</td><td style="padding:5px 8px;border:1px solid #ccc;font-size:11px;color:#555;">Already received · was '+fmt(c.designAmt)+(c.designAmt!==CUSTOM_DESIGN?' (custom amount)':'')+'</td></tr>'
-    : (c.designAmt>0
-      ? '<tr><td style="padding:5px 8px;border:1px solid #ccc;">Architectural design retainer</td><td style="padding:5px 8px;border:1px solid #ccc;text-align:right;">'+fmt(c.designAmt)+'</td><td style="padding:5px 8px;border:1px solid #ccc;font-size:11px;color:#555;">paid up front · separate from contract'+(c.designAmt!==CUSTOM_DESIGN?' · custom amount (standard '+fmt(CUSTOM_DESIGN)+')':'')+'</td></tr>'
-      : '<tr><td style="padding:5px 8px;border:1px solid #ccc;">Architectural design retainer</td><td style="padding:5px 8px;border:1px solid #ccc;text-align:right;color:#888;">WAIVED</td><td style="padding:5px 8px;border:1px solid #ccc;font-size:11px;color:#555;">Design retainer waived for this customer</td></tr>'))
-  +'</table>'
-  // Contract cost summary
-  +'<table style="width:100%;border-collapse:collapse;margin-top:14px;font-size:12px;">'
-  +'<tr><td style="padding:5px 8px;border:1px solid #ccc;background:#5f5e5a;color:#fff;font-weight:600;">CONTRACT COST SUMMARY</td><td style="padding:5px 8px;border:1px solid #ccc;background:#5f5e5a;color:#fff;font-weight:600;text-align:right;">PRICE</td><td style="padding:5px 8px;border:1px solid #ccc;background:#5f5e5a;color:#fff;font-weight:600;">COMMENTS</td></tr>'
-  +sumRows
-  +'<tr><td style="padding:6px 8px;border:1px solid #ccc;font-weight:700;">Contract Total</td><td style="padding:6px 8px;border:1px solid #ccc;text-align:right;font-weight:700;">'+fmt(c.contract)+'</td><td style="padding:6px 8px;border:1px solid #ccc;"></td></tr>'
-  +'</table>'
-  // Payment schedule
-  +'<table style="width:100%;border-collapse:collapse;margin-top:14px;font-size:12px;">'
-  +'<tr><td style="padding:5px 8px;border:1px solid #ccc;background:#f5f3ec;font-weight:600;" colspan="3">Estimated Timing &amp; Payment Schedule</td></tr>'
-  +(c.engPaid
-    ? '<tr><td style="padding:5px 8px;border:1px solid #ccc;">Payment 1 — Engineering</td><td style="padding:5px 8px;border:1px solid #ccc;text-align:right;color:#888;">PAID</td><td style="padding:5px 8px;border:1px solid #ccc;font-size:11px;color:#555;">Already received · was '+fmt(c.p1Base||c.p1)+'</td></tr>'
-    : '<tr><td style="padding:5px 8px;border:1px solid #ccc;">Payment 1 — Engineering</td><td style="padding:5px 8px;border:1px solid #ccc;text-align:right;">'+fmt(c.p1)+'</td><td style="padding:5px 8px;border:1px solid #ccc;font-size:11px;color:#555;">due at contract signing'+(c.promoCredit>0?' · '+fmt(c.p1Base)+' less '+fmt(c.promoCredit)+' design-retainer promo credit':'')+'</td></tr>')
-  +'<tr><td style="padding:5px 8px;border:1px solid #ccc;">Payment 2 — Materials (45%)</td><td style="padding:5px 8px;border:1px solid #ccc;text-align:right;">'+fmt(c.p2)+'</td><td style="padding:5px 8px;border:1px solid #ccc;font-size:11px;color:#555;">45% of remainder · due after engineering</td></tr>'
-  +'<tr><td style="padding:5px 8px;border:1px solid #ccc;">Payment 3 — Pre-ship (45%)</td><td style="padding:5px 8px;border:1px solid #ccc;text-align:right;">'+fmt(c.p3)+'</td><td style="padding:5px 8px;border:1px solid #ccc;font-size:11px;color:#555;">45% of remainder · due before shipment</td></tr>'
-  +'<tr><td style="padding:5px 8px;border:1px solid #ccc;">Final — Set (10%)</td><td style="padding:5px 8px;border:1px solid #ccc;text-align:right;">'+fmt(c.p4)+'</td><td style="padding:5px 8px;border:1px solid #ccc;font-size:11px;color:#555;">10% of remainder · due on set</td></tr>'
-  +'</table>'
-  +'<div style="font-size:11px;color:#555;margin-top:6px;font-style:italic;">Design retainer ('+fmt(c.designAmt)+') is separate and paid up front. Contract is billed engineering first, then 45% / 45% / 10% of the remainder. Sums to the contract total.</div>'
-  +'<div style="margin-top:36px;display:flex;justify-content:space-between;font-size:12px;">'
-  +'<div style="width:45%;">Seller: ______________________ Date: __________</div>'
-  +'<div style="width:45%;">Buyer: ______________________ Date: __________</div>'
-  +'</div>'
-  // Legal body (panelized shell kit purchase agreement)
-  +'<div style="page-break-before:always;margin-top:40px;">'
-  +LEGAL_HTML
-    .replace(/<table style="width:100%;border-collapse:collapse;font-size:12px;">[\s\S]*?<\/table>/, cuScopeTableHTML())
-    .replace(/\{\{BUYER\}\}/g, buyer)
-    .replace(/\{\{BUYER_ADDR\}\}/g, buyerAddr)
-    .replace(/\{\{BUYER_PHONE\}\}/g, phone)
-    .replace(/\{\{BUYER_EMAIL\}\}/g, email)
-    .replace(/\{\{SITE_ADDR\}\}/g, siteAddr)
-  +'</div>'
-  +'</div>';
+  // ---- Custom scope from the input panel (getCuScopeItems reads the rep's overrides) ----
+  var scope = getCuScopeItems();
+  var scopeIncRows  = scope.included.map(function(t){    return '<tr><td>'+t+'</td><td class="amt" style="text-align:right;">INCLUDED</td></tr>'; }).join('');
+  var scopeNotRows  = scope.notIncluded.map(function(t){ return '<tr><td>'+t+'</td><td class="amt" style="text-align:right;color:#888;">NOT INCLUDED</td></tr>'; }).join('');
 
-  var w = window.open('','_blank');
+  var body = ''
+    // ===== PAGE 1: HERO-PHOTO COVER (custom home) =====
+    +'<div style="page-break-after:always;">'
+    +'<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px;">'
+    +'<img src="'+ZIPKIT_LOGO+'" alt="Zip Kit Homes" style="height:56px;">'
+    +'<div style="text-align:right; font-size:11px; color:#888; text-transform:uppercase; letter-spacing:0.08em;">Custom Home Contract · '+date+'</div>'
+    +'</div>'
+    +'<div id="zk-custom-cover-box" style="width:100%; height:440px; background:linear-gradient(135deg,#d85a30,#993c1d); background-size:cover; background-position:center center; background-repeat:no-repeat; border-radius:8px; overflow:hidden; display:flex; flex-direction:column; justify-content:flex-end;">'
+    +'<div style="background:linear-gradient(to top, rgba(0,0,0,0.82), rgba(0,0,0,0.15) 60%, rgba(0,0,0,0)); padding:90px 32px 28px; color:#fff;">'
+    +'<div style="font-size:13px; text-transform:uppercase; letter-spacing:0.12em; opacity:0.9; margin-bottom:8px;">Custom home contract prepared for</div>'
+    +'<div style="font-size:30px; font-weight:700; line-height:1.15;">'+buyer+'</div>'
+    +(city && city.indexOf('_')<0 ? '<div style="font-size:15px; margin-top:4px; opacity:0.95;">'+city+'</div>' : '')
+    +'<div style="font-size:14px; margin-top:8px; opacity:0.92;">'+c.name+' · '+(c.sqft>0?c.sqft.toLocaleString()+' sqft · ':'')+date+'</div>'
+    +'</div>'
+    +'</div>'
+    +(photoUrls.length ? '<script>(function(){var urls='+JSON.stringify(photoUrls)+';var box=document.getElementById("zk-custom-cover-box");function tryUrl(idx){if(idx>=urls.length)return;var t=new Image();t.onload=function(){box.style.backgroundImage="url(\\""+urls[idx]+"\\")";};t.onerror=function(){tryUrl(idx+1);};t.src=urls[idx];}tryUrl(0);})();<\/script>' : '')
+    +'<div style="margin-top:240px; background:#f5f3ec; border-radius:8px; padding:18px 22px; font-size:13px; color:#5f5e5a; line-height:1.6;">'
+    +'<b>Custom Home Purchase Agreement.</b> Prepared by Zip Kit Homes, LLC · Cedar City, Utah. This is a legally binding agreement — please review the full document carefully before signing.'
+    +'</div>'
+    +'</div>'
+
+    // ===== PAGE 2: BUYER/SELLER + COST SUMMARY + PAYMENT SCHEDULE =====
+    +'<div style="text-align:center;border-bottom:2px solid #1c1c1a;padding-bottom:18px;">'
+    +'<img src="'+ZIPKIT_LOGO+'" alt="Zip Kit Homes" style="height:56px;">'
+    +'<div style="font-size:22px;font-weight:700;margin-top:10px;">Custom Home Contract</div>'
+    +'<div style="font-size:13px;color:#555;margin-top:6px;">Prepared by Zip Kit Homes · Cedar City, Utah</div>'
+    +'</div>'
+    +'<div style="display:flex;justify-content:space-between;margin-top:20px;font-size:13px;">'
+    +'<div><div style="color:#888;text-transform:uppercase;font-size:11px;">Buyer</div><div style="font-weight:500;font-size:15px;">'+buyer+'</div><div style="color:#555;">'+city+'</div><div style="color:#555;">'+c.name+' · '+date+'</div></div>'
+    +'<div style="text-align:right;"><div style="color:#888;text-transform:uppercase;font-size:11px;">Seller</div><div style="font-weight:500;">Zip Kit Homes, LLC</div><div style="color:#555;">3665 W 2700 S, Cedar City UT 84720</div></div>'
+    +'</div>'
+    +'<table style="width:100%;border-collapse:collapse;margin-top:24px;font-size:12px;">'
+    +'<tr><td style="padding:5px 8px;border:1px solid #ccc;background:#f5f3ec;font-weight:600;" colspan="2">Buyer Information</td><td style="padding:5px 8px;border:1px solid #ccc;background:#f5f3ec;font-weight:600;" colspan="2">Seller Information</td></tr>'
+    +'<tr><td style="padding:5px 8px;border:1px solid #ccc;">Customer</td><td style="padding:5px 8px;border:1px solid #ccc;">'+buyer+'</td><td style="padding:5px 8px;border:1px solid #ccc;">Salesman</td><td style="padding:5px 8px;border:1px solid #ccc;">'+salesman+'</td></tr>'
+    +'<tr><td style="padding:5px 8px;border:1px solid #ccc;">Project</td><td style="padding:5px 8px;border:1px solid #ccc;">'+project+'</td><td style="padding:5px 8px;border:1px solid #ccc;">General Manager</td><td style="padding:5px 8px;border:1px solid #ccc;">Sven Heistad</td></tr>'
+    +'<tr><td style="padding:5px 8px;border:1px solid #ccc;">Contract Date</td><td style="padding:5px 8px;border:1px solid #ccc;">'+date+'</td><td style="padding:5px 8px;border:1px solid #ccc;">Phone</td><td style="padding:5px 8px;border:1px solid #ccc;">435-340-1171</td></tr>'
+    +'<tr><td style="padding:5px 8px;border:1px solid #ccc;">Ship to Address</td><td style="padding:5px 8px;border:1px solid #ccc;">'+siteAddr+'</td><td style="padding:5px 8px;border:1px solid #ccc;">Email</td><td style="padding:5px 8px;border:1px solid #ccc;">sales@ZipKitHomes.com</td></tr>'
+    +'<tr><td style="padding:5px 8px;border:1px solid #ccc;">House Sq ft</td><td style="padding:5px 8px;border:1px solid #ccc;">'+(c.sqft>0?c.sqft.toLocaleString()+' livable':'—')+'</td><td style="padding:5px 8px;border:1px solid #ccc;">Floor Plan</td><td style="padding:5px 8px;border:1px solid #ccc;">'+c.name+' (custom)</td></tr>'
+    +'<tr><td style="padding:5px 8px;border:1px solid #ccc;">Phone</td><td style="padding:5px 8px;border:1px solid #ccc;">'+phone+'</td><td style="padding:5px 8px;border:1px solid #ccc;"></td><td style="padding:5px 8px;border:1px solid #ccc;"></td></tr>'
+    +'</table>'
+    +'<div style="font-size:11px;font-style:italic;color:#555;margin-top:6px;">Pricing is valid for a period of nine (9) months from the contract date.</div>'
+    +'<table style="width:100%;border-collapse:collapse;margin-top:18px;font-size:12px;">'
+    +'<tr><td style="padding:5px 8px;border:1px solid #ccc;background:#5f5e5a;color:#fff;font-weight:600;" colspan="3">DESIGN RETAINER (separate from contract)</td></tr>'
+    +(c.designPaid
+      ? '<tr><td style="padding:5px 8px;border:1px solid #ccc;">Architectural design retainer</td><td style="padding:5px 8px;border:1px solid #ccc;text-align:right;color:#888;">PAID</td><td style="padding:5px 8px;border:1px solid #ccc;font-size:11px;color:#555;">Already received · was '+fmt(c.designAmt)+(c.designAmt!==CUSTOM_DESIGN?' (custom amount)':'')+'</td></tr>'
+      : (c.designAmt>0
+        ? '<tr><td style="padding:5px 8px;border:1px solid #ccc;">Architectural design retainer</td><td style="padding:5px 8px;border:1px solid #ccc;text-align:right;">'+fmt(c.designAmt)+'</td><td style="padding:5px 8px;border:1px solid #ccc;font-size:11px;color:#555;">paid up front · separate from contract'+(c.designAmt!==CUSTOM_DESIGN?' · custom amount (standard '+fmt(CUSTOM_DESIGN)+')':'')+'</td></tr>'
+        : '<tr><td style="padding:5px 8px;border:1px solid #ccc;">Architectural design retainer</td><td style="padding:5px 8px;border:1px solid #ccc;text-align:right;color:#888;">WAIVED</td><td style="padding:5px 8px;border:1px solid #ccc;font-size:11px;color:#555;">Design retainer waived for this customer</td></tr>'))
+    +'</table>'
+    +'<table style="width:100%;border-collapse:collapse;margin-top:14px;font-size:12px;">'
+    +'<tr><td style="padding:5px 8px;border:1px solid #ccc;background:#5f5e5a;color:#fff;font-weight:600;">CONTRACT COST SUMMARY</td><td style="padding:5px 8px;border:1px solid #ccc;background:#5f5e5a;color:#fff;font-weight:600;text-align:right;">PRICE</td><td style="padding:5px 8px;border:1px solid #ccc;background:#5f5e5a;color:#fff;font-weight:600;">COMMENTS</td></tr>'
+    +coverSumRows
+    +'<tr><td style="padding:6px 8px;border:1px solid #ccc;font-weight:700;">Contract Total</td><td style="padding:6px 8px;border:1px solid #ccc;text-align:right;font-weight:700;">'+fmt(c.contract)+'</td><td style="padding:6px 8px;border:1px solid #ccc;"></td></tr>'
+    +'</table>'
+    +'<table style="width:100%;border-collapse:collapse;margin-top:14px;font-size:12px;">'
+    +'<tr><td style="padding:5px 8px;border:1px solid #ccc;background:#f5f3ec;font-weight:600;" colspan="3">Estimated Timing &amp; Payment Schedule</td></tr>'
+    +(c.engPaid
+      ? '<tr><td style="padding:6px 8px;border:1px solid #ccc;">Payment 1 (engineering)</td><td style="padding:6px 8px;border:1px solid #ccc;text-align:right;color:#888;">PAID</td><td style="padding:6px 8px;border:1px solid #ccc;font-size:11px;">Already received · was '+fmt(c.p1Base||c.p1)+'</td></tr>'
+      : '<tr><td style="padding:6px 8px;border:1px solid #ccc;">Payment 1 (engineering)</td><td style="padding:6px 8px;border:1px solid #ccc;text-align:right;">'+fmt(c.p1)+'</td><td style="padding:6px 8px;border:1px solid #ccc;font-size:11px;">Full submit-ready, engineer-stamped plans, delivered within 4 weeks of execution. Secures the project on the production schedule.'+(c.promoCredit>0?' · '+fmt(c.p1Base)+' less '+fmt(c.promoCredit)+' design-retainer promo credit':'')+'</td></tr>')
+    +'<tr><td style="padding:6px 8px;border:1px solid #ccc;">Payment 2 (45%)</td><td style="padding:6px 8px;border:1px solid #ccc;text-align:right;">'+fmt(c.p2)+'</td><td style="padding:6px 8px;border:1px solid #ccc;font-size:11px;">45% of the contract remainder. Long-lead materials, begins production.</td></tr>'
+    +'<tr><td style="padding:6px 8px;border:1px solid #ccc;">Payment 3 (45%)</td><td style="padding:6px 8px;border:1px solid #ccc;text-align:right;">'+fmt(c.p3)+'</td><td style="padding:6px 8px;border:1px solid #ccc;font-size:11px;">45% of the contract remainder. Due before the home ships.</td></tr>'
+    +'<tr><td style="padding:6px 8px;border:1px solid #ccc;">Final Payment (10%)</td><td style="padding:6px 8px;border:1px solid #ccc;text-align:right;">'+fmt(c.p4)+'</td><td style="padding:6px 8px;border:1px solid #ccc;font-size:11px;">10% of the contract remainder. Due when Zip Kit Homes scope of work is completed on-site.</td></tr>'
+    +'</table>'
+    +'<div style="font-size:11px;color:#555;margin-top:6px;font-style:italic;">Design retainer ('+fmt(c.designAmt)+') is separate and paid up front. Contract is billed engineering first, then 45% / 45% / 10% of the remainder. Sums to the contract total.</div>'
+    +'<div style="margin-top:36px;display:flex;justify-content:space-between;font-size:12px;">'
+    +'<div style="width:45%;">Seller: ______________________ Date: __________</div>'
+    +'<div style="width:45%;">Buyer: ______________________ Date: __________</div>'
+    +'</div>'
+    +'<div style="font-size:11px;color:#888;margin-top:14px;font-style:italic;text-align:center;">The signatures above acknowledge the cost summary. The full binding purchase agreement follows on the next page and must also be signed.</div>'
+
+    // ===== PAGE 3+: v8 PURCHASE AGREEMENT (Custom Home) =====
+    +'<div class="pagebreak"></div>'
+    +'<div style="text-align:center;padding-top:12px;">'
+    +'<h1 class="doc-title" style="font-size:24px;margin-top:0;">Custom Home Purchase Agreement</h1>'
+    +'<div class="doc-sub">Zip Kit Homes, LLC &mdash; a Utah limited liability company</div>'
+    +'<div class="doc-notice">This is a legally binding agreement. Please read carefully before signing.</div>'
+    +'</div>'
+
+    // ===== PARTIES =====
+    +'<h2 class="sec">Parties to this Agreement</h2>'
+    +'<p>This Custom Home Purchase Agreement ("<b>Agreement</b>") is entered into as of the date last signed below, by and between <b>Zip Kit Homes, LLC</b>, a Utah limited liability company, with its principal place of business at 3665 West 2700 South, Cedar City, Utah 84720 ("<b>Seller</b>"); and the party identified below ("<b>Buyer</b>").</p>'
+    +'<table class="grid">'
+    +'<tr><td style="width:35%;"><b>Buyer Full Legal Name</b></td><td>'+buyer+'</td></tr>'
+    +'<tr><td><b>Buyer Address</b></td><td>'+buyerAddr+'</td></tr>'
+    +'<tr><td><b>Buyer Phone</b></td><td>'+phone+'</td></tr>'
+    +'<tr><td><b>Buyer Email</b></td><td>'+email+'</td></tr>'
+    +'<tr><td><b>Project Site Address</b></td><td>'+siteAddr+'</td></tr>'
+    +'<tr><td><b>Project / Custom Design</b></td><td>'+project+' &middot; '+c.name+(c.sqft>0?' &middot; '+c.sqft.toLocaleString()+' sqft livable':'')+'</td></tr>'
+    +'<tr><td><b>Sales Representative</b></td><td>'+salesman+'</td></tr>'
+    +'<tr><td><b>Contract Date</b></td><td>'+date+'</td></tr>'
+    +'</table>'
+    +'<p>Seller and Buyer are each referred to individually as a "Party" and collectively as the "Parties."</p>'
+
+    // ===== SECTION 1: PURPOSE AND SCOPE =====
+    +'<h2 class="sec">1. Purpose and Scope of Agreement</h2>'
+    +'<p>This Agreement governs the design, fabrication, and delivery of a custom-designed panelized home ("<b>Home</b>") built to Buyer\'s unique specifications, as set forth in the contract documents executed by both Parties. The Home is fabricated at Seller\'s facility in Cedar City, Utah, and delivered to Buyer\'s project site.</p>'
+    +'<h3 class="sub">Seller is a manufacturer only &mdash; no on-site work.</h3>'
+    +'<p>Seller is a manufacturer and material supplier. Seller does not perform, supervise, direct, or contract for any on-site construction work of any kind, including assembly, erection, setting, rigging, or installation of the Home. Seller\'s scope of work under this Agreement begins at Seller\'s facility and ends upon Delivery of the Home to the project site. Seller is not the general contractor on the project, holds no contractor\'s license for the project site, and carries no insurance covering on-site construction activity. All on-site work is the sole responsibility of Buyer, whether performed by Buyer directly or through an Installer, general contractor, or subcontractor engaged by Buyer.</p>'
+    +zkContractCallout('Assembly is a separate contract with a separate company',
+      '<p><b>What Buyer is purchasing under this Agreement.</b> Fabrication of the Home at Seller\'s facility and delivery of the Home to the project site. Nothing more. No on-site work of any kind is included in the Purchase Price.</p>'
+      +'<p><b>Someone must assemble the Home.</b> A panelized custom home is not a finished structure. Unloading, setting, erection, bracing, weatherproofing, and Stitch-Up must be performed on site by Buyer, by a contractor Buyer engages, or by a set crew Buyer engages. That work is a separate cost that Buyer must plan and budget for independently of the Purchase Price.</p>'
+      +'<p><b>Buyer chooses who performs Assembly.</b> Buyer may self-perform, use Buyer\'s own general contractor or framing contractor, or engage Zip Kit General Contracting, LLC. Zip Kit General Contracting, LLC is a separate and independently operated limited liability company. It is not Seller, is not a division or department of Seller, and is not Seller\'s agent. Common ownership, similar name, or shared branding does not make either company responsible for the acts, omissions, warranties, schedule, or debts of the other.</p>'
+      +'<p><b>Buyer is not required to use any particular Installer.</b> Buyer\'s election not to engage Zip Kit General Contracting, LLC will not change the Purchase Price, the production schedule, the delivery priority, or the warranty Buyer receives under Section 9 of this Agreement.</p>'
+      +'<p><b>If Buyer engages Zip Kit General Contracting, LLC</b>, Buyer will sign a separate written agreement with that company, containing its own scope, price, schedule, insurance, and warranty terms. Buyer should read that agreement separately and on its own merits. Seller is not a party to it, has no obligations under it, and bears no liability arising from it. Neither agreement incorporates the other by reference, and a dispute, delay, default, or termination under one does not excuse performance under, or create a right of offset against, the other.</p>'
+      +'<p><b>What this means for warranty.</b> Seller warrants the Home components as manufactured and delivered. Seller does not warrant the structure as erected. A condition arising from Assembly is excluded from Seller\'s warranty regardless of who performed the Assembly &mdash; including Zip Kit General Contracting, LLC. Conversely, a manufacturing defect remains Seller\'s responsibility regardless of who performed the Assembly.</p>'
+      +'<p><b>Seller\'s commitments to Buyer.</b> Seller will furnish the Assembly Guidelines to Buyer no later than fourteen (14) calendar days prior to shipment, so that Buyer and Buyer\'s Installer can review the requirements before Assembly is scheduled. Seller will participate in the Defect Origin Determination process set forth in Section 12 in good faith, and will not deny a warranty claim solely on the ground that Buyer engaged a particular Installer.</p>',
+      'Buyer')
+    +'<h3 class="sub">Seller fabricates from the Approved Plan Set as Buyer furnishes it.</h3>'
+    +'<p>This Agreement covers manufacture and delivery of the Home. Seller prepares shop drawings and fabricates in reliance on the Approved Plan Set that Buyer furnishes to Seller under a separate written Approved Plan Set Transmittal executed after the jurisdiction issues the Approved Plan Set. Seller does not re-verify the code compliance of the Approved Plan Set, does not re-check the jurisdiction\'s review, and is not the architect of record or the engineer of record for the project or for site-specific conditions including soils, drainage, frost depth, seismic site class, or snow drift at the site. Any design or engineering services performed prior to this Agreement were performed under a separate arrangement and are not part of Seller\'s scope of work under this Agreement.</p>'
+
+    // ===== SECTION 2: DEFINED TERMS =====
+    +'<h2 class="sec">2. Defined Terms</h2>'
+    +'<ol class="def">'
+    +'<li><b>"Agreement"</b> means this Custom Home Purchase Agreement, including all exhibits, specifications, and written change orders incorporated herein.</li>'
+    +'<li><b>"Home"</b> means the custom-designed panelized home built to Buyer\'s unique specifications, including all wall panels, floor and roof panels, structural components, and exterior shell components, as specified in the contract documents.</li>'
+    +'<li><b>"Approved Plan Set"</b> means the complete set of documents as approved by the building department or other authority having jurisdiction over the project site, including every stamped sheet, redline, marked-up sheet, correction notice, and condition of approval, furnished by Buyer to Seller under a separate written Approved Plan Set Transmittal executed by Buyer after issuance of the permit. The Approved Plan Set is the sole basis on which Seller prepares shop drawings and fabricates the Home.</li>'
+    +'<li><b>"Contract Documents"</b> means the custom home specifications sheet, floor plans, structural drawings, Assembly Guidelines, scope of work, and any other documents incorporated into this Agreement by reference and executed by both Parties.</li>'
+    +'<li><b>"Purchase Price"</b> means the total price for the Home as set forth in the contract documents, subject to adjustment for any written and signed change orders.</li>'
+    +'<li><b>"Delivery"</b> means the arrival of the Home at the project site address identified in this Agreement and the tender of the Home to Buyer for unloading. Delivery occurs whether or not Buyer is present, prepared to unload, or elects to accept the shipment.</li>'
+    +'<li><b>"Load Confirmation"</b> means Seller\'s written notice to Buyer that the Home has been loaded, secured, and is ready to depart Seller\'s yard, accompanied by the packing list and photographs of the loaded shipment.</li>'
+    +'<li><b>"Payment Confirmation"</b> means Buyer\'s written confirmation, in one of the forms permitted by Section 5, that the Final Payment has been remitted or is scheduled. Seller will not release the truck from its yard until Payment Confirmation is received.</li>'
+    +'<li><b>"Completion"</b> means Delivery of the Home together with the delivery inspection described in Section 4. Completion marks the end of Seller\'s scope of work under this Agreement and is the point from which the warranty period in Section 9 is measured.</li>'
+    +'<li><b>"Assembly"</b> means all on-site work required to unload, stage, erect, fasten, brace, weatherproof, and complete the Home, including setting and erection of wall, floor, and roof panels and exterior shell components. Assembly is outside Seller\'s scope of work and is the sole responsibility of Buyer.</li>'
+    +'<li><b>"Installer"</b> means any third party engaged by Buyer to perform Assembly, including any general contractor, set crew, framing contractor, or subcontractor. An Installer is not a subcontractor, agent, or representative of Seller.</li>'
+    +'<li><b>"Assembly Guidelines"</b> means Seller\'s written installation and assembly instructions for the Home, as furnished by Seller and as amended from time to time, which set the minimum standard for proper Assembly.</li>'
+    +'<li><b>"Stitch-Up"</b> means the on-site completion work performed after Assembly, including decking, railing, metal roofing installation, gutters and downspouts, exterior siding connections, soffit and fascia connections, and siding installation over structural straps. Stitch-Up is outside Seller\'s scope of work.</li>'
+    +'<li><b>"Defect Origin Determination"</b> means the joint process described in Section 12 for identifying whether a claimed defect arises from manufacture or from Assembly.</li>'
+    +'</ol>'
+
+    // ===== SECTION 3: SCOPE OF WORK =====
+    +'<h2 class="sec">3. Scope of Work</h2>'
+    +'<p>Seller\'s scope of work under this Agreement is limited to the following:</p>'
+    +'<ol class="def">'
+    +'<li>Fabrication of the custom Home &mdash; including all wall, floor, and roof panels and exterior shell components &mdash; at Seller\'s facility in accordance with the contract documents and the Approved Plan Set furnished by Buyer.</li>'
+    +'<li>Delivery of the Home to Buyer\'s project site address as identified in this Agreement.</li>'
+    +'<li>Furnishing the Assembly Guidelines to Buyer no later than fourteen (14) calendar days prior to shipment.</li>'
+    +'</ol>'
+    +'<h3 class="sub">Custom home scope &mdash; what is and isn\'t included</h3>'
+    +'<p>The following table reflects the scope specifically negotiated for this custom Home. Items shown as INCLUDED are part of the Purchase Price; items shown as NOT INCLUDED are Buyer\'s responsibility, whether performed by Buyer directly or through Buyer\'s general contractor, Installer, or other trades.</p>'
+    +'<table class="grid">'
+    +'<tr><th style="background:#5f5e5a;color:#fff;">Item</th><th style="background:#5f5e5a;color:#fff;text-align:right;">Status</th></tr>'
+    +scopeIncRows
+    +scopeNotRows
+    +'</table>'
+    +'<p><b>Condition precedent to fabrication.</b> Seller\'s obligation to prepare shop drawings and to fabricate is conditioned upon Buyer\'s delivery of the complete Approved Plan Set under the separate Approved Plan Set Transmittal, which the Parties will execute after the jurisdiction issues the Approved Plan Set and Buyer\'s engineering payment has cleared. Seller may procure materials on execution of this Agreement, but is not obligated to commence fabrication until the Approved Plan Set is received. Any redline, condition of approval, or revision that is delivered or discovered after shop drawings have commenced is a change order under Section 6, and where materials have already been procured or cut, Buyer is additionally responsible for the cost of the affected materials.</p>'
+    +'<p>Buyer acknowledges that panels may incur minor cosmetic damage during shipping and transport, including surface marks, minor cracks, road debris, and minor door and window adjustments. These cosmetic items are not warranty defects and are the responsibility of Buyer to address as part of Assembly or Stitch-Up. Seller will make commercially reasonable efforts to minimize such damage during transport.</p>'
+    +'<p>From and after Delivery, Seller is a material supplier only. Any questions regarding product assembly, installation, or general construction shall be directed to Buyer\'s Installer or on-site general contractor. Seller is not responsible for damage caused by improper unloading, handling, storage, weather, or improper Assembly or installation by Buyer or Buyer\'s Installer following Delivery.</p>'
+
+    // ===== SECTION 4: DELIVERY, SITE ACCESS, UNLOADING, RISK OF LOSS =====
+    +'<h2 class="sec">4. Delivery, Site Access, Unloading, and Risk of Loss</h2>'
+    +'<p><b>a. Site Access.</b> Buyer warrants that the project site is accessible to a standard tractor-trailer and that the delivery route, driveway, and laydown area are passable and of adequate load-bearing capacity at the scheduled delivery time. Seller\'s driver has sole discretion to decline to enter any site the driver reasonably judges to be unsafe or impassable. Seller is not responsible for damage to driveways, landscaping, curbs, utilities, septic systems, or other site improvements resulting from delivery access requested or directed by Buyer.</p>'
+    +'<p><b>b. Unloading.</b> Buyer is solely responsible for unloading the Home, including furnishing all equipment, rigging, and labor required to do so safely. Buyer shall have the site, equipment, and personnel ready at the scheduled delivery appointment. Detention beyond a reasonable unloading period shall be billed to Buyer at Seller\'s then-current standby rate.</p>'
+    +'<p><b>c. Delivery Inspection.</b> At the time of unloading, Buyer or Buyer\'s Designated Delivery Representative shall inspect the shipment against the packing list and note any shortage, visible damage, or discrepancy in writing on the delivery documents before the truck departs. Claims for shortage or visible transport damage not noted at the time of Delivery are waived.</p>'
+    +'<p><b>d. Risk of Loss and Title.</b> Title to and risk of loss of the Home pass to Buyer upon Delivery. From that moment, Buyer bears all responsibility for the Home, including unloading, storage, protection from weather, theft, vandalism, and damage. Buyer is solely responsible for obtaining and maintaining appropriate property and builder\'s risk insurance coverage effective as of the date of Delivery.</p>'
+    +'<p><b>e. Inspections.</b> Buyer is solely responsible for obtaining all permits and for scheduling and attending all jurisdictional inspections. Seller has no obligation to attend, schedule, or participate in any inspection.</p>'
+
+    // ===== SECTION 5: PURCHASE PRICE AND PAYMENT TERMS =====
+    +'<h2 class="sec">5. Purchase Price and Payment Terms</h2>'
+    +'<p>The Purchase Price for the Home is <b>'+fmt(c.contract)+'</b>, subject to adjustment for any written and signed change orders. The Purchase Price covers fabrication and delivery of the Home only and does not include Assembly, set services, or any on-site labor. All payments shall be made to <b>Zip Kit Homes, LLC</b>.</p>'
+    +'<h3 class="sub">Payment schedule</h3>'
+    +'<table class="grid">'
+    +'<tr><th style="width:32%;">Payment</th><th class="amt" style="width:18%;">Amount</th><th style="width:50%;">When due &amp; what it covers</th></tr>'
+    +(c.engPaid
+      ? '<tr><td>Payment 1 &mdash; Engineering</td><td class="amt" style="color:#888;">PAID</td><td class="note">Already received &middot; was '+fmt(c.p1Base||c.p1)+'</td></tr>'
+      : '<tr><td>Payment 1 &mdash; Engineering</td><td class="amt">'+fmt(c.p1)+'</td><td class="note">Due upon execution of this Agreement. Delivers full submit-ready, engineer-stamped custom plans within four (4) weeks and reserves Buyer\'s production slot.'+(c.promoCredit>0?' '+fmt(c.p1Base)+' less '+fmt(c.promoCredit)+' design-retainer promo credit.':'')+'</td></tr>')
+    +'<tr><td>Payment 2 &mdash; Materials Procurement (45%)</td><td class="amt">'+fmt(c.p2)+'</td><td class="note">45% of the contract remainder. Due within ten (10) calendar days of Seller\'s written notice of engineering delivery. Reimburses Seller for lumber, structural components, hardware, and all raw materials procured specifically for Buyer\'s custom Home (non-refundable &mdash; see below).</td></tr>'
+    +'<tr><td>Payment 3 &mdash; Pre-Shipment (45%)</td><td class="amt">'+fmt(c.p3)+'</td><td class="note">45% of the contract remainder. Due within ten (10) calendar days of Seller\'s written notice of fabrication completion. Seller will not begin loading the Home until Payment 3 is received in full.</td></tr>'
+    +'<tr><td>Final Payment &mdash; Load Confirmation (10%)</td><td class="amt">'+fmt(c.p4)+'</td><td class="note">10% of the contract remainder. Due upon Seller\'s Load Confirmation. Payment Confirmation must be received before the truck departs Seller\'s yard.</td></tr>'
+    +'</table>'
+    +'<p style="font-size:10.5px;color:#5f5e5a;font-style:italic;">Payments 2, 3, and Final are calculated as 45% / 45% / 10% of the contract remainder (Contract Total less Engineering). Design retainer of '+fmt(c.designAmt)+' is separate and paid up front outside this Agreement.</p>'
+    +'<h3 class="sub">Materials Procurement &mdash; non-refundable</h3>'
+    +'<p>Payment 2 constitutes reimbursement for materials procured specifically for Buyer\'s custom Home. Upon receipt of Payment 2, Seller will purchase lumber, structural components, hardware, and all other raw materials required to fabricate Buyer\'s Home to Buyer\'s unique custom specifications. These materials are custom-ordered and cut to specification and cannot be returned to suppliers, resold, or repurposed for another project. Buyer expressly acknowledges and agrees that Payment 2 represents actual costs incurred by Seller on Buyer\'s behalf and is therefore non-refundable upon receipt.</p>'
+    +'<h3 class="sub">Final Payment &mdash; release of the truck</h3>'
+    +'<p>The Final Payment is due upon Seller\'s issuance of Load Confirmation. Before the truck departs Seller\'s yard, Buyer must furnish Payment Confirmation. Seller will not release the truck from the yard until Payment Confirmation is received. Payment Confirmation may be furnished by (i) written confirmation of a wire transfer sufficient for funds to settle no later than the date of Delivery, or (ii) written confirmation that a certified or cashier\'s check will be presented at the project site at Delivery, naming the individual who will present it.</p>'
+    +'<p><b>Payment and warranty are independent.</b> Final Payment is not contingent upon the resolution of any outstanding warranty claims or punch list items. Buyer\'s warranty rights under Section 9 are not affected by remitting Final Payment.</p>'
+
+    // ===== SECTION 6: CHANGE ORDERS =====
+    +'<h2 class="sec">6. Change Orders and Upgrades</h2>'
+    +'<p>Any Buyer-requested changes to plans, designs, specifications, or materials after execution of this Agreement must be submitted in writing and are subject to Seller\'s approval in Seller\'s reasonable discretion. Seller is not obligated to accept any change order request. All approved change orders must be documented in a written change order signed by both Parties, or confirmed through email with return confirmation from both Parties. Verbal change order approvals are not valid and shall not be binding on either Party.</p>'
+    +'<p>The agreed cost of any change order, including any applicable change order fee, shall be paid by Buyer to Seller in full prior to the commencement of the changed or additional work. Custom home projects are particularly sensitive to change orders because materials are cut to Buyer\'s unique specifications; a change order after fabrication has commenced typically requires Buyer to bear the cost of already-cut materials in addition to the change itself.</p>'
+    +'<p><b>Jurisdiction-driven changes.</b> A change required by the jurisdiction &mdash; including a plan-check correction, a condition of approval, or a field correction directed by an inspector &mdash; is a change order under this Section on the same terms as a Buyer-requested change. Seller is not responsible for the cost or schedule impact of a jurisdictional requirement that was not reflected in the Approved Plan Set as delivered to Seller.</p>'
+
+    // ===== SECTION 7: COMPLETION DATE AND DELAYS =====
+    +'<h2 class="sec">7. Completion Date and Unavoidable Delays</h2>'
+    +'<p>Seller shall use commercially reasonable efforts to complete fabrication and delivery of the Home within the timeframe set forth in the contract documents. Seller shall be entitled to a reasonable extension of the completion date due to any of the following: (a) interruption of transportation or logistics; (b) unavailability or delay in delivery of materials from Seller\'s suppliers; (c) labor disputes, strikes, or workforce disruptions; (d) fire, flood, earthquake, or other acts of nature or force majeure events; (e) adverse weather conditions affecting fabrication or delivery; (f) any Buyer-requested change orders or modifications; (g) Buyer\'s failure to have the project site ready to receive Delivery; (h) any other circumstances beyond the reasonable control of Seller.</p>'
+    +'<p>Seller\'s delivery dates are estimates and are not guaranteed. Seller shall not be liable for any incidental, consequential, or delay-related damages, including Installer standby or remobilization charges, crane or equipment cancellation fees, financing costs, lost rent, or temporary housing costs. Buyer is advised not to commit to Assembly, crane services, or other trades until Seller has issued Load Confirmation.</p>'
+
+    // ===== SECTION 8: MATERIAL QUANTITIES =====
+    +'<h2 class="sec">8. Material Quantities, Storage, and Additional Orders</h2>'
+    +'<p>Seller shall ship exact material quantities as required by the contract documents, plus a reasonable industry-standard waste factor. Buyer is responsible for all on-site storage of materials from and after Delivery, including protection from weather and provision of a level, drained, and adequately sized laydown area. Any damage to materials caused by improper unloading, handling, weather, inadequate storage conditions, or improper Assembly by Buyer or Buyer\'s Installer following Delivery is the sole responsibility of Buyer.</p>'
+    +'<p>If Buyer requires additional materials beyond those specified in the contract documents, Seller will use commercially reasonable efforts to fulfill such requests. Additional materials must be paid for in full, including applicable shipping costs, prior to shipment.</p>'
+
+    // ===== SECTION 9: WARRANTY =====
+    +'<h2 class="sec">9. Warranty</h2>'
+    +'<p>Seller warrants to Buyer that: (a) all materials and components furnished under this Agreement shall be new and free from material defects at the time of Delivery; (b) fabrication of the Home shall be performed in a good and workmanlike manner, consistent with industry standards and in conformance with the custom home specifications sheet outlined in the contract documents; and (c) the Home shall conform to all specifications set forth in the contract documents.</p>'
+    +'<p>Seller\'s warranty is limited to the repair or replacement of defective components, or refund of the portion of the Purchase Price allocable to the defective component, at Seller\'s election. Seller\'s warranty expressly excludes: minor cosmetic damage incurred during shipping; any work or components outside of Seller\'s defined scope; any defect, damage, deflection, misalignment, water intrusion, or structural condition arising from Assembly or from any deviation from the Assembly Guidelines; any damage caused by improper unloading, handling, or storage by Buyer or Buyer\'s Installer; any damage caused by Buyer\'s failure to complete Assembly or Stitch-Up in a timely and workmanlike manner; any condition arising from a foundation that is out of level, out of square, or otherwise not constructed in accordance with the contract documents; and any labor cost associated with removing, replacing, or reinstalling a warranted component after Assembly has begun.</p>'
+    +'<p><b>Assembly Guidelines as a condition of warranty.</b> Seller\'s warranty is expressly conditioned upon Assembly of the Home in accordance with the Assembly Guidelines, the contract documents, applicable building codes, and generally accepted construction practice. Seller\'s warranty does not extend to the structure as erected, only to the components as manufactured and delivered. Where a claimed defect could reasonably arise from either manufacture or Assembly, the Parties shall follow the Defect Origin Determination process in Section 12.</p>'
+    +'<p><b>Notice, duration, and unauthorized work.</b> Warranty claims must be submitted to Seller in writing within thirty (30) days of the date the defect is discovered or reasonably should have been discovered, and in no event later than twelve (12) months following Delivery. If Buyer or Buyer\'s contractors perform any corrective, repair, or remediation work on items that fall within Seller\'s defined scope of work or warranty obligations without first obtaining Seller\'s prior written approval, Seller shall have no obligation to reimburse Buyer for the cost of such work and warranty coverage for the affected items shall be void.</p>'
+    +'<p style="font-size:10.5px;text-transform:uppercase;letter-spacing:0.03em;">Except as expressly set forth in this Section, Seller makes no warranties, express or implied, and specifically disclaims any implied warranty of merchantability, fitness for a particular purpose, habitability, or workmanlike construction, to the fullest extent permitted by applicable law.</p>'
+
+    // ===== SECTION 10: INSURANCE =====
+    +'<h2 class="sec">10. Insurance</h2>'
+    +'<p>Seller shall maintain appropriate commercial general liability and property insurance covering the Home during fabrication at Seller\'s facility and during transport to the project site, and shall furnish a certificate of insurance to Buyer upon written request. Seller performs no on-site construction work and maintains no insurance coverage for on-site construction activity at the project site. Buyer acknowledges this limitation and agrees that Buyer is responsible for confirming that Buyer\'s Installer, general contractor, and any other on-site trades maintain their own commercial general liability and workers\' compensation coverage in amounts appropriate to the work. From and after Delivery, Buyer assumes all risk of loss and is solely responsible for obtaining and maintaining appropriate property and builder\'s risk insurance coverage.</p>'
+
+    // ===== SECTION 11: DEFAULT AND REMEDIES =====
+    +'<h2 class="sec">11. Default and Remedies</h2>'
+    +'<p><b>Buyer Default.</b> In the event Buyer fails to make any payment when due, fails to accept Delivery within the required timeframe, or otherwise materially breaches this Agreement, Seller shall provide Buyer with written notice of default. Buyer shall have ten (10) calendar days from receipt of such notice to cure. If Buyer fails to cure within the cure period, Seller may elect to terminate this Agreement and pursue any remedies available at law or in equity, including retention of all payments made to date as reimbursement for actual costs incurred, subject to Seller\'s obligation to furnish Buyer a written accounting of those costs within thirty (30) days of termination and to refund any amount held in excess.</p>'
+    +'<p><b>Seller Default.</b> In the event Seller materially breaches this Agreement, Buyer shall provide Seller with written notice of the alleged breach. Seller shall have twenty (20) calendar days from receipt of such notice to cure the breach or provide Buyer with a written remediation plan acceptable to Buyer. If Seller fails to cure or to furnish an acceptable remediation plan, Buyer may terminate this Agreement and recover all payments made, less the value of any conforming materials fabricated and tendered to Buyer. Seller\'s liability to Buyer for any breach of this Agreement shall not exceed the total Purchase Price paid by Buyer to Seller at the time of the alleged breach.</p>'
+    +'<p><b>Consequential Damages Waived.</b> In no event shall either Party be liable for indirect, incidental, special, consequential, or punitive damages of any kind, including lost profits, lost rent, financing or carrying costs, temporary housing, or contractor standby, delay, or remobilization charges, whether arising in contract, tort, or otherwise.</p>'
+
+    // ===== SECTION 12: DEFECT ORIGIN DETERMINATION =====
+    +'<h2 class="sec">12. Defect Origin Determination</h2>'
+    +'<p>This Section establishes the process by which Buyer obtains a determination of responsibility where a claimed condition could arise either from manufacture of the Home or from Assembly. It applies whether Assembly was performed by Buyer, by Zip Kit General Contracting, LLC, or by any other Installer. Identical provisions appear in the Set Services Agreement offered by Zip Kit General Contracting, LLC.</p>'
+    +'<ol class="def">'
+    +'<li><b>Notice to one is notice to both.</b> Written notice of a claimed defect delivered to either Zip Kit Homes, LLC or Zip Kit General Contracting, LLC shall be deemed timely notice to both companies for purposes of preserving the claim and satisfying any notice deadline in either agreement. The receiving company shall forward the notice to the other within three (3) business days.</li>'
+    +'<li><b>Joint inspection.</b> Where a claimed defect could reasonably arise from either manufacture or Assembly, and where Zip Kit General Contracting, LLC performed the Assembly, both companies shall participate in a joint site inspection within fifteen (15) business days of notice, or at the earliest date thereafter that is mutually workable. Each company bears its own cost of participation.</li>'
+    +'<li><b>Written determination.</b> Within ten (10) business days of the inspection, Seller shall furnish Buyer a written statement identifying the origin of the condition as Seller understands it and stating whether Seller accepts responsibility. Where both companies participated, the statement shall be furnished jointly. The responsible company shall then perform its remedy under its own agreement.</li>'
+    +'<li><b>Disagreement.</b> If the companies do not agree on origin, Buyer may require that a neutral third-party inspector &mdash; a licensed professional engineer or ICC-certified inspector with no prior relationship to either company &mdash; be jointly retained. The cost shall be borne equally by the two companies. The inspector\'s written finding is advisory, not binding, and is admissible in any subsequent proceeding.</li>'
+    +'<li><b>Tolling.</b> All warranty periods, notice deadlines, and limitation periods under this Agreement are tolled from the date of notice under subsection (a) until fifteen (15) days after the written determination under subsection (c), or the neutral inspector\'s finding under subsection (d), whichever is later.</li>'
+    +'<li><b>No joint liability created.</b> Nothing in this Section makes either company liable for the obligations, acts, or omissions of the other, creates a partnership, joint venture, or agency between them, or expands either company\'s scope of work or warranty. This Section establishes a process only.</li>'
+    +'</ol>'
+
+    // ===== SECTION 13: COMMUNICATION =====
+    +'<h2 class="sec">13. Communication</h2>'
+    +'<p>Buyer may contact Zip Kit Homes at any time with questions, concerns, or requests related to this Agreement. All formal notices required or permitted under this Agreement must be submitted in writing via email to <b>sales@zipkithomes.com</b> or by certified mail to Seller\'s principal place of business. Seller agrees to respond to all written inquiries within two (2) business days and to provide Buyer with bi-weekly progress reports during the fabrication phase of the Home.</p>'
+
+    // ===== SECTION 14: DISPUTE RESOLUTION =====
+    +'<h2 class="sec">14. Dispute Resolution</h2>'
+    +'<p><b>Mediation.</b> In the event of any dispute, claim, or controversy arising out of or relating to this Agreement, the Parties agree to first attempt resolution through good faith mediation conducted in Iron County, Utah, or by remote video conference at either Party\'s election. Either Party may initiate mediation by providing written notice to the other Party. The Parties shall mutually agree on a mediator within fifteen (15) days of such notice. Mediation costs shall be shared equally by the Parties.</p>'
+    +'<p><b>Binding Arbitration.</b> If mediation does not result in a resolution within sixty (60) days of initiation, or if either Party refuses to participate, the dispute shall be submitted to binding arbitration in Iron County, Utah, in accordance with the Construction Industry Arbitration Rules of the American Arbitration Association then in effect. The arbitrator\'s decision shall be final and binding and may be entered as a judgment in any court of competent jurisdiction. Nothing in this Section limits either Party\'s rights or obligations under any mandatory pre-litigation notice or right-to-repair statute of the state in which the project site is located.</p>'
+    +'<p><b>Attorneys\' Fees.</b> In any arbitration or subsequent litigation to enforce an arbitration award, the prevailing Party shall be entitled to recover reasonable attorneys\' fees and costs from the non-prevailing Party.</p>'
+
+    // ===== SECTION 15: GOVERNING LAW =====
+    +'<h2 class="sec">15. Governing Law and Venue</h2>'
+    +'<p>This Agreement shall be governed by and construed in accordance with the laws of the State of Utah, without regard to conflict of laws principles, except that any lien, bond, right-to-repair, or construction-statute rights shall be governed by the law of the state in which the project site is located to the extent that law is mandatory. Any legal proceedings not subject to arbitration under Section 14 shall be brought exclusively in the state or federal courts located in Iron County, Utah. Both Parties consent to personal jurisdiction in such courts.</p>'
+
+    // ===== SECTION 16: GENERAL PROVISIONS =====
+    +'<h2 class="sec">16. General Provisions</h2>'
+    +'<ol class="def">'
+    +'<li>This Agreement constitutes the entire understanding between the Parties regarding the subject matter hereof and supersedes all prior oral or written agreements, representations, and understandings. Any amendment must be made in writing and signed by both Parties.</li>'
+    +'<li>If any provision of this Agreement is found invalid or unenforceable, that provision shall be modified to the minimum extent necessary to make it enforceable, and all remaining provisions shall continue in full force and effect.</li>'
+    +'<li>No waiver of any provision of this Agreement shall be effective unless made in writing. Failure to enforce any provision shall not constitute a waiver of the right to enforce that provision in the future.</li>'
+    +'<li>Seller is acting as an independent contractor. Nothing in this Agreement creates an employment relationship, partnership, joint venture, or agency between the Parties.</li>'
+    +'<li><b>No agency with Installers.</b> No Installer, set crew, general contractor, or other on-site trade engaged by Buyer is an agent, employee, partner, joint venturer, or representative of Seller, regardless of whether such party was referred, recommended, or introduced to Buyer by Seller, and regardless of any similarity of name, branding, ownership, or personnel. Seller makes no representation or warranty regarding the performance of any Installer. Section 12 is the sole exception and establishes a process only.</li>'
+    +'<li>Buyer may not assign this Agreement or any rights hereunder without Seller\'s prior written consent, which shall not be unreasonably withheld where the assignee is a lender, trust, or entity controlled by Buyer. Seller may assign this Agreement to a successor entity without Buyer\'s consent.</li>'
+    +'</ol>'
+
+    // ===== SECTION 17: BUYER ACKNOWLEDGMENT =====
+    +'<h2 class="sec">17. Buyer Acknowledgment of Assembly Responsibility</h2>'
+    +'<p>Buyer confirms that Buyer has read the callout titled "Assembly is a separate contract with a separate company" in Section 1, has initialed it, and understands that Seller\'s scope of work ends upon Delivery; that Buyer is solely responsible for arranging and paying for all Assembly; that Seller\'s warranty does not cover conditions arising from Assembly; that Buyer will receive Seller\'s Assembly Guidelines not less than fourteen (14) days before shipment and is responsible for ensuring Assembly conforms to them; and that any set services Buyer elects to purchase are provided by a separate company under a separate contract.</p>'
+
+    // ===== SECTION 18: EXECUTION =====
+    +'<h2 class="sec">18. Execution and Acceptance</h2>'
+    +'<p>The undersigned Parties represent that they have read, understand, and agree to be bound by the terms and conditions of this Agreement and that each signatory is duly authorized to execute this Agreement on behalf of the Party indicated.</p>'
+    +zkContractSigBlock('Zip Kit Homes, LLC (Seller)', 'Buyer');
+
+    // NOTE: Approved Plan Set Transmittal is issued as a standalone document
+    // AFTER the engineering payment clears and the jurisdiction issues the
+    // Approved Plan Set. See the "Plan Set Transmittal ↗" button in the
+    // toolbar for the generator.
+
+  var w = window.open('', '_blank');
   if(!w){ alert('Please allow pop-ups to generate the contract.'); return; }
-  w.document.write('<!DOCTYPE html><html><head><meta charset="utf-8"><title>Custom Home Contract — '+buyer+' — '+c.name+'</title></head><body style="margin:0;background:#fff;">'+html
-    +'<div style="text-align:center;padding:20px;" class="noprint"><button onclick="window.print()" style="padding:10px 24px;font-size:14px;background:#d85a30;color:#fff;border:none;border-radius:8px;cursor:pointer;">Print / Save as PDF</button></div>'
-    +'<style>@media print{.noprint{display:none;} body{-webkit-print-color-adjust:exact; print-color-adjust:exact;}}</style></body></html>');
+  w.document.write(zkContractDoc(
+    'zipkit',
+    'Custom Home Purchase Agreement',
+    'v8 · '+date,
+    'Zip Kit Homes, LLC',
+    '3665 W 2700 S, Cedar City, UT 84720 · 435-340-1171 · sales@zipkithomes.com',
+    body
+  ));
   w.document.close();
 }
 
