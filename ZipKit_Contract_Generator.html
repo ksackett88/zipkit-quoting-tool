@@ -1549,6 +1549,122 @@ function generateSetServicesContract(){
   w.document.close();
 }
 
+// =============================================================================
+// Approved Plan Set Transmittal (Zip Kit Homes — standalone document)
+// =============================================================================
+// Executed AFTER the Buyer's engineering payment has cleared AND the
+// jurisdiction has issued the Approved Plan Set. Satisfies Sec 2c + Sec 3 of
+// the Panelized Shell Kit Purchase Agreement. Standalone: doesn't require
+// CURRENT (the shell contract calc) — just reads buyer/project fields from
+// the shell input panel. Rep can hit this button any time after the buyer
+// info is filled in, then hand the printed document to the Buyer at
+// permit-hand-off.
+function generateApprovedPlanSetTransmittal(){
+  var g=function(id){var el=document.getElementById(id); return el ? el.value.trim() : '';};
+  var buyer     = g('c-buyer')     || '________________________';
+  var buyerAddr = g('c-buyer-addr')|| '________________________';
+  var phone     = g('c-phone')     || '______________';
+  var email     = g('c-email')     || '______________';
+  var siteAddr  = g('c-site-addr') || '________________________';
+  var project   = g('c-project')   || '________________________';
+  var contractDate = g('c-date')   || '____________';
+  var todayDate = new Date().toLocaleDateString('en-US');
+  var modelName = (window.CURRENT && CURRENT.m && CURRENT.m[0]) ? CURRENT.m[0] : '________________';
+
+  var body = ''
+    // ===== HEADER / TITLE =====
+    +'<div style="text-align:center;padding-top:12px;">'
+    +'<img src="'+ZIPKIT_LOGO+'" alt="Zip Kit Homes" style="height:56px;">'
+    +'<h1 class="doc-title" style="font-size:24px;margin-top:14px;">Approved Plan Set Transmittal</h1>'
+    +'<div class="doc-sub">Zip Kit Homes, LLC &mdash; a Utah limited liability company</div>'
+    +'<div class="doc-notice">Executed by Buyer at hand-off of the permit-approved documents to Seller.</div>'
+    +'</div>'
+
+    // ===== RELATIONSHIP TO PURCHASE AGREEMENT =====
+    +zkContractCallout('This transmittal satisfies the Purchase Agreement',
+      '<p>This Approved Plan Set Transmittal is the separate written transmittal referenced in <b>Section 2c</b> (definition of "Approved Plan Set") and required under <b>Section 3</b> (Condition Precedent to Fabrication) of the <b>Panelized Shell Kit Purchase Agreement</b> executed by the same Buyer and Seller identified below. It is delivered <b>after</b> the jurisdiction has issued the permit-approved plans and <b>after</b> Buyer\'s Payment 1 (Engineering) has cleared. On execution of this transmittal, Seller may commence shop drawings and fabrication in reliance on the Approved Plan Set delivered here.</p>',
+      null)
+
+    // ===== PARTIES + PROJECT =====
+    +'<h2 class="sec">Buyer, Project, and Underlying Agreement</h2>'
+    +'<table class="grid">'
+    +'<tr><td style="width:32%;"><b>Buyer Full Legal Name</b></td><td>'+buyer+'</td></tr>'
+    +'<tr><td><b>Buyer Address</b></td><td>'+buyerAddr+'</td></tr>'
+    +'<tr><td><b>Buyer Phone</b></td><td>'+phone+'</td></tr>'
+    +'<tr><td><b>Buyer Email</b></td><td>'+email+'</td></tr>'
+    +'<tr><td><b>Project Name</b></td><td>'+project+'</td></tr>'
+    +'<tr><td><b>Project Site Address</b></td><td>'+siteAddr+'</td></tr>'
+    +'<tr><td><b>Kit Model</b></td><td>'+modelName+'</td></tr>'
+    +'<tr><td><b>Purchase Agreement Dated</b></td><td>'+contractDate+'</td></tr>'
+    +'<tr><td><b>Seller</b></td><td>Zip Kit Homes, LLC &middot; 3665 W 2700 S, Cedar City, UT 84720</td></tr>'
+    +'</table>'
+
+    // ===== PERMIT INFO =====
+    +'<h2 class="sec">Permit Information</h2>'
+    +'<table class="grid">'
+    +'<tr><td style="width:22%;"><b>Permit No.</b></td><td style="width:32%;">________________________</td><td style="width:16%;"><b>Date Issued</b></td><td>____________</td></tr>'
+    +'<tr><td><b>Issuing Jurisdiction</b></td><td colspan="3">____________________________________________________________________</td></tr>'
+    +'<tr><td><b>Jurisdiction Contact</b></td><td colspan="3">Name: ____________________ &nbsp; Phone: ____________ &nbsp; Email: ____________________</td></tr>'
+    +'</table>'
+
+    // ===== CONTENTS =====
+    +'<h2 class="sec">Contents of the Approved Plan Set Delivered</h2>'
+    +'<p style="font-size:11px;color:#5f5e5a;">Buyer checks every item that is delivered with this transmittal. Any item the jurisdiction issued in connection with this approval that is <b>not</b> checked below is considered withheld and is <b>not</b> part of the Approved Plan Set on which Seller may rely.</p>'
+    +'<table class="grid">'
+    +'<tr><th style="width:14%;">Delivered</th><th>Item</th></tr>'
+    +'<tr><td style="text-align:center;">&#9744;</td><td>Complete stamped and approved plan set, sheet ______ through ______, dated ____________</td></tr>'
+    +'<tr><td style="text-align:center;">&#9744;</td><td>All redlined or marked-up sheets issued by the jurisdiction</td></tr>'
+    +'<tr><td style="text-align:center;">&#9744;</td><td>All plan-check correction notices and the responses submitted</td></tr>'
+    +'<tr><td style="text-align:center;">&#9744;</td><td>Conditions of approval letter or permit conditions page</td></tr>'
+    +'<tr><td style="text-align:center;">&#9744;</td><td>Approved structural calculations and any engineer\'s revision letters</td></tr>'
+    +'<tr><td style="text-align:center;">&#9744;</td><td>Deferred submittal list and any deferred approvals already issued</td></tr>'
+    +'<tr><td style="text-align:center;">&#9744;</td><td>Special inspection requirements, if any</td></tr>'
+    +'<tr><td style="text-align:center;">&#9744;</td><td>Truss / floor / roof engineering package, if separately issued</td></tr>'
+    +'<tr><td style="text-align:center;">&#9744;</td><td>Snow / seismic / wind design values used by the jurisdiction, if separately noted</td></tr>'
+    +'<tr><td style="text-align:center;">&#9744;</td><td>No other document was issued by the jurisdiction in connection with this approval</td></tr>'
+    +'</table>'
+
+    // ===== TRANSMITTAL METHOD =====
+    +'<h2 class="sec">Method of Delivery</h2>'
+    +'<p style="font-size:11px;color:#5f5e5a;">Check the method(s) used to deliver the Approved Plan Set to Seller.</p>'
+    +'<table class="grid">'
+    +'<tr><th style="width:14%;">Used</th><th>Method &amp; details</th></tr>'
+    +'<tr><td style="text-align:center;">&#9744;</td><td>Email to <b>sales@zipkithomes.com</b> &mdash; date sent: ____________ &nbsp; file size / count: ____________</td></tr>'
+    +'<tr><td style="text-align:center;">&#9744;</td><td>Secure file share (Dropbox / Google Drive / OneDrive) &mdash; link + expiration: ______________________________</td></tr>'
+    +'<tr><td style="text-align:center;">&#9744;</td><td>Physical delivery to 3665 W 2700 S, Cedar City, UT &mdash; received by: ______________ on ____________</td></tr>'
+    +'<tr><td style="text-align:center;">&#9744;</td><td>Certified mail &mdash; tracking no.: ____________________</td></tr>'
+    +'</table>'
+
+    // ===== CHANGES DURING PLAN CHECK =====
+    +'<h2 class="sec">Changes Required During Plan Check</h2>'
+    +'<p>Buyer shall describe every change the jurisdiction required to the plans as originally submitted &mdash; including plan-check corrections, structural revisions, sheet re-issues, and any condition of approval. If none, write "None."</p>'
+    +'<div style="border:1px solid #c9c7bd;min-height:120px;padding:10px 12px;border-radius:4px;margin-bottom:14px;"></div>'
+
+    // ===== CERTIFICATION =====
+    +'<h2 class="sec">Buyer Certification</h2>'
+    +'<p>Buyer certifies to Seller that the documents delivered with this transmittal constitute the <b>complete Approved Plan Set</b> as issued by the jurisdiction identified above, including every stamped sheet, redline, correction notice, and condition of approval, and that <b>nothing has been withheld, omitted, or superseded</b>.</p>'
+    +'<p>Buyer understands that Seller will prepare shop drawings and fabricate in reliance on this certification <b>without re-verifying code compliance</b> and without re-checking the jurisdiction\'s review, and that any redline, condition, or revision delivered or discovered after Seller commences shop drawings is a change order under <b>Section 6</b> of the Purchase Agreement &mdash; including the cost of any material already procured or cut &mdash; whether or not it existed at the time this transmittal was signed.</p>'
+    +'<p>Buyer further acknowledges that this transmittal, once executed, is the sole basis on which the Approved Plan Set is defined for purposes of the Purchase Agreement, and that Seller is <b>not</b> the architect of record or the engineer of record for the project.</p>'
+
+    // ===== SIGNATURES =====
+    +'<h2 class="sec">Execution</h2>'
+    +zkContractSigBlock('Buyer &mdash; Certification of Delivery', 'Zip Kit Homes, LLC &mdash; Acknowledgment of Receipt')
+
+    +'<p style="font-size:10.5px;color:#888;margin-top:24px;text-align:center;">This transmittal is attached to and forms part of the Panelized Shell Kit Purchase Agreement between the Parties identified above, dated '+contractDate+'.</p>';
+
+  var w = window.open('', '_blank');
+  if(!w){ alert('Please allow pop-ups to generate the transmittal.'); return; }
+  w.document.write(zkContractDoc(
+    'zipkit',
+    'Approved Plan Set Transmittal',
+    todayDate,
+    'Zip Kit Homes, LLC',
+    '3665 W 2700 S, Cedar City, UT 84720 · 435-340-1171 · sales@zipkithomes.com',
+    body
+  ));
+  w.document.close();
+}
+
 /* =========================================================================
    MODULAR CONTRACT MODE
    ========================================================================= */
@@ -2729,6 +2845,7 @@ function generateChangeOrder(){
   <a href="index.html" style="height:34px;padding:0 14px;font-size:12px;border:1px solid #c9c7bd;background:#fff;border-radius:8px;cursor:pointer;font-family:inherit;color:#1c1c1a;display:inline-flex;align-items:center;text-decoration:none;" title="Back to Sales Portal">← Portal</a>
   <button onclick="zkShowMyContracts()" style="height:34px;padding:0 14px;font-size:12px;border:1px solid #c9c7bd;background:#fff;border-radius:8px;cursor:pointer;font-family:inherit;color:#1c1c1a;" title="See your saved projects">My Projects</button>
   <button onclick="dispatchGenerate()" style="height:34px;padding:0 14px;font-size:12px;border:1px solid #2f5d4a;background:#2f5d4a;color:#fff;border-radius:8px;cursor:pointer;font-family:inherit;font-weight:600;" title="Open the contract document in a new tab">Generate Contract ↗</button>
+  <button onclick="generateApprovedPlanSetTransmittal()" style="height:34px;padding:0 14px;font-size:12px;border:1px solid #5f5e5a;background:#fff;color:#5f5e5a;border-radius:8px;cursor:pointer;font-family:inherit;font-weight:500;" title="Standalone: executed by Buyer AFTER engineering payment clears and the jurisdiction issues the permit. Reads buyer + project info from the input panel — no contract config required.">Plan Set Transmittal ↗</button>
   <button onclick="zkSaveCurrentContract()" style="height:34px;padding:0 14px;font-size:12px;border:1px solid #d85a30;background:#d85a30;color:#fff;border-radius:8px;cursor:pointer;font-family:inherit;font-weight:600;" title="Save this configuration as a project">Save Project</button>
   <button onclick="zkSignOut()" style="height:34px;padding:0 14px;font-size:12px;border:1px solid #c9c7bd;background:#fff;border-radius:8px;cursor:pointer;font-family:inherit;color:#5f5e5a;">Sign out</button>
 </div>
