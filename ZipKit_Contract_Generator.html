@@ -1075,7 +1075,7 @@ function generateContract(){
       +'<p><b>Seller\'s commitments to Buyer.</b> Seller will furnish the Assembly Guidelines to Buyer no later than fourteen (14) calendar days prior to shipment, so that Buyer and Buyer\'s Installer can review the requirements before Assembly is scheduled. Seller will participate in the Defect Origin Determination process set forth in Section 12 in good faith, and will not deny a warranty claim solely on the ground that Buyer engaged a particular Installer.</p>',
       'Buyer')
     +'<h3 class="sub">Seller fabricates from the Approved Plan Set as Buyer furnishes it.</h3>'
-    +'<p>This Agreement covers manufacture and delivery of the Kit. Seller prepares shop drawings and fabricates in reliance on the Approved Plan Set that Buyer furnishes under Exhibit A. Seller does not re-verify the code compliance of the Approved Plan Set, does not re-check the jurisdiction\'s review, and is not the architect of record or the engineer of record for the project or for site-specific conditions including soils, drainage, frost depth, seismic site class, or snow drift at the site. Any design or engineering services performed prior to this Agreement were performed under a separate arrangement and are not part of Seller\'s scope of work under this Agreement.</p>'
+    +'<p>This Agreement covers manufacture and delivery of the Kit. Seller prepares shop drawings and fabricates in reliance on the Approved Plan Set that Buyer furnishes to Seller under a separate written Approved Plan Set Transmittal executed after the jurisdiction issues the Approved Plan Set. Seller does not re-verify the code compliance of the Approved Plan Set, does not re-check the jurisdiction\'s review, and is not the architect of record or the engineer of record for the project or for site-specific conditions including soils, drainage, frost depth, seismic site class, or snow drift at the site. Any design or engineering services performed prior to this Agreement were performed under a separate arrangement and are not part of Seller\'s scope of work under this Agreement.</p>'
     +'<p>This Agreement, together with the contract documents, home specifications sheet, Assembly Guidelines, and any written and signed change orders, constitutes the entire agreement between the Parties regarding the Kit. It supersedes all prior oral or written representations, understandings, and agreements.</p>'
 
     // ===== SECTION 2: DEFINED TERMS =====
@@ -1083,7 +1083,7 @@ function generateContract(){
     +'<ol class="def">'
     +'<li><b>"Agreement"</b> means this Panelized Shell Kit Purchase Agreement, including all exhibits, specifications, and written change orders incorporated herein.</li>'
     +'<li><b>"Kit"</b> means the panelized shell kit home, including all wall panels and exterior shell components, as specified in the contract documents.</li>'
-    +'<li><b>"Approved Plan Set"</b> means the complete set of documents as approved by the building department or other authority having jurisdiction over the project site, including every stamped sheet, redline, marked-up sheet, correction notice, and condition of approval, furnished by Buyer to Seller under the transmittal in Exhibit A. The Approved Plan Set is the sole basis on which Seller prepares shop drawings and fabricates the Kit.</li>'
+    +'<li><b>"Approved Plan Set"</b> means the complete set of documents as approved by the building department or other authority having jurisdiction over the project site, including every stamped sheet, redline, marked-up sheet, correction notice, and condition of approval, furnished by Buyer to Seller under a separate written Approved Plan Set Transmittal executed by Buyer after issuance of the permit. The Approved Plan Set is the sole basis on which Seller prepares shop drawings and fabricates the Kit.</li>'
     +'<li><b>"Contract Documents"</b> means the home specifications sheet, floor plans, structural drawings, Assembly Guidelines, and any other documents incorporated into this Agreement by reference and executed by both Parties.</li>'
     +'<li><b>"Purchase Price"</b> means the total price for the Kit as set forth in the contract documents, subject to adjustment for any written and signed change orders.</li>'
     +'<li><b>"Delivery"</b> means the arrival of the Kit at the project site address identified in this Agreement and the tender of the Kit to Buyer for unloading. Delivery occurs whether or not Buyer is present, prepared to unload, or elects to accept the shipment.</li>'
@@ -1105,7 +1105,7 @@ function generateContract(){
     +'<li>Delivery of the Kit to Buyer\'s project site address as identified in this Agreement.</li>'
     +'<li>Furnishing the Assembly Guidelines to Buyer no later than fourteen (14) calendar days prior to shipment.</li>'
     +'</ol>'
-    +'<p><b>Condition precedent to fabrication.</b> Seller\'s obligation to prepare shop drawings and to fabricate is conditioned upon Buyer\'s delivery of the complete Approved Plan Set under the transmittal in Exhibit A. Seller may procure materials on execution of this Agreement, but is not obligated to commence fabrication until the Approved Plan Set is received. Any redline, condition of approval, or revision that is delivered or discovered after shop drawings have commenced is a change order under Section 6, whether or not it existed at the time the Approved Plan Set was furnished, and where materials have already been procured or cut, Buyer is additionally responsible for the cost of the affected materials.</p>'
+    +'<p><b>Condition precedent to fabrication.</b> Seller\'s obligation to prepare shop drawings and to fabricate is conditioned upon Buyer\'s delivery of the complete Approved Plan Set under the separate Approved Plan Set Transmittal, which the Parties will execute after the jurisdiction issues the Approved Plan Set and Buyer\'s engineering payment has cleared. Seller may procure materials on execution of this Agreement, but is not obligated to commence fabrication until the Approved Plan Set is received. Any redline, condition of approval, or revision that is delivered or discovered after shop drawings have commenced is a change order under Section 6, whether or not it existed at the time the Approved Plan Set was furnished, and where materials have already been procured or cut, Buyer is additionally responsible for the cost of the affected materials.</p>'
     +'<p>Seller\'s scope of work expressly excludes all work not listed above, including: unloading of the Kit, Assembly, setting, erection, rigging, craning, bracing, and all other on-site labor; Stitch-Up; foundation work; site preparation; utility connections; interior finishes; roofing; HVAC; plumbing; electrical; permitting; scheduling or attendance of inspections; and any other general contracting work. Buyer is solely responsible for all work outside of Seller\'s defined scope, whether performed by Buyer directly or through an Installer, Buyer\'s general contractor, or subcontractors.</p>'
     +'<p>Buyer acknowledges that wall panels may incur minor cosmetic damage during shipping and transport, including surface marks, minor cracks, road debris, and minor door and window adjustments. These cosmetic items are not warranty defects and are the responsibility of Buyer to address as part of Assembly or Stitch-Up. Seller will make commercially reasonable efforts to minimize such damage during transport.</p>'
     +'<p>From and after Delivery, Seller is a material supplier only. Any questions regarding product assembly, installation, or general construction shall be directed to Buyer\'s Installer or on-site general contractor. Seller is not responsible for damage caused by improper unloading, handling, storage, weather, or improper Assembly or installation by Buyer or Buyer\'s Installer following Delivery.</p>'
@@ -1218,33 +1218,12 @@ function generateContract(){
     // ===== SECTION 18: EXECUTION =====
     +'<h2 class="sec">18. Execution and Acceptance</h2>'
     +'<p>The undersigned Parties represent that they have read, understand, and agree to be bound by the terms and conditions of this Agreement and that each signatory is duly authorized to execute this Agreement on behalf of the Party indicated.</p>'
-    +zkContractSigBlock('Zip Kit Homes, LLC (Seller)', 'Buyer')
+    +zkContractSigBlock('Zip Kit Homes, LLC (Seller)', 'Buyer');
 
-    // ===== EXHIBIT A =====
-    +'<div class="pagebreak"></div>'
-    +'<h2 class="sec" style="border-bottom-width:2px;">Exhibit A &mdash; Approved Plan Set Transmittal</h2>'
-    +'<p><b>Buyer completes and signs this when furnishing the permit-approved documents.</b> Seller prepares shop drawings and fabricates from exactly what is delivered here.</p>'
-    +'<table class="grid">'
-    +'<tr><td style="width:35%;"><b>Permit No.</b></td><td>________________________</td><td><b>Issued</b></td><td>____________</td></tr>'
-    +'<tr><td><b>Issuing Jurisdiction</b></td><td colspan="3">________________________________________________________</td></tr>'
-    +'</table>'
-    +'<h3 class="sub">Contents of the Approved Plan Set delivered</h3>'
-    +'<table class="grid">'
-    +'<tr><th style="width:14%;">Included</th><th>Item</th></tr>'
-    +'<tr><td style="text-align:center;">&#9744;</td><td>Complete stamped and approved plan set, sheet ______ through ______, dated ____________</td></tr>'
-    +'<tr><td style="text-align:center;">&#9744;</td><td>All redlined or marked-up sheets issued by the jurisdiction</td></tr>'
-    +'<tr><td style="text-align:center;">&#9744;</td><td>All plan-check correction notices and the responses submitted</td></tr>'
-    +'<tr><td style="text-align:center;">&#9744;</td><td>Conditions of approval letter or permit conditions page</td></tr>'
-    +'<tr><td style="text-align:center;">&#9744;</td><td>Approved structural calculations and any engineer\'s revision letters</td></tr>'
-    +'<tr><td style="text-align:center;">&#9744;</td><td>Deferred submittal list and any deferred approvals already issued</td></tr>'
-    +'<tr><td style="text-align:center;">&#9744;</td><td>Special inspection requirements, if any</td></tr>'
-    +'<tr><td style="text-align:center;">&#9744;</td><td>No other document was issued by the jurisdiction in connection with this approval</td></tr>'
-    +'</table>'
-    +'<h3 class="sub">Changes required during plan check</h3>'
-    +'<p>Buyer shall describe every change the jurisdiction required to the plans as submitted. If none, write "none."</p>'
-    +'<div style="border:1px solid #c9c7bd;min-height:80px;padding:8px 10px;border-radius:4px;margin-bottom:14px;"></div>'
-    +'<p><b>Buyer certification.</b> Buyer certifies that the documents delivered with this transmittal constitute the complete Approved Plan Set as issued by the jurisdiction, including every stamped sheet, redline, correction notice, and condition of approval, and that nothing has been withheld, omitted, or superseded. Buyer understands that Seller will prepare shop drawings and fabricate in reliance on this certification without re-verifying code compliance, and that any redline or condition delivered or discovered after shop drawings commence is a change order under Section 6, including the cost of any material already procured or cut.</p>'
-    +'<div class="sigblock" style="margin-top:20px;"><div class="col"><h4>Buyer</h4><div class="line"></div><div class="lbl">Signature</div><div class="line"></div><div class="lbl">Printed name</div><div class="line"></div><div class="lbl">Date</div></div><div class="col"></div></div>';
+    // NOTE: Exhibit A (Approved Plan Set Transmittal) is issued as a
+    // standalone document by Zip Kit Homes AFTER the engineering payment
+    // clears and the jurisdiction has issued the Approved Plan Set. It is
+    // executed separately and attached to this Agreement by reference.
 
   var w = window.open('', '_blank');
   if(!w){ alert('Please allow pop-ups to generate the contract.'); return; }
