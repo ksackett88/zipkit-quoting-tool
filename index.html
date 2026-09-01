@@ -353,7 +353,7 @@
 <div id="zk-toast"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="lib/supabase.js?v=4"></script>
+<script src="lib/supabase.js?v=5"></script>
 <script>
 /* ============================================================================
    Sales Portal landing page. Renders all saved projects (quotes + contracts)
@@ -380,21 +380,50 @@ function zkToast(msg, isError){
   var subBtn  = document.getElementById('zk-login-submit');
   var emailLbl= document.getElementById('zk-user-email');
 
-  function showAuth(){ overlay.style.display='flex'; document.body.style.overflow='hidden'; }
+  // Track the raw email so we can rebuild the badge idempotently on every
+  // auth event (token refresh, cross-tab sign-in, etc.) instead of appending
+  // "ADMIN" over and over.
+  function renderUserBadge(email, isAdmin){
+    if(!emailLbl) return;
+    emailLbl.textContent = email || ''; // wipe any prior HTML
+    if(email && isAdmin){
+      emailLbl.innerHTML = _esc(email) + ' <span style="background:var(--accent); color:#fff; font-size:10px; font-weight:600; padding:2px 6px; border-radius:3px; letter-spacing:0.05em; margin-left:4px;">ADMIN</span>';
+    }
+  }
+  function setAdminUiVisible(visible){
+    var tog = document.getElementById('admin-view-toggle');
+    if(tog) tog.style.display = visible ? 'inline-flex' : 'none';
+    // If admin visibility flips off, snap the view mode back to "mine" so a
+    // downgraded (or newly signed-in non-admin) user doesn't end up querying
+    // listAll (RLS would filter it anyway, but the mode toggle should reflect
+    // reality).
+    if(!visible && _viewMode !== 'mine'){
+      _viewMode = 'mine';
+      var btnMine = document.getElementById('view-mine');
+      var btnAll  = document.getElementById('view-all');
+      if(btnMine){ btnMine.style.background = 'var(--accent)'; btnMine.style.color = '#fff'; }
+      if(btnAll){  btnAll.style.background  = 'transparent';   btnAll.style.color  = 'var(--muted)'; }
+    }
+  }
+  function showAuth(){
+    overlay.style.display='flex';
+    document.body.style.overflow='hidden';
+    // Clear any prior session state so a sign-out fully resets the UI.
+    window.ZK_IS_ADMIN = false;
+    renderUserBadge('', false);
+    setAdminUiVisible(false);
+  }
   async function hideAuth(user){
     overlay.style.display='none';
     document.body.style.overflow='';
-    emailLbl.textContent = (user && user.email) || '';
-    // Check admin status. If admin, reveal the My/All view toggle.
+    var email = (user && user.email) || '';
+    // Always resolve admin status fresh — a user's is_admin can be toggled
+    // out-of-band and we don't want stale state carrying across sessions.
     try {
       window.ZK_IS_ADMIN = await zkAuth.isAdmin();
     } catch(e){ window.ZK_IS_ADMIN = false; }
-    if(window.ZK_IS_ADMIN){
-      var tog = document.getElementById('admin-view-toggle');
-      if(tog) tog.style.display = 'inline-flex';
-      var badge = document.getElementById('zk-user-email');
-      if(badge && badge.textContent) badge.innerHTML = badge.textContent + ' <span style="background:var(--accent); color:#fff; font-size:10px; font-weight:600; padding:2px 6px; border-radius:3px; letter-spacing:0.05em; margin-left:4px;">ADMIN</span>';
-    }
+    renderUserBadge(email, window.ZK_IS_ADMIN);
+    setAdminUiVisible(!!window.ZK_IS_ADMIN);
     loadProjects();
   }
   var user = await zkAuth.getCurrentUser();

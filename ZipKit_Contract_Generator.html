@@ -2747,7 +2747,7 @@ function generateChangeOrder(){
   var salesman  = g('c-salesman')  || '__________';
 
   var brandInfo = (brand === 'mvp')
-    ? {name:'Mountain Valley Prefab', addr:'3791 East 49th North, Idaho Falls ID 83401', tel:'(435) 592·3596', email:'sales@mountainvalleyprefab.com', logo:MVP_LOGO}
+    ? {name:'Mountain Valley Prefab', addr:'3791 East 49th North, Idaho Falls ID 83401', tel:'(435) 592·3596', email:'sales@mountainvalleyprefab.com', logo:imageUrl('mvp-logo.png')}
     : (brand === 'zksteel')
       ? {name:'Zip Kit Steel', addr:'3665 West 2700 South, Cedar City UT 84720', tel:'(435) 340·1171', email:'sales@zipkitsteel.com', logo:imageUrl('zksteel-logo.png')}
       : {name:'Zip Kit Homes', addr:'3665 West 2700 South, Cedar City UT 84720', tel:'(435) 340·1171', email:'sales@ZipKitHomes.com', logo:ZIPKIT_LOGO};
@@ -2887,7 +2887,7 @@ function generateChangeOrder(){
 <div id="zk-contract-toast" style="display:none;position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:10000;background:#1c1c1a;color:#fff;padding:12px 20px;border-radius:8px;font-size:13px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;box-shadow:0 6px 20px rgba(0,0,0,0.3);"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="lib/supabase.js?v=4"></script>
+<script src="lib/supabase.js?v=5"></script>
 <script>
 (async function initAuth(){
   if(!window.ZK_REQUIRE_AUTH) return; // login gate disabled — see lib/supabase.js
@@ -3001,9 +3001,15 @@ async function zkAutoLoadFromQuote(quoteId){
       // Assembly hand-off: if the quote had "Add site assembly" toggled on, or
       // if quote_data.assembly.mode === 'added', auto-check the "also generate
       // Set Services" box so the rep gets both contracts on Generate.
-      var assemblyAdded = !!fields['s-add-assembly'] || (q.quote_data && q.quote_data.assembly && q.quote_data.assembly.mode === 'added');
+      // Auto-check the "Also generate Set Services" box only when the quote
+      // captured assembly.mode === 'added' on the QUOTE object. DO NOT trust
+      // fields['s-add-assembly'] alone — post-radio-group conversion it holds
+      // the string "add" whenever the radio group has EVER been touched (that
+      // value stays in the config even if the rep later flips the radio to
+      // "none" or "remove"), so it's essentially always truthy.
+      var assemblyAdded = !!(q.quote_data && q.quote_data.assembly && q.quote_data.assembly.mode === 'added');
       var withAsmEl = document.getElementById('c-with-assembly');
-      if(withAsmEl && assemblyAdded) withAsmEl.checked = true;
+      if(withAsmEl) withAsmEl.checked = assemblyAdded;
       if(typeof calc === 'function') calc();
     } else if(mode === 'modular'){
       setVal('cm-model',      fields['m-model']);
