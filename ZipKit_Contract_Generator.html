@@ -319,6 +319,14 @@
           <label style="display:flex; align-items:center; gap:8px; margin:0; cursor:pointer; color:var(--ink);"><input type="checkbox" id="c-eng-paid" style="accent-color:var(--accent); width:16px; height:16px;"> Engineering submittal</label>
         </div>
         <p class="note">Check these if the customer already paid them up-front. Each checked item is marked PAID on the contract and dropped from the payment schedule.</p>
+
+        <label style="margin-top:16px;">Site assembly</label>
+        <div style="background:#fff7e6; border-left:3px solid #d85a30; padding:12px 14px; border-radius:4px; margin-bottom:6px; font-size:13px;">
+          <label style="display:flex; align-items:flex-start; gap:8px; margin:0; cursor:pointer; color:var(--ink); line-height:1.5;">
+            <input type="checkbox" id="c-with-assembly" style="accent-color:var(--accent); width:16px; height:16px; margin-top:2px;">
+            <span><b>Also generate the Set Services contract</b> &mdash; when checked, clicking Generate Contract opens BOTH the Zip Kit Homes purchase agreement AND the Zip Kit General Contracting Set Services Agreement in separate tabs. Use when the customer wants us to handle site assembly.</span>
+          </label>
+        </div>
       </div>
 
       <div class="card">
@@ -941,11 +949,98 @@ function generateContract(){
     +'<tr><td>Payment 3 — Pre-Shipment (45%)</td><td class="amt">'+fmt(c.p3)+'</td><td class="note">45% of the contract remainder. Due within ten (10) calendar days of Seller\'s written notice of fabrication completion. Seller will not begin loading the Kit until Payment 3 is received in full.</td></tr>'
     +'<tr><td>Final Payment — Load Confirmation (10%)</td><td class="amt">'+fmt(c.p4)+'</td><td class="note">10% of the contract remainder. Due upon Seller\'s Load Confirmation. Payment Confirmation must be received before the truck departs Seller\'s yard.</td></tr>';
 
+  // ---- Cover-page cost summary rows (original inline-styled table) ----
+  function _sr(l,a,note){ return '<tr><td style="padding:5px 8px;border:1px solid #ccc;">'+l+'</td><td style="padding:5px 8px;border:1px solid #ccc;text-align:right;white-space:nowrap;">'+fmt(a)+'</td><td style="padding:5px 8px;border:1px solid #ccc;font-size:11px;color:#555;">'+(note||'')+'</td></tr>'; }
+  function _srPaid(l,a){ return '<tr><td style="padding:5px 8px;border:1px solid #ccc;">'+l+'</td><td style="padding:5px 8px;border:1px solid #ccc;text-align:right;white-space:nowrap;color:#888;">PAID</td><td style="padding:5px 8px;border:1px solid #ccc;font-size:11px;color:#555;">already received · was '+fmt(a)+'</td></tr>'; }
+  var coverSumRows = '';
+  if(c.engPaid) coverSumRows += _srPaid('Engineered plans', c.eng);
+  else          coverSumRows += _sr('Engineered plans', c.eng, 'payment 1 of contract');
+  if(c.promoCredit>0) coverSumRows += '<tr><td style="padding:5px 8px;border:1px solid #ccc;color:#0f6e56;font-weight:600;">Promo credit — design retainer toward engineering</td><td style="padding:5px 8px;border:1px solid #ccc;text-align:right;white-space:nowrap;color:#0f6e56;font-weight:600;">-'+fmt(c.promoCredit)+'</td><td style="padding:5px 8px;border:1px solid #ccc;font-size:11px;color:#555;">limited-time credit — design retainer credited against Payment 1</td></tr>';
+  coverSumRows += _sr('Framed Panelized Kit', c.shell, c.m[1]+' sqft livable');
+  if(c.snow>0) coverSumRows += _sr('Snow load upgrade', c.snow, '');
+  if(c.win>0)  coverSumRows += _sr('Window and Exterior Door Package', c.win, c.winLabel);
+  c.customs.forEach(function(x){ coverSumRows += _sr(x.desc, x.amt, ''); });
+  if(c.ship>0) coverSumRows += _sr('Shipping', c.ship, c.miles+' miles at $'+c.rate+'/mile');
+
   var body = ''
-    // ===== COVER =====
+    // ===== PAGE 1: HERO-PHOTO COVER (original design, restored) =====
+    +'<div style="page-break-after:always;">'
+    +'<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px;">'
+    +'<img src="'+ZIPKIT_LOGO+'" alt="Zip Kit Homes" style="height:56px;">'
+    +'<div style="text-align:right; font-size:11px; color:#888; text-transform:uppercase; letter-spacing:0.08em;">Contract · '+date+'</div>'
+    +'</div>'
+    +'<div id="zk-cover-box" style="width:100%; height:440px; background:linear-gradient(135deg,#d85a30,#993c1d); background-size:cover; background-position:center center; background-repeat:no-repeat; border-radius:8px; overflow:hidden; display:flex; flex-direction:column; justify-content:flex-end;">'
+    +'<div style="background:linear-gradient(to top, rgba(0,0,0,0.82), rgba(0,0,0,0.15) 60%, rgba(0,0,0,0)); padding:90px 32px 28px; color:#fff;">'
+    +'<div style="font-size:13px; text-transform:uppercase; letter-spacing:0.12em; opacity:0.9; margin-bottom:8px;">Contract prepared for</div>'
+    +'<div style="font-size:30px; font-weight:700; line-height:1.15;">'+buyer+'</div>'
+    +(city && city.indexOf('_')<0 ? '<div style="font-size:15px; margin-top:4px; opacity:0.95;">'+city+'</div>' : '')
+    +'<div style="font-size:14px; margin-top:8px; opacity:0.92;">'+c.m[0]+' Model · '+date+'</div>'
+    +'</div>'
+    +'</div>'
+    // Test-load each candidate photo URL; set as background when one succeeds.
+    // Falls back to the brand-color gradient already on the container if no photo loads.
+    +'<script>(function(){var urls='+JSON.stringify(modelPhotoUrls(c.m[0]))+';var box=document.getElementById("zk-cover-box");function tryUrl(idx){if(idx>=urls.length)return;var t=new Image();t.onload=function(){box.style.backgroundImage="url(\\""+urls[idx]+"\\")";};t.onerror=function(){tryUrl(idx+1);};t.src=urls[idx];}tryUrl(0);})();<\/script>'
+    +'<div style="margin-top:240px; background:#f5f3ec; border-radius:8px; padding:18px 22px; font-size:13px; color:#5f5e5a; line-height:1.6;">'
+    +'<b>Panelized Shell Kit Purchase Agreement.</b> Prepared by Zip Kit Homes, LLC · Cedar City, Utah. This is a legally binding agreement — please review the full document carefully before signing.'
+    +'</div>'
+    +'</div>'
+
+    // ===== PAGE 2: BUYER/SELLER + COST SUMMARY + PAYMENT SCHEDULE (original design, restored) =====
+    +'<div style="text-align:center;border-bottom:2px solid #1c1c1a;padding-bottom:18px;">'
+    +'<img src="'+ZIPKIT_LOGO+'" alt="Zip Kit Homes" style="height:56px;">'
+    +'<div style="font-size:22px;font-weight:700;margin-top:10px;">Panelized Kit Home Contract</div>'
+    +'<div style="font-size:13px;color:#555;margin-top:6px;">Prepared by Zip Kit Homes · Cedar City, Utah</div>'
+    +'</div>'
+    +'<div style="display:flex;justify-content:space-between;margin-top:20px;font-size:13px;">'
+    +'<div><div style="color:#888;text-transform:uppercase;font-size:11px;">Buyer</div><div style="font-weight:500;font-size:15px;">'+buyer+'</div><div style="color:#555;">'+city+'</div><div style="color:#555;">'+c.m[0]+' Model · '+date+'</div></div>'
+    +'<div style="text-align:right;"><div style="color:#888;text-transform:uppercase;font-size:11px;">Seller</div><div style="font-weight:500;">Zip Kit Homes, LLC</div><div style="color:#555;">3665 W 2700 S, Cedar City UT 84720</div></div>'
+    +'</div>'
+    +'<table style="width:100%;border-collapse:collapse;margin-top:24px;font-size:12px;">'
+    +'<tr><td style="padding:5px 8px;border:1px solid #ccc;background:#f5f3ec;font-weight:600;" colspan="2">Buyer Information</td><td style="padding:5px 8px;border:1px solid #ccc;background:#f5f3ec;font-weight:600;" colspan="2">Seller Information</td></tr>'
+    +'<tr><td style="padding:5px 8px;border:1px solid #ccc;">Customer</td><td style="padding:5px 8px;border:1px solid #ccc;">'+buyer+'</td><td style="padding:5px 8px;border:1px solid #ccc;">Salesman</td><td style="padding:5px 8px;border:1px solid #ccc;">'+salesman+'</td></tr>'
+    +'<tr><td style="padding:5px 8px;border:1px solid #ccc;">Project</td><td style="padding:5px 8px;border:1px solid #ccc;">'+project+'</td><td style="padding:5px 8px;border:1px solid #ccc;">General Manager</td><td style="padding:5px 8px;border:1px solid #ccc;">Sven Heistad</td></tr>'
+    +'<tr><td style="padding:5px 8px;border:1px solid #ccc;">Contract Date</td><td style="padding:5px 8px;border:1px solid #ccc;">'+date+'</td><td style="padding:5px 8px;border:1px solid #ccc;">Phone</td><td style="padding:5px 8px;border:1px solid #ccc;">435-340-1171</td></tr>'
+    +'<tr><td style="padding:5px 8px;border:1px solid #ccc;">Ship to Address</td><td style="padding:5px 8px;border:1px solid #ccc;">'+siteAddr+'</td><td style="padding:5px 8px;border:1px solid #ccc;">Email</td><td style="padding:5px 8px;border:1px solid #ccc;">sales@ZipKitHomes.com</td></tr>'
+    +'<tr><td style="padding:5px 8px;border:1px solid #ccc;">House Sq ft</td><td style="padding:5px 8px;border:1px solid #ccc;">'+c.m[1]+' livable</td><td style="padding:5px 8px;border:1px solid #ccc;">Floor Plan</td><td style="padding:5px 8px;border:1px solid #ccc;">'+c.m[0]+'</td></tr>'
+    +'<tr><td style="padding:5px 8px;border:1px solid #ccc;">Phone</td><td style="padding:5px 8px;border:1px solid #ccc;">'+phone+'</td><td style="padding:5px 8px;border:1px solid #ccc;"></td><td style="padding:5px 8px;border:1px solid #ccc;"></td></tr>'
+    +'</table>'
+    +'<div style="font-size:11px;font-style:italic;color:#555;margin-top:6px;">Pricing is valid for a period of nine (9) months from the contract date.</div>'
+    // Design retainer (separate)
+    +'<table style="width:100%;border-collapse:collapse;margin-top:18px;font-size:12px;">'
+    +'<tr><td style="padding:5px 8px;border:1px solid #ccc;background:#f5f3ec;font-weight:600;">Design (separate from contract)</td><td style="padding:5px 8px;border:1px solid #ccc;background:#f5f3ec;font-weight:600;text-align:right;">Price</td><td style="padding:5px 8px;border:1px solid #ccc;background:#f5f3ec;font-weight:600;">Comments</td></tr>'
+    +(c.designPaid
+      ? '<tr><td style="padding:5px 8px;border:1px solid #ccc;">Design Retainer</td><td style="padding:5px 8px;border:1px solid #ccc;text-align:right;color:#888;">PAID</td><td style="padding:5px 8px;border:1px solid #ccc;font-size:11px;">Already received · was '+fmt(c.designAmt)+(c.designAmt!==SHELL_DESIGN?' (custom amount)':'')+' · separate from contract</td></tr>'
+      : (c.designAmt>0
+        ? '<tr><td style="padding:5px 8px;border:1px solid #ccc;">Design Retainer</td><td style="padding:5px 8px;border:1px solid #ccc;text-align:right;">'+fmt(c.designAmt)+'</td><td style="padding:5px 8px;border:1px solid #ccc;font-size:11px;">Separate retainer · paid up front · not part of contract'+(c.designAmt!==SHELL_DESIGN?' · custom amount (standard '+fmt(SHELL_DESIGN)+')':'')+'</td></tr>'
+        : '<tr><td style="padding:5px 8px;border:1px solid #ccc;">Design Retainer</td><td style="padding:5px 8px;border:1px solid #ccc;text-align:right;color:#888;">WAIVED</td><td style="padding:5px 8px;border:1px solid #ccc;font-size:11px;">Design retainer waived for this customer</td></tr>'))
+    +'</table>'
+    // Cost summary
+    +'<table style="width:100%;border-collapse:collapse;margin-top:14px;font-size:12px;">'
+    +'<tr><td style="padding:5px 8px;border:1px solid #ccc;background:#f5f3ec;font-weight:600;">Panelized Kit — Cost Summary</td><td style="padding:5px 8px;border:1px solid #ccc;background:#f5f3ec;font-weight:600;text-align:right;">Price</td><td style="padding:5px 8px;border:1px solid #ccc;background:#f5f3ec;font-weight:600;">Comments</td></tr>'
+    +coverSumRows
+    +'<tr><td style="padding:6px 8px;border:1px solid #ccc;font-weight:700;">Contract Total</td><td style="padding:6px 8px;border:1px solid #ccc;text-align:right;font-weight:700;">'+fmt(c.contract)+'</td><td style="padding:6px 8px;border:1px solid #ccc;"></td></tr>'
+    +'</table>'
+    // Payment schedule
+    +'<table style="width:100%;border-collapse:collapse;margin-top:14px;font-size:12px;">'
+    +'<tr><td style="padding:5px 8px;border:1px solid #ccc;background:#f5f3ec;font-weight:600;" colspan="3">Estimated Timing &amp; Payment Schedule</td></tr>'
+    +(c.engPaid
+      ? '<tr><td style="padding:6px 8px;border:1px solid #ccc;">Payment 1 (engineering)</td><td style="padding:6px 8px;border:1px solid #ccc;text-align:right;color:#888;">PAID</td><td style="padding:6px 8px;border:1px solid #ccc;font-size:11px;">Already received · was '+fmt(c.p1Base||c.p1)+'</td></tr>'
+      : '<tr><td style="padding:6px 8px;border:1px solid #ccc;">Payment 1 (engineering)</td><td style="padding:6px 8px;border:1px solid #ccc;text-align:right;">'+fmt(c.p1)+'</td><td style="padding:6px 8px;border:1px solid #ccc;font-size:11px;">Full submit-ready, engineer-stamped plans, delivered within 4 weeks of execution. Secures the project on the production schedule.'+(c.promoCredit>0?' · '+fmt(c.p1Base)+' less '+fmt(c.promoCredit)+' design-retainer promo credit':'')+'</td></tr>')
+    +'<tr><td style="padding:6px 8px;border:1px solid #ccc;">Payment 2 (45%)</td><td style="padding:6px 8px;border:1px solid #ccc;text-align:right;">'+fmt(c.p2)+'</td><td style="padding:6px 8px;border:1px solid #ccc;font-size:11px;">45% of remainder after engineering. Covers long-lead-time materials (lumber, windows, etc.) and begins production.</td></tr>'
+    +'<tr><td style="padding:6px 8px;border:1px solid #ccc;">Payment 3 (45%)</td><td style="padding:6px 8px;border:1px solid #ccc;text-align:right;">'+fmt(c.p3)+'</td><td style="padding:6px 8px;border:1px solid #ccc;font-size:11px;">45% of remainder. Due before the kit ships, unless agreed otherwise in writing.</td></tr>'
+    +'<tr><td style="padding:6px 8px;border:1px solid #ccc;">Final Payment (10%)</td><td style="padding:6px 8px;border:1px solid #ccc;text-align:right;">'+fmt(c.p4)+'</td><td style="padding:6px 8px;border:1px solid #ccc;font-size:11px;">10% of remainder. Due when framing and Zip Kit Homes scope of work is completed onsite.</td></tr>'
+    +'</table>'
+    +'<div style="font-size:11px;color:#555;margin-top:6px;font-style:italic;">Design retainer is separate and paid up front. Contract is billed engineering first, then 45% / 45% / 10% of the remainder. Sums to the contract total.</div>'
+    +'<div style="margin-top:36px;display:flex;justify-content:space-between;font-size:12px;">'
+    +'<div style="width:45%;">Seller: ______________________ Date: __________</div>'
+    +'<div style="width:45%;">Buyer: ______________________ Date: __________</div>'
+    +'</div>'
+    +'<div style="font-size:11px;color:#888;margin-top:14px;font-style:italic;text-align:center;">The signatures above acknowledge the cost summary. The full binding purchase agreement follows on the next page and must also be signed.</div>'
+
+    // ===== PAGE 3+: v8 PURCHASE AGREEMENT =====
+    +'<div class="pagebreak"></div>'
     +'<div style="text-align:center;padding-top:12px;">'
-    +'<img src="'+ZIPKIT_LOGO+'" alt="Zip Kit Homes" style="height:60px;">'
-    +'<h1 class="doc-title" style="font-size:26px;margin-top:14px;">Panelized Shell Kit Purchase Agreement</h1>'
+    +'<h1 class="doc-title" style="font-size:24px;margin-top:0;">Panelized Shell Kit Purchase Agreement</h1>'
     +'<div class="doc-sub">Zip Kit Homes, LLC &mdash; a Utah limited liability company</div>'
     +'<div class="doc-notice">This is a legally binding agreement. Please read carefully before signing.</div>'
     +'</div>'
@@ -1165,6 +1260,316 @@ function generateContract(){
   return; // shell path complete — legacy tail below intentionally unreachable
 }
 
+// =============================================================================
+// Set Services Agreement (Zip Kit General Contracting, LLC — v5 draft)
+// =============================================================================
+// Companion contract to the Panelized Shell Kit Purchase Agreement. Generated
+// alongside the shell v8 whenever the shell contract's "c-with-assembly"
+// checkbox is on. Uses the same shared skeleton (zkContractDoc,
+// zkContractCallout, zkContractSigBlock) so both docs read as one product.
+function generateSetServicesContract(){
+  if(!CURRENT){ alert('Configure the shell contract first — the Set Services agreement pulls buyer + project info from it.'); return; }
+  var g=function(id){return document.getElementById(id).value.trim();};
+  var c=CURRENT;
+  var buyer     = g('c-buyer')     || '________________________';
+  var buyerAddr = g('c-buyer-addr')|| '________________________';
+  var phone     = g('c-phone')     || '______________';
+  var email     = g('c-email')     || '______________';
+  var siteAddr  = g('c-site-addr') || '________________________';
+  var date      = g('c-date')      || new Date().toLocaleDateString('en-US');
+
+  var body = ''
+    // ===== HEADER / TITLE =====
+    +'<div style="text-align:center;padding-top:12px;">'
+    +'<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:#5f5e5a;margin-bottom:4px;">zip kit general contracting</div>'
+    +'<div style="font-size:10px;color:#888;letter-spacing:0.06em;margin-bottom:14px;">Licensed General Contractor &middot; License No. ____________</div>'
+    +'<h1 class="doc-title" style="font-size:26px;margin-top:0;">Set Services Agreement</h1>'
+    +'<div class="doc-sub">Zip Kit General Contracting, LLC &mdash; a limited liability company</div>'
+    +'<div class="doc-notice">This is a legally binding agreement. Please read carefully before signing.</div>'
+    +'</div>'
+
+    // ===== PARTIES =====
+    +'<h2 class="sec">Parties to this Agreement</h2>'
+    +'<p>This Set Services Agreement ("<b>Agreement</b>") is entered into as of the date last signed below, by and between <b>Zip Kit General Contracting, LLC</b>, a limited liability company ("<b>Contractor</b>"); and the party identified below ("<b>Owner</b>").</p>'
+    +'<table class="grid">'
+    +'<tr><td style="width:35%;"><b>Owner Full Legal Name</b></td><td>'+buyer+'</td></tr>'
+    +'<tr><td><b>Owner Address</b></td><td>'+buyerAddr+'</td></tr>'
+    +'<tr><td><b>Owner Phone</b></td><td>'+phone+'</td></tr>'
+    +'<tr><td><b>Owner Email</b></td><td>'+email+'</td></tr>'
+    +'<tr><td><b>Project Site Address</b></td><td>'+siteAddr+'</td></tr>'
+    +'<tr><td><b>Contractor License No. / Jurisdiction</b></td><td>________________________________________</td></tr>'
+    +'<tr><td><b>Manufacturer of the Kit</b></td><td>Zip Kit Homes, LLC</td></tr>'
+    +'<tr><td><b>Purchase Agreement Dated</b></td><td>'+date+'</td></tr>'
+    +'</table>'
+    +'<p>Contractor and Owner are each referred to individually as a "Party" and collectively as the "Parties."</p>'
+
+    // ===== SECTION 1: PURPOSE =====
+    +'<h2 class="sec">1. Purpose</h2>'
+    +'<p>Owner has separately purchased a panelized shell kit home or modular units (the "<b>Kit</b>") from a manufacturer. Owner wishes to engage Contractor to perform on-site set and erection services for the Kit at the project site, and Contractor is willing to perform those services on the terms set forth in this Agreement.</p>'
+    +'<h3 class="sub">Separate company &mdash; separate contract.</h3>'
+    +'<p>Contractor is a separate and independently operated limited liability company. Contractor is not the manufacturer of the Kit and is not a party to Owner\'s purchase agreement with the manufacturer. The manufacturer is not a party to this Agreement, has no obligations under it, and bears no liability for Contractor\'s performance. Notwithstanding any common ownership, similarity of name, or shared branding, the two companies are legally distinct, maintain separate books, insurance, licensing, and personnel, and neither is the agent, partner, joint venturer, or guarantor of the other. Owner has separate and independent contractual rights against each company and shall look solely to Contractor for matters arising from the Set Services and solely to the manufacturer for matters arising from the manufacture and delivery of the Kit.</p>'
+    +zkContractCallout('The Kit is a separate contract with a separate company',
+      '<p><b>What Contractor is providing under this Agreement.</b> On-site labor, supervision, and equipment to receive, unload, and erect the Kit, as itemized in Exhibit A. Contractor is a licensed general contractor performing set and erection services. Contractor did not design, engineer, or manufacture the Kit, did not select its materials, and has no control over its fabrication, completeness, or delivery schedule.</p>'
+      +'<p><b>Owner keeps a direct remedy against each company.</b> Owner\'s rights regarding the design, fabrication, quantity, condition on arrival, and delivery timing of the Kit run against the manufacturer under Owner\'s separate purchase agreement. Owner\'s rights regarding the quality and workmanship of the on-site set run against Contractor under this Agreement. Owner has direct and independent contractual rights against each company and does not lose a remedy by having two contracts rather than one.</p>'
+      +'<p><b>Contractor is not Owner\'s representative at delivery.</b> Contractor does not act as Owner\'s representative for purposes of the delivery inspection required under Owner\'s purchase agreement with the manufacturer, unless Owner designates Contractor in writing for that purpose and Contractor accepts that designation in writing. Absent that written designation, any assistance Contractor\'s crew provides in inspecting or documenting the shipment is a courtesy, does not transfer to Contractor any responsibility for shortages, transport damage, or non-conforming components, and does not satisfy Owner\'s own inspection obligation to the manufacturer.</p>'
+      +'<p><b>Statements do not cross between companies.</b> No statement, estimate, schedule, or representation made by the manufacturer or its personnel is binding on Contractor, expands the Set Services, or modifies Contractor\'s warranty. No statement made by Contractor or its personnel is binding on the manufacturer, expands the manufacturer\'s scope, or modifies the manufacturer\'s warranty.</p>'
+      +'<p><b>Contractor\'s commitment to Owner.</b> Contractor will participate in the Defect Origin Determination process set forth in Section 16 in good faith, so that Owner receives a written answer on the origin of a claimed defect rather than being referred back and forth between two companies.</p>',
+      'Owner')
+
+    // ===== SECTION 2: DEFINED TERMS =====
+    +'<h2 class="sec">2. Defined Terms</h2>'
+    +'<ol class="def">'
+    +'<li><b>"Kit"</b> means the panelized shell kit home or modular units purchased by Owner from the manufacturer and delivered to the project site.</li>'
+    +'<li><b>"Set Services"</b> means the on-site services described in Section 3 and itemized in Exhibit A.</li>'
+    +'<li><b>"Set Documents"</b> means the manufacturer\'s assembly guidelines, approved floor plans, structural drawings, and engineering specifications applicable to the Kit.</li>'
+    +'<li><b>"Mobilization"</b> means Contractor\'s crew, equipment, and materials arriving at the project site to begin the Set Services.</li>'
+    +'<li><b>"Site Readiness"</b> means satisfaction of all conditions listed in Section 5 and Exhibit B.</li>'
+    +'<li><b>"Set Window"</b> means the number of consecutive working days stated in Exhibit A during which Contractor\'s crew will be on the project site to perform the Set Services. The Contract Price buys the Set Window and nothing more.</li>'
+    +'<li><b>"Substantial Completion"</b> means the point at which the Set Services described in Exhibit A have been performed in accordance with the Set Documents, as confirmed by the walkthrough described in Section 9.</li>'
+    +'<li><b>"Stitch-Up"</b> means on-site completion work performed after the set, including decking, railing, metal roofing installation, gutters and downspouts, exterior siding connections, soffit and fascia connections, and siding installation over structural straps. Stitch-Up is excluded from the Set Services unless expressly purchased as an add-on in Exhibit A.</li>'
+    +'<li><b>"Defect Origin Determination"</b> means the joint process described in Section 16 for identifying whether a claimed defect arises from manufacture of the Kit or from the Set Services.</li>'
+    +'</ol>'
+
+    // ===== SECTION 3: SCOPE OF SET SERVICES =====
+    +'<h2 class="sec">3. Scope of Set Services</h2>'
+    +'<p>Contractor shall furnish the labor, supervision, and equipment specified in Exhibit A to perform the following, in accordance with the Set Documents:</p>'
+    +'<ol class="def">'
+    +'<li>Receipt and unloading of the Kit at the project site, and staging of components in the designated laydown area. Unloading is included in the base Set Services unless Exhibit A expressly states that unloading is excluded and is being performed by Owner or others. Contractor will coordinate its Mobilization with the delivery appointment as provided in Section 7.</li>'
+    +'<li>Layout, setting, erection, plumbing, aligning, and fastening of wall panels and exterior shell components, or placement and mating of modular units, as applicable to the Kit purchased.</li>'
+    +'<li>Installation of structural connections, hold-downs, and temporary bracing as required by the Set Documents.</li>'
+    +'<li>Removal of Contractor\'s own construction debris and shipping materials generated by the Set Services to a dumpster or container furnished by Owner.</li>'
+    +'<li>Any additional scope expressly itemized as included in Exhibit A.</li>'
+    +'</ol>'
+    +'<p><b>The Set Window is fixed.</b> Contractor\'s crew will be on site for the Set Window stated in Exhibit A and will then demobilize. The Contract Price includes that single window of on-site labor and no return visit of any kind. Any return trip, for any reason other than correction of a valid warranty item under Section 10 or a return necessitated by Contractor\'s own act or omission, is a remobilization under Section 7 at the Exhibit A rate, subject to crew availability, and the rescheduled date may be materially later.</p>'
+    +'<p><b>Exclusions.</b> Unless expressly itemized as included in Exhibit A, the Set Services exclude: foundation design, construction, repair, or modification; site preparation, excavation, grading, or access improvement; crane or rigging services; permitting; scheduling or attendance of jurisdictional inspections; Stitch-Up; roofing; siding; windows and exterior doors beyond factory-installed units; utility connections and trenching; interior finishes; HVAC, plumbing, and electrical; temporary power, water, or sanitation; dumpster or debris container; survey and staking; snow removal; dewatering; abatement of hazardous or unforeseen site conditions; and any work not described in Section 3 or Exhibit A. Contractor is not the general contractor of record for the project unless expressly stated in Exhibit A.</p>'
+
+    // ===== SECTION 4: CONTRACT PRICE AND PAYMENT =====
+    +'<h2 class="sec">4. Contract Price and Payment</h2>'
+    +'<p>Owner shall pay Contractor the Contract Price set forth in Exhibit A. The Contract Price is separate from and in addition to any amount Owner has paid or owes to the manufacturer for the Kit. Payment shall be made to Zip Kit General Contracting, LLC in accordance with the schedule below.</p>'
+    +'<table class="grid">'
+    +'<tr><th style="width:32%;">Payment</th><th class="amt" style="width:18%;">Amount</th><th style="width:50%;">When due</th></tr>'
+    +'<tr><td>Payment 1 &mdash; Pre-Mobilization</td><td class="amt">See Exhibit A</td><td class="note">Due ____ calendar days prior to scheduled Mobilization. Reserves crew and equipment for the set window. Contractor is not obligated to mobilize until received in full.</td></tr>'
+    +'<tr><td>Payment 2 &mdash; Final</td><td class="amt">See Exhibit A</td><td class="note">Due upon Substantial Completion and the walkthrough described in Section 9, prior to the crew\'s departure from the project site.</td></tr>'
+    +'</table>'
+    +'<p><b>Payment 1 &mdash; Pre-Mobilization.</b> Payment 1 reserves Contractor\'s crew and equipment for the agreed set window and funds Contractor\'s committed third-party costs, including crane, equipment rental, travel, and lodging. Of Payment 1, the Parties agree that ______% constitutes a non-refundable reservation charge, which is a reasonable estimate of Contractor\'s cost of holding crew and equipment and declining other work for the set window, and is not a penalty. The balance of Payment 1 is subject to the cancellation provisions of Section 7.</p>'
+    +'<p><b>Payment 2 &mdash; Final, and departure of the crew.</b> Payment 2 is due upon Substantial Completion and shall be remitted prior to the crew\'s departure. Contractor shall give Owner not less than twenty-four (24) hours\' notice of the anticipated walkthrough. Owner may satisfy Payment 2 by (i) written confirmation of a wire, or (ii) a check in the full amount presented to Contractor\'s crew leader at the walkthrough.</p>'
+    +'<p><b>Payment and warranty are independent.</b> Payment 2 is not contingent upon the resolution of punch list or warranty items, and Contractor\'s warranty obligations under Section 10 are not contingent upon the resolution of any payment dispute. Neither obligation may be withheld, delayed, reduced, or offset on account of the other, except as expressly provided in Section 9.</p>'
+    +'<p><b>Lien Rights.</b> Contractor reserves and does not waive any mechanic\'s lien, stop notice, or bond claim rights available under the law of the state in which the project site is located.</p>'
+
+    // ===== SECTION 5: CONDITIONS PRECEDENT =====
+    +'<h2 class="sec">5. Conditions Precedent to Mobilization</h2>'
+    +'<p>Contractor\'s obligation to mobilize is expressly conditioned upon Site Readiness. Owner shall confirm Site Readiness in writing, using the certification page of Exhibit B, no later than ____ calendar days before the scheduled Mobilization date. Site Readiness requires all of the following:</p>'
+    +'<ol class="def">'
+    +'<li>The foundation is complete, cured, stripped, backfilled where required, and constructed within the tolerances set forth in Exhibit B.</li>'
+    +'<li>All required permits have been issued and are posted at the site, and any pre-set inspections have been passed.</li>'
+    +'<li>The site is accessible to standard tractor-trailers, crew vehicles, and the equipment listed in Exhibit A, with adequate load-bearing capacity, overhead clearance, and turning radius.</li>'
+    +'<li>A level, drained, and adequately sized laydown and staging area is available adjacent to the foundation.</li>'
+    +'<li>The Kit has been delivered to the site, or its delivery is confirmed to coincide with Mobilization, and all components are accounted for.</li>'
+    +'<li>The site is free of standing water, snow, ice, mud, debris, overhead power lines within the work radius, and unaddressed hazardous conditions.</li>'
+    +'<li>Owner has furnished the items listed in Section 6.</li>'
+    +'</ol>'
+
+    // ===== SECTION 6: OWNER RESPONSIBILITIES =====
+    +'<h2 class="sec">6. Owner Responsibilities</h2>'
+    +'<p>Owner shall, at Owner\'s sole cost, furnish and maintain the following throughout the set: (a) a foundation constructed in accordance with the Set Documents and within the tolerances in Exhibit B; (b) all permits, approvals, fees, and jurisdictional inspections; (c) safe, legal, and unobstructed site access; (d) a debris container or dumpster, temporary sanitation, and temporary power and water if required by Exhibit A; (e) security of the site and of the Kit before, during, and after the set; (f) coordination and scheduling of all other trades so as not to interfere with the Set Services; (g) prompt written response to any request for information or direction from Contractor.</p>'
+    +'<p>Owner is responsible for locating and marking all public and private underground utilities prior to Mobilization.</p>'
+
+    // ===== SECTION 7: SCHEDULING, WEATHER, STANDBY, REMOBILIZATION =====
+    +'<h2 class="sec">7. Scheduling, Weather, Standby, Remobilization, and Force Majeure</h2>'
+    +'<p><b>Coordination with delivery.</b> Where unloading is within Contractor\'s scope under Section 3, Owner shall notify Contractor of the manufacturer\'s scheduled delivery appointment promptly upon receiving it, and Contractor shall schedule Mobilization to coincide with that appointment.</p>'
+    +'<p><b>Weather and Safety.</b> Contractor may suspend the Set Services when wind, precipitation, lightning, temperature, visibility, or ground conditions render the work unsafe, in Contractor\'s reasonable judgment. Time lost to weather extends the schedule without penalty to Contractor.</p>'
+    +'<p><b>Force Majeure.</b> Neither Party shall be liable for delay or failure to perform caused by circumstances beyond its reasonable control. The affected Party shall notify the other in writing within five (5) business days and shall use commercially reasonable efforts to resume performance.</p>'
+    +'<p><b>Standby.</b> If Contractor\'s crew mobilizes and the site is not ready, or the Kit has not arrived, or work is otherwise delayed by any cause not attributable to Contractor, Owner shall pay standby charges at the rates in Exhibit A, plus lodging and per diem actually incurred.</p>'
+    +'<p><b>Remobilization.</b> If the crew must demobilize and return, Owner shall pay the remobilization charge in Exhibit A plus actual travel, lodging, equipment mobilization, and per diem costs. No remobilization charge applies to a return trip made to correct a valid warranty item under Section 10.</p>'
+    +'<p><b>Cancellation by Owner.</b> Cancellation by Owner at any time forfeits the non-refundable reservation charge described in Section 4. Cancellation within ____ calendar days of the scheduled Mobilization obligates Owner for all non-recoverable third-party costs actually committed by Contractor.</p>'
+
+    // ===== SECTION 8: FOUNDATION AND SITE CONDITIONS; CHANGE ORDERS =====
+    +'<h2 class="sec">8. Foundation and Site Conditions; Change Orders</h2>'
+    +'<p><b>Foundation Out of Tolerance.</b> If the foundation is out of tolerance, out of square, out of dimension, incorrectly located, or otherwise non-conforming, Contractor shall notify Owner and shall not be obligated to proceed. Any shimming, grouting, sistering, re-layout, structural modification, or other corrective work required to accommodate a non-conforming foundation is outside the Contract Price and shall be performed only by written change order at Contractor\'s then-current time-and-materials rates, or by others at Owner\'s election. Contractor is not responsible for any defect, misalignment, deflection, water intrusion, code non-compliance, or warranty consequence arising from a non-conforming foundation.</p>'
+    +'<p><b>Concealed and Unforeseen Conditions.</b> If Contractor encounters subsurface, concealed, or unforeseen conditions materially different from those indicated or reasonably expected, Contractor shall notify Owner and the Contract Price and schedule shall be equitably adjusted by written change order.</p>'
+    +'<p><b>Change Orders.</b> All changes to the scope, price, or schedule must be documented in a written change order signed by both Parties, or confirmed by email with return confirmation from both Parties. Verbal authorizations are not binding.</p>'
+    +'<p><b>Missing, Damaged, or Non-Conforming Kit Components.</b> Contractor is not responsible for shortages, transport damage, manufacturing defects, or non-conformities in the Kit as delivered. Owner is responsible for pursuing those matters with the manufacturer. If such conditions delay or interrupt the Set Services, standby and remobilization charges under Section 7 apply.</p>'
+
+    // ===== SECTION 9: SUBSTANTIAL COMPLETION AND WALKTHROUGH =====
+    +'<h2 class="sec">9. Substantial Completion and Walkthrough</h2>'
+    +'<p>Upon completion of the Set Services, Owner or Owner\'s representative shall conduct a walkthrough with Contractor\'s crew leader before the crew departs the site and shall identify in writing any item claimed to be incomplete or non-conforming. Contractor shall correct any valid item within a reasonable time. Contractor shall give Owner not less than twenty-four (24) hours\' notice of the anticipated walkthrough.</p>'
+    +'<p>Payment 2 is due upon Substantial Completion, prior to the crew\'s departure from the project site, and is not contingent upon the resolution of punch list or warranty items. The sole exception is the following: where a walkthrough item prevents the structure from being weather-tight or safe to leave standing, Owner may withhold from Payment 2 an amount equal to one hundred fifty percent (150%) of the reasonable cost to correct that item until it is corrected, and shall remit the balance before the crew departs.</p>'
+
+    // ===== SECTION 9A: CORRECTION ITEMS =====
+    +'<h2 class="sec">9A. Correction Items and Jurisdictional Punch Lists</h2>'
+    +'<p>Every Correction Item falls into one of three categories. Contractor prices, budgets, and carries contingency only for items in Category 1.</p>'
+    +'<table class="grid">'
+    +'<tr><th style="width:22%;">Category</th><th>What it covers</th><th style="width:28%;">Who bears it</th></tr>'
+    +'<tr><td><b>1 &mdash; Contractor workmanship</b></td><td>Work Contractor\'s crew installed contrary to the Set Documents &mdash; fastening, bracing, hold-down installation, panel alignment, blocking shown on the approved plans.</td><td>Contractor, at Contractor\'s cost under Section 10. No remobilization charge.</td></tr>'
+    +'<tr><td><b>2 &mdash; Manufacturing origin</b></td><td>A defective, missing, short-shipped, damaged in transport, or non-conforming component as manufactured or delivered.</td><td>Manufacturer under Owner\'s separate purchase agreement. Section 16 governs origin. On-site labor beyond the manufacturer\'s allowance is a change order.</td></tr>'
+    +'<tr><td><b>3 &mdash; All other items</b></td><td>Work of Owner\'s general contractor or other trades; foundation; roofing, siding, weatherproofing, Stitch-Up not purchased as an add-on; anything an inspector requires beyond what the approved plans show.</td><td>Owner. Not included in the Contract Price.</td></tr>'
+    +'</table>'
+    +'<p>Owner shall furnish Contractor a complete copy of any jurisdictional correction notice within three (3) business days of receipt. Owner shall not direct, permit, or perform correction of any item Owner claims is a Category 1 item until Contractor has had a reasonable opportunity to inspect it. Owner is solely responsible for scheduling every inspection, including any framing or structural inspection. A return trip required because an inspection was not scheduled in time is a remobilization under Section 7.</p>'
+
+    // ===== SECTION 10: WARRANTY =====
+    +'<h2 class="sec">10. Warranty</h2>'
+    +'<p>Contractor warrants that the Set Services will be performed in a good and workmanlike manner, in accordance with the Set Documents and applicable building codes, by qualified personnel. This warranty extends for ____ months from the date of Substantial Completion.</p>'
+    +'<p>Contractor\'s sole obligation, and Owner\'s sole remedy, for breach of this warranty is Contractor\'s correction of the non-conforming workmanship, or refund of the portion of the Contract Price allocable to the non-conforming work, at Contractor\'s election. Contractor must be given written notice within thirty (30) days of discovery and a reasonable opportunity to inspect and correct. Work corrected by others without Contractor\'s prior written authorization is not reimbursable and voids this warranty as to the affected work.</p>'
+    +'<p><b>Exclusions.</b> This warranty does not cover: the Kit itself or any manufacturing defect, which is the manufacturer\'s responsibility under Owner\'s separate purchase agreement; any condition arising from a non-conforming foundation or site condition; work performed by Owner or others; damage from weather, settlement, movement, misuse, neglect, or failure to maintain; normal wear; or any work outside Exhibit A.</p>'
+    +'<p style="font-size:10.5px;text-transform:uppercase;letter-spacing:0.03em;">Except as expressly set forth in this Section, Contractor makes no warranties, express or implied, and disclaims any implied warranty of merchantability, fitness for a particular purpose, or habitability, to the fullest extent permitted by applicable law.</p>'
+
+    // ===== SECTION 11: DAMAGE =====
+    +'<h2 class="sec">11. Damage During the Set</h2>'
+    +'<p>Contractor is responsible for physical damage to the Kit caused by the negligent acts or omissions of Contractor\'s own personnel during the performance of the Set Services, and shall repair such damage at Contractor\'s cost or tender the claim to Contractor\'s insurer. Contractor is not responsible for damage occurring before Contractor takes possession of the Kit at the site, after the crew departs, or arising from pre-existing transport damage, manufacturing defects, non-conforming foundations, weather, or the acts of Owner or others.</p>'
+
+    // ===== SECTION 12: INSURANCE =====
+    +'<h2 class="sec">12. Insurance</h2>'
+    +'<p>Contractor shall maintain, at its own expense and in its own name, commercial general liability (occurrence, including products and completed operations), workers\' compensation and employer\'s liability, commercial automobile liability, and excess/umbrella liability coverage throughout the performance of the Set Services in amounts appropriate to the work, and shall furnish certificates of insurance to Owner prior to Mobilization. Contractor\'s commercial general liability policy shall name Owner as an additional insured with respect to the Set Services, on a primary and non-contributory basis to the extent of Contractor\'s indemnity obligation under Section 13.</p>'
+    +'<p>Owner shall maintain builder\'s risk or course-of-construction insurance covering the full replacement value of the Kit and the work in place, effective from delivery of the Kit through completion of the project, and shall name Contractor as an additional insured as its interest may appear.</p>'
+
+    // ===== SECTION 13: INDEMNIFICATION =====
+    +'<h2 class="sec">13. Indemnification</h2>'
+    +'<p><b>By Contractor.</b> To the fullest extent permitted by law, Contractor shall indemnify, defend, and hold harmless Owner from claims for bodily injury, death, or damage to tangible property to the extent caused by the negligent acts or omissions of Contractor or its employees or subcontractors in performing the Set Services.</p>'
+    +'<p><b>By Owner.</b> To the fullest extent permitted by law, Owner shall indemnify, defend, and hold harmless Contractor from claims arising out of site conditions, the foundation, the acts or omissions of Owner or Owner\'s other contractors, Owner\'s failure to obtain permits or inspections, undisclosed hazardous materials, or Owner\'s failure to maintain required insurance.</p>'
+
+    // ===== SECTION 14: LICENSING =====
+    +'<h2 class="sec">14. Licensing, Safety, and Compliance</h2>'
+    +'<p>Contractor represents that it holds all contractor licenses and registrations required to perform the Set Services in the jurisdiction of the project site, and that it will perform the Set Services in compliance with applicable laws, codes, and OSHA requirements. Contractor is solely responsible for the safety of its own personnel, means, methods, techniques, sequences, and procedures. Owner shall not direct Contractor\'s personnel or means and methods. Contractor is an independent contractor.</p>'
+
+    // ===== SECTION 15: SUSPENSION, TERMINATION, DEFAULT =====
+    +'<h2 class="sec">15. Suspension, Termination, and Default</h2>'
+    +'<p><b>Owner Default.</b> If Owner fails to make any payment when due, fails to achieve Site Readiness, or otherwise materially breaches this Agreement, Contractor shall provide written notice. Owner shall have ten (10) calendar days to cure. If uncured, Contractor may suspend or demobilize without liability and, at its election, terminate and recover all amounts due for work performed, materials committed, demobilization, and lost overhead and profit.</p>'
+    +'<p><b>Contractor Default.</b> If Contractor materially breaches this Agreement, Owner shall provide written notice and Contractor shall have twenty (20) calendar days to cure or to furnish a written remediation plan reasonably acceptable to Owner.</p>'
+    +'<p><b>Limitation of Liability.</b> Contractor\'s total aggregate liability arising out of or relating to this Agreement, whether in contract, tort, or otherwise, shall not exceed the greater of (i) the Contract Price actually paid to Contractor, or (ii) the proceeds actually available under Contractor\'s applicable insurance policies. In no event shall either Party be liable for indirect, incidental, special, consequential, or punitive damages.</p>'
+
+    // ===== SECTION 16: DEFECT ORIGIN DETERMINATION =====
+    +'<h2 class="sec">16. Defect Origin Determination</h2>'
+    +'<p>This Section establishes the process by which Owner obtains a determination of responsibility where a claimed condition could arise either from manufacture of the Kit or from the Set Services. Identical provisions appear in the purchase agreement offered by Zip Kit Homes, LLC.</p>'
+    +'<ol class="def">'
+    +'<li><b>Notice to one is notice to both.</b> Written notice of a claimed defect delivered to either Zip Kit General Contracting, LLC or Zip Kit Homes, LLC shall be deemed timely notice to both companies for purposes of preserving the claim. The receiving company shall forward the notice to the other within three (3) business days.</li>'
+    +'<li><b>Joint inspection.</b> Where a claimed defect could reasonably arise from either manufacture or the Set Services, both companies shall participate in a joint site inspection within fifteen (15) business days of notice. Each company bears its own cost of participation.</li>'
+    +'<li><b>Written determination.</b> Within ten (10) business days of the inspection, Contractor shall furnish Owner a written statement identifying the origin of the condition and stating whether Contractor accepts responsibility. The responsible company shall then perform its remedy under its own agreement.</li>'
+    +'<li><b>Disagreement.</b> If the companies do not agree on origin, Owner may require that a neutral third-party inspector be jointly retained. The cost shall be borne equally by the two companies. The inspector\'s written finding is advisory, not binding, and is admissible in any subsequent proceeding.</li>'
+    +'<li><b>Tolling.</b> All warranty periods, notice deadlines, and limitation periods are tolled from the date of notice under subsection (a) until fifteen (15) days after the written determination or the neutral inspector\'s finding, whichever is later.</li>'
+    +'<li><b>No joint liability created.</b> Nothing in this Section makes either company liable for the obligations, acts, or omissions of the other. This Section establishes a process only.</li>'
+    +'</ol>'
+
+    // ===== SECTION 17: DISPUTE RESOLUTION =====
+    +'<h2 class="sec">17. Dispute Resolution</h2>'
+    +'<p><b>Mediation.</b> The Parties shall first attempt resolution of any dispute through good faith mediation conducted in _______________________, or by remote video conference at either Party\'s election.</p>'
+    +'<p><b>Binding Arbitration.</b> If mediation does not resolve the dispute within sixty (60) days of initiation, the dispute shall be submitted to binding arbitration under the Construction Industry Arbitration Rules of the American Arbitration Association then in effect. Nothing in this Section limits either Party\'s right to file or enforce a mechanic\'s lien or bond claim.</p>'
+    +'<p><b>Attorneys\' Fees.</b> The prevailing Party in any arbitration or subsequent litigation shall recover reasonable attorneys\' fees and costs from the non-prevailing Party.</p>'
+
+    // ===== SECTION 18: GOVERNING LAW =====
+    +'<h2 class="sec">18. Governing Law and Venue</h2>'
+    +'<p>This Agreement shall be governed by the laws of the State of _______________________, except that lien, bond, right-to-repair, and construction-statute rights shall be governed by the law of the state in which the project site is located to the extent that law is mandatory. Where the project site is located in a state that imposes mandatory requirements on residential construction contracts, the state-specific addendum attached to this Agreement for that state governs to the extent of any conflict.</p>'
+
+    // ===== SECTION 19: GENERAL PROVISIONS =====
+    +'<h2 class="sec">19. General Provisions</h2>'
+    +'<ol class="def">'
+    +'<li>This Agreement, together with Exhibits A and B, any state-specific addendum, and any signed change orders, constitutes the entire understanding between the Parties regarding the Set Services and supersedes all prior oral or written agreements.</li>'
+    +'<li><b>Independent of the Kit purchase.</b> This Agreement is separate from and independent of Owner\'s purchase agreement for the Kit. Neither agreement incorporates the other by reference. A default, dispute, delay, or termination under one agreement does not constitute a default under, excuse performance under, or create a right of offset against the other. Owner waives any right to withhold payment under this Agreement on account of any claim against the manufacturer, and any right to withhold payment to the manufacturer on account of any claim against Contractor. Section 16 is the sole exception and establishes a process only.</li>'
+    +'<li>If any provision is found invalid or unenforceable, it shall be modified to the minimum extent necessary to make it enforceable.</li>'
+    +'<li>No waiver of any provision shall be effective unless in writing.</li>'
+    +'<li>Owner may not assign this Agreement without Contractor\'s prior written consent. Contractor may assign to a successor entity without Owner\'s consent, and may perform any portion of the Set Services through qualified subcontractors, for whose work Contractor remains responsible.</li>'
+    +'</ol>'
+
+    // ===== SECTION 20: EXECUTION =====
+    +'<h2 class="sec">20. Execution and Acceptance</h2>'
+    +'<p>The undersigned Parties represent that they have read, understand, and agree to be bound by the terms and conditions of this Agreement and that each signatory is duly authorized to execute this Agreement on behalf of the Party indicated.</p>'
+    +zkContractSigBlock('Zip Kit General Contracting, LLC (Contractor)', 'Owner')
+
+    // ===== EXHIBIT A: SCOPE + PRICE =====
+    +'<div class="pagebreak"></div>'
+    +'<h2 class="sec" style="border-bottom-width:2px;">Exhibit A &mdash; Scope of Set Services and Contract Price</h2>'
+    +'<table class="grid">'
+    +'<tr><td style="width:22%;"><b>Project</b></td><td>'+buyer+'</td><td style="width:16%;"><b>Kit Type</b></td><td>&#9744; Panelized &nbsp; &#9744; Modular</td></tr>'
+    +'</table>'
+    +'<h3 class="sub">Services included</h3>'
+    +'<table class="grid">'
+    +'<tr><th style="width:12%;">Included</th><th>Service</th><th style="width:35%;">Notes / assumptions</th></tr>'
+    +'<tr><td style="text-align:center;">&#9744;</td><td>Unload and stage Kit at laydown area</td><td class="note">Included in base scope unless marked excluded. If excluded, Owner unloads and bears any detention charged by the manufacturer.</td></tr>'
+    +'<tr><td style="text-align:center;">&#9744;</td><td>Set and erect wall panels / exterior shell</td><td class="note"></td></tr>'
+    +'<tr><td style="text-align:center;">&#9744;</td><td>Set and mate modular units</td><td class="note"></td></tr>'
+    +'<tr><td style="text-align:center;">&#9744;</td><td>Structural connections, hold-downs, bracing</td><td class="note"></td></tr>'
+    +'<tr><td style="text-align:center;">&#9744;</td><td>Roof structure set / dry-in</td><td class="note">Add-on.</td></tr>'
+    +'<tr><td style="text-align:center;">&#9744;</td><td>Stitch-Up (add-on)</td><td class="note"></td></tr>'
+    +'<tr><td style="text-align:center;">&#9744;</td><td>Crane furnished by Contractor</td><td class="note">Add-on. If unchecked, Owner furnishes and pays for the crane.</td></tr>'
+    +'<tr><td style="text-align:center;">&#9744;</td><td>Forklift / telehandler furnished by Contractor</td><td class="note">Add-on. If unchecked, Owner furnishes and pays for the forklift.</td></tr>'
+    +'</table>'
+    +'<h3 class="sub">Assumptions</h3>'
+    +'<ul style="margin:6px 0 12px 18px;padding:0;font-size:11px;line-height:1.6;">'
+    +'<li>Crew size: ______ &nbsp; Estimated set duration: ______ working days</li>'
+    +'<li>Scheduled Mobilization window: ______________________</li>'
+    +'<li>Travel distance from Contractor\'s base: ______ miles</li>'
+    +'<li>Single mobilization; single continuous work window; standard daylight working hours</li>'
+    +'<li>Kit delivered complete and undamaged, on or before the Mobilization date</li>'
+    +'<li>Foundation conforming to Exhibit B tolerances</li>'
+    +'</ul>'
+    +'<h3 class="sub">Contract price</h3>'
+    +'<table class="grid">'
+    +'<tr><th>Item</th><th class="amt" style="width:22%;">Amount</th></tr>'
+    +'<tr><td>Base Set Services</td><td class="amt">$________________</td></tr>'
+    +'<tr><td>Add-ons (per checkboxes above)</td><td class="amt">$________________</td></tr>'
+    +'<tr><td>Mobilization / travel</td><td class="amt">$________________</td></tr>'
+    +'<tr><td>Crane and equipment (if furnished by Contractor)</td><td class="amt">$________________</td></tr>'
+    +'<tr><td style="font-weight:700;">Total Contract Price</td><td class="amt" style="font-weight:700;">$________________</td></tr>'
+    +'</table>'
+    +'<h3 class="sub">Rates for additional work</h3>'
+    +'<table class="grid">'
+    +'<tr><th>Item</th><th class="amt" style="width:22%;">Rate</th></tr>'
+    +'<tr><td>Standby &mdash; per crew hour</td><td class="amt">$________________</td></tr>'
+    +'<tr><td>Standby &mdash; per equipment hour</td><td class="amt">$________________</td></tr>'
+    +'<tr><td>Remobilization (flat, plus actual costs)</td><td class="amt">$________________</td></tr>'
+    +'<tr><td>Time and materials &mdash; journeyman hour</td><td class="amt">$________________</td></tr>'
+    +'<tr><td>Time and materials &mdash; crew leader hour</td><td class="amt">$________________</td></tr>'
+    +'<tr><td>Per diem and lodging (per person, per day)</td><td class="amt">$________________</td></tr>'
+    +'</table>'
+
+    // ===== EXHIBIT B: TOLERANCES + SITE READINESS =====
+    +'<div class="pagebreak"></div>'
+    +'<h2 class="sec" style="border-bottom-width:2px;">Exhibit B &mdash; Foundation Tolerances and Site Readiness Checklist</h2>'
+    +'<p>Owner delivers a foundation meeting the tolerances below and a site satisfying the checklist. Contractor verifies on arrival and may decline to proceed if they are not met. Corrective work is not included in the Contract Price.</p>'
+    +'<h3 class="sub">Foundation tolerances</h3>'
+    +'<table class="grid">'
+    +'<tr><th>Condition</th><th style="width:40%;">Tolerance</th></tr>'
+    +'<tr><td>Level &mdash; any 10 ft. run of bearing surface</td><td>&plusmn; 1/4 in.</td></tr>'
+    +'<tr><td>Level &mdash; overall across the foundation</td><td>&plusmn; 1/2 in.</td></tr>'
+    +'<tr><td>Square &mdash; difference between diagonals</td><td>Within 1/2 in.</td></tr>'
+    +'<tr><td>Plan dimension &mdash; overall length and width</td><td>&plusmn; 1/2 in. of the approved plans</td></tr>'
+    +'<tr><td>Anchor bolt / hold-down location</td><td>&plusmn; 1/4 in. of the approved plans</td></tr>'
+    +'<tr><td>Bearing surface</td><td>Smooth, clean, free of debris, ice, snow, and standing water</td></tr>'
+    +'<tr><td>Concrete cure</td><td>Minimum ______ days, or design strength confirmed in writing</td></tr>'
+    +'</table>'
+    +'<p style="font-size:10.5px;color:#5f5e5a;font-style:italic;">Where this Exhibit is silent, ACI 117 tolerances apply. Tolerances are subject to the project engineer of record and to any stricter requirement in the Set Documents or approved plans; the stricter governs.</p>'
+    +'<h3 class="sub">Site readiness checklist</h3>'
+    +'<table class="grid">'
+    +'<tr><th style="width:14%;">Confirmed</th><th>Item</th></tr>'
+    +'<tr><td style="text-align:center;">&#9744;</td><td>Foundation complete, cured, and within the tolerances above; as-built or survey verification available</td></tr>'
+    +'<tr><td style="text-align:center;">&#9744;</td><td>Permits issued and posted; all pre-set inspections passed</td></tr>'
+    +'<tr><td style="text-align:center;">&#9744;</td><td>Access road and driveway passable by tractor-trailer and crane; adequate load capacity, width, turning radius, and overhead clearance</td></tr>'
+    +'<tr><td style="text-align:center;">&#9744;</td><td>Crane setup pad identified, level, compacted, and clear of overhead power lines and underground utilities</td></tr>'
+    +'<tr><td style="text-align:center;">&#9744;</td><td>Laydown / staging area level, drained, and adequately sized</td></tr>'
+    +'<tr><td style="text-align:center;">&#9744;</td><td>Underground utilities located and marked (811 or equivalent)</td></tr>'
+    +'<tr><td style="text-align:center;">&#9744;</td><td>Site clear of standing water, snow, ice, mud, and debris</td></tr>'
+    +'<tr><td style="text-align:center;">&#9744;</td><td>Debris container on site</td></tr>'
+    +'<tr><td style="text-align:center;">&#9744;</td><td>Temporary sanitation on site</td></tr>'
+    +'<tr><td style="text-align:center;">&#9744;</td><td>Temporary power and water available (if required by Exhibit A)</td></tr>'
+    +'<tr><td style="text-align:center;">&#9744;</td><td>Kit delivered and inventoried, or delivery appointment confirmed in writing to coincide with Mobilization</td></tr>'
+    +'<tr><td style="text-align:center;">&#9744;</td><td>Builder\'s risk insurance in force, with Contractor named as additional insured</td></tr>'
+    +'<tr><td style="text-align:center;">&#9744;</td><td>No other trades scheduled to work in the set radius during the set window</td></tr>'
+    +'</table>'
+    +'<p>This certification is the written confirmation of Site Readiness required by Section 5. Owner certifies that the conditions above have been met as of the date signed.</p>'
+    +'<div class="sigblock" style="margin-top:20px;"><div class="col"><h4>Owner</h4><div class="line"></div><div class="lbl">Signature</div><div class="line"></div><div class="lbl">Printed name</div><div class="line"></div><div class="lbl">Date</div></div><div class="col"></div></div>';
+
+  var w = window.open('', '_blank');
+  if(!w){ alert('Please allow pop-ups to generate the Set Services contract.'); return; }
+  w.document.write(zkContractDoc(
+    'zipkit',
+    'Set Services Agreement',
+    'v5 draft · '+date,
+    'Zip Kit General Contracting, LLC',
+    'Licensed General Contractor · License No. ____________',
+    body
+  ));
+  w.document.close();
+}
+
 /* =========================================================================
    MODULAR CONTRACT MODE
    ========================================================================= */
@@ -1337,8 +1742,20 @@ function setContractMode(mode){
 }
 
 function dispatchGenerate(){
-  if(CONTRACT_MODE==='modular') generateModularContract();
-  else generateContract();
+  if(CONTRACT_MODE==='modular'){ generateModularContract(); return; }
+  generateContract();
+  zkMaybeAlsoOpenSetServices();
+}
+
+// Companion helper — called after the shell / custom contract opens. If the
+// rep checked "Also generate the Set Services contract" on the shell input
+// panel, this opens the Set Services v5 in a second tab. Small delay so both
+// window.open()s aren't fired synchronously (some pop-up blockers drop the
+// second in that case).
+function zkMaybeAlsoOpenSetServices(){
+  var alsoEl = document.getElementById('c-with-assembly');
+  if(!alsoEl || !alsoEl.checked) return;
+  setTimeout(function(){ generateSetServicesContract(); }, 400);
 }
 
 function initModularContract(){
@@ -2081,10 +2498,11 @@ function generateCustomContract(){
   };
   var origDispatch = dispatchGenerate;
   dispatchGenerate = function(){
-    if(CONTRACT_MODE==='modular') generateModularContract();
-    else if(CONTRACT_MODE==='custom') generateCustomContract();
-    else if(CONTRACT_MODE==='changeorder') generateChangeOrder();
-    else generateContract();
+    if(CONTRACT_MODE==='modular'){ generateModularContract(); return; }
+    if(CONTRACT_MODE==='custom'){ generateCustomContract(); zkMaybeAlsoOpenSetServices(); return; }
+    if(CONTRACT_MODE==='changeorder'){ generateChangeOrder(); return; }
+    generateContract();
+    zkMaybeAlsoOpenSetServices();
   };
 })();
 
@@ -2484,6 +2902,12 @@ async function zkAutoLoadFromQuote(quoteId){
       setVal('c-design-override', fields['s-design-override']);
       if(fields['s-design-paid']) document.getElementById('c-design-paid') && (document.getElementById('c-design-paid').checked = !!fields['s-design-paid']);
       if(fields['s-eng-paid'])    document.getElementById('c-eng-paid')    && (document.getElementById('c-eng-paid').checked    = !!fields['s-eng-paid']);
+      // Assembly hand-off: if the quote had "Add site assembly" toggled on, or
+      // if quote_data.assembly.mode === 'added', auto-check the "also generate
+      // Set Services" box so the rep gets both contracts on Generate.
+      var assemblyAdded = !!fields['s-add-assembly'] || (q.quote_data && q.quote_data.assembly && q.quote_data.assembly.mode === 'added');
+      var withAsmEl = document.getElementById('c-with-assembly');
+      if(withAsmEl && assemblyAdded) withAsmEl.checked = true;
       if(typeof calc === 'function') calc();
     } else if(mode === 'modular'){
       setVal('cm-model',      fields['m-model']);
@@ -2540,7 +2964,7 @@ function zkContractActiveMode(){
 var ZK_CONTRACT_BUYER_FIELDS = ['c-buyer','c-project','c-phone','c-email','c-buyer-addr','c-site-addr','c-city','c-date','c-salesman'];
 // Mode-specific static fields (inputs/selects/checkboxes).
 var ZK_CONTRACT_MODE_FIELDS = {
-  shell:       ['c-model','c-snow','c-win','c-miles','c-design-override','c-design-paid','c-eng-paid'],
+  shell:       ['c-model','c-snow','c-win','c-miles','c-design-override','c-design-paid','c-eng-paid','c-with-assembly'],
   modular:     ['cm-model','cm-units','cm-miles'],
   custom:      ['cu-name','cu-sqft','cu-build','cu-eng','cu-miles','cu-rate','cu-photo','cu-win-label','cu-win-price','cu-design-override','cu-design-paid','cu-eng-paid'],
   changeorder: ['co-brand','co-date','co-contract-date','co-orig-total','co-days','co-reason']
