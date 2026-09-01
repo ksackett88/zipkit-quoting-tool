@@ -212,13 +212,16 @@
     <div class="contact" id="contact">3665 West 2700 South, Cedar City UT 84720<br>(435) 340·1171 &nbsp;|&nbsp; sales@zipkithomes.com</div>
   </header>
 
-  <div class="tabs">
-    <button class="tab active" data-mode="shell" onclick="setMode('shell')">Shell Kit Homes</button>
-    <button class="tab" data-mode="modular" onclick="setMode('modular')">Modular Units</button>
-    <button class="tab" data-mode="garage" onclick="setMode('garage')">Garages</button>
-    <button class="tab" data-mode="hangar" onclick="setMode('hangar')">Airplane Hangars</button>
-    <button class="tab" data-mode="steel" onclick="setMode('steel')">Steel Frame</button>
-    <button class="tab" data-mode="custom" onclick="setMode('custom')">Custom Home</button>
+  <div class="tabs" style="align-items:center;">
+    <span style="font-size:11px; text-transform:uppercase; letter-spacing:0.06em; color:var(--muted); margin-right:6px;">Homes</span>
+    <button class="tab active" data-mode="shell"   onclick="setMode('shell')">Shell Kit</button>
+    <button class="tab"        data-mode="modular" onclick="setMode('modular')">Modular</button>
+    <button class="tab"        data-mode="custom"  onclick="setMode('custom')">Custom Home</button>
+    <span style="width:1px; height:22px; background:var(--line-strong); margin:0 6px;"></span>
+    <span style="font-size:11px; text-transform:uppercase; letter-spacing:0.06em; color:var(--muted); margin-right:6px;">Buildings</span>
+    <button class="tab" data-mode="garage" onclick="setMode('garage')">Garage</button>
+    <button class="tab" data-mode="hangar" onclick="setMode('hangar')">Hangar</button>
+    <button class="tab" data-mode="steel"  onclick="setMode('steel')">Steel Frame</button>
   </div>
 
   <!-- SHELL MODE -->
@@ -774,11 +777,13 @@ var QUOTE = null;
 //     contract (Zip Kit Assembly LLC) — so the manufacturing contract amount
 //     stays unchanged, keeping the invoice/payment schedule clean.
 function zkAssembly(prefix, shellPerUnit, units){
+  // Radio group named `<prefix>-assembly` — three IDs preserved for backward
+  // compat: `-assembly-none` (default), `-no-assembly` (remove/−10%),
+  // `-add-assembly` (add/+10%).
   var noEl  = document.getElementById(prefix + '-no-assembly');
   var addEl = document.getElementById(prefix + '-add-assembly');
   var no    = !!(noEl  && noEl.checked);
   var add   = !!(addEl && addEl.checked);
-  if(no && add && addEl){ addEl.checked = false; add = false; }
   var per   = Math.round(Number(shellPerUnit) * 0.10);
   var total = per * Math.max(1, units);
   return {
@@ -791,12 +796,14 @@ function zkAssembly(prefix, shellPerUnit, units){
   };
 }
 
-// Clear both assembly toggles for a mode — called from each mode's reset fn.
+// Reset the assembly radio group for a mode back to "No change" (the default).
 function zkResetAssembly(prefix){
-  var a = document.getElementById(prefix+'-no-assembly');
-  var b = document.getElementById(prefix+'-add-assembly');
-  if(a) a.checked = false;
-  if(b) b.checked = false;
+  var none = document.getElementById(prefix+'-assembly-none');
+  var no   = document.getElementById(prefix+'-no-assembly');
+  var add  = document.getElementById(prefix+'-add-assembly');
+  if(no)   no.checked   = false;
+  if(add)  add.checked  = false;
+  if(none) none.checked = true;
 }
 
 // Populate every <div class="zk-assembly-slot" data-prefix="..." data-calc="..."></div>
@@ -810,19 +817,25 @@ document.addEventListener('DOMContentLoaded', function(){
   });
 });
 
-// Standard HTML block for the two assembly toggles. Insert into each mode's
+// Standard HTML block for the assembly toggle. One question, three radios —
+// clearer than two mutually-exclusive checkboxes. Insert into each mode's
 // input panel. Pass the mode's prefix (s/m/g/h/st/c) and its calc fn name.
 function zkAssemblyToggleHTML(prefix, calcFnName){
+  var name = prefix + '-assembly';
   return ''
     +'<label style="margin-top:12px;">Site assembly <span class="sub" style="font-weight:400;">(Zip Kit Assembly LLC · separate contract)</span></label>'
     +'<div style="background:#fff7e6; border-left:3px solid #d85a30; padding:10px 12px; border-radius:4px; margin-bottom:8px; font-size:13px;">'
     +'<div class="checkrow" style="margin:0 0 6px;">'
-    +'<input type="checkbox" id="'+prefix+'-no-assembly" onchange="if(this.checked){document.getElementById(\''+prefix+'-add-assembly\').checked=false;} '+calcFnName+'();">'
-    +'<label for="'+prefix+'-no-assembly" style="margin:0; color:var(--ink); line-height:1.4;"><b>Remove assembly (&minus;10% of shell)</b> &mdash; customer takes curb delivery, arranges own set</label>'
+    +  '<input type="radio" name="'+name+'" id="'+prefix+'-assembly-none" value="none" checked onchange="'+calcFnName+'();">'
+    +  '<label for="'+prefix+'-assembly-none" style="margin:0; color:var(--ink); line-height:1.4;"><b>No change</b> &mdash; use listed price (assembly stays as-is)</label>'
+    +'</div>'
+    +'<div class="checkrow" style="margin:0 0 6px;">'
+    +  '<input type="radio" name="'+name+'" id="'+prefix+'-no-assembly" value="remove" onchange="'+calcFnName+'();">'
+    +  '<label for="'+prefix+'-no-assembly" style="margin:0; color:var(--ink); line-height:1.4;"><b>Remove assembly (&minus;10% of shell)</b> &mdash; customer takes curb delivery, arranges own set</label>'
     +'</div>'
     +'<div class="checkrow" style="margin:0;">'
-    +'<input type="checkbox" id="'+prefix+'-add-assembly" onchange="if(this.checked){document.getElementById(\''+prefix+'-no-assembly\').checked=false;} '+calcFnName+'();">'
-    +'<label for="'+prefix+'-add-assembly" style="margin:0; color:var(--ink); line-height:1.4;"><b>Add site assembly (+10% of shell)</b> &mdash; billed via separate Zip Kit Assembly LLC contract</label>'
+    +  '<input type="radio" name="'+name+'" id="'+prefix+'-add-assembly" value="add" onchange="'+calcFnName+'();">'
+    +  '<label for="'+prefix+'-add-assembly" style="margin:0; color:var(--ink); line-height:1.4;"><b>Add site assembly (+10% of shell)</b> &mdash; billed via separate Zip Kit Assembly LLC contract</label>'
     +'</div>'
     +'</div>';
 }
@@ -2505,13 +2518,15 @@ function calcSteel(){
 </div>
 
 <!-- ============ TOP TOOLBAR (visible once signed in) ============ -->
-<div id="zk-toolbar" style="display:none;position:fixed;top:14px;right:18px;z-index:100;gap:8px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
-  <span id="zk-user-email" style="font-size:12px;color:#5f5e5a;align-self:center;margin-right:6px;"></span>
-  <a href="index.html" style="height:34px;padding:0 14px;font-size:12px;border:1px solid #c9c7bd;background:#fff;border-radius:8px;cursor:pointer;font-family:inherit;color:#1c1c1a;display:inline-flex;align-items:center;text-decoration:none;">← Portal</a>
-  <button onclick="zkShowMyQuotes()" style="height:34px;padding:0 14px;font-size:12px;border:1px solid #c9c7bd;background:#fff;border-radius:8px;cursor:pointer;font-family:inherit;color:#1c1c1a;">My Projects</button>
-  <button onclick="zkSaveCurrentQuote()" style="height:34px;padding:0 14px;font-size:12px;border:1px solid #d85a30;background:#d85a30;color:#fff;border-radius:8px;cursor:pointer;font-family:inherit;font-weight:600;">Save Quote</button>
+<div id="zk-toolbar" style="display:none;position:fixed;top:0;left:0;right:0;z-index:100;padding:10px 20px;background:rgba(255,255,255,0.96);backdrop-filter:blur(6px);border-bottom:1px solid #e2e0d8;box-shadow:0 2px 8px rgba(0,0,0,0.04);align-items:center;justify-content:flex-end;gap:8px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+  <span id="zk-user-email" style="font-size:12px;color:#5f5e5a;margin-right:auto; padding-left:6px;"></span>
+  <a href="index.html" style="height:34px;padding:0 14px;font-size:12px;border:1px solid #c9c7bd;background:#fff;border-radius:8px;cursor:pointer;font-family:inherit;color:#1c1c1a;display:inline-flex;align-items:center;text-decoration:none;" title="Back to Sales Portal">← Portal</a>
+  <button onclick="zkShowMyQuotes()" style="height:34px;padding:0 14px;font-size:12px;border:1px solid #c9c7bd;background:#fff;border-radius:8px;cursor:pointer;font-family:inherit;color:#1c1c1a;" title="See your saved projects">My Projects</button>
+  <button onclick="generateProposal()" style="height:34px;padding:0 14px;font-size:12px;border:1px solid #2f5d4a;background:#2f5d4a;color:#fff;border-radius:8px;cursor:pointer;font-family:inherit;font-weight:600;" title="Open the customer-facing proposal PDF in a new tab">Generate Proposal ↗</button>
+  <button onclick="zkSaveCurrentQuote()" style="height:34px;padding:0 14px;font-size:12px;border:1px solid #d85a30;background:#d85a30;color:#fff;border-radius:8px;cursor:pointer;font-family:inherit;font-weight:600;" title="Save this configuration as a project (safe to come back to later)">Save Project</button>
   <button onclick="zkSignOut()" style="height:34px;padding:0 14px;font-size:12px;border:1px solid #c9c7bd;background:#fff;border-radius:8px;cursor:pointer;font-family:inherit;color:#5f5e5a;">Sign out</button>
 </div>
+<div id="zk-toolbar-spacer" style="display:none; height:54px;"></div>
 
 <!-- ============ MY QUOTES MODAL ============ -->
 <div id="zk-quotes-overlay" style="display:none;position:fixed;inset:0;background:rgba(28,28,26,0.6);z-index:9998;align-items:flex-start;justify-content:center;padding:60px 20px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;overflow-y:auto;">
@@ -2575,10 +2590,11 @@ function zkToast(msg, isError){
   var errEl    = document.getElementById('zk-login-error');
   var subBtn   = document.getElementById('zk-login-submit');
 
-  function showOverlay(){ overlay.style.display='flex'; toolbar.style.display='none'; document.body.style.overflow='hidden'; }
+  function showOverlay(){ overlay.style.display='flex'; toolbar.style.display='none'; var sp=document.getElementById('zk-toolbar-spacer'); if(sp) sp.style.display='none'; document.body.style.overflow='hidden'; }
   function hideOverlay(user){
     overlay.style.display='none';
     toolbar.style.display='flex';
+    var sp=document.getElementById('zk-toolbar-spacer'); if(sp) sp.style.display='block';
     emailLbl.textContent = (user && user.email) || '';
     document.body.style.overflow='';
     // Portal handoff: if opened from the Sales Portal with ?open=<id>, load that
@@ -2626,12 +2642,12 @@ document.getElementById('zk-quotes-close').addEventListener('click', function(){
 /* ---------- Capture / restore current mode state ---------- */
 
 var ZK_MODE_FIELDS = {
-  shell:   ['s-model','s-units','s-snow','s-win','s-win-override','s-miles','s-ship-override','s-disc','s-design-override','s-design-paid','s-eng-paid','s-eng-modified','s-no-assembly','s-add-assembly'],
-  modular: ['m-model','m-units','m-base-override','m-snow','m-win','m-win-override','m-miles','m-ship-override','m-disc','m-no-assembly','m-add-assembly'],
-  garage:  ['g-model','g-units','g-design','g-design-override','g-miles','g-ship-override','g-design-paid','g-no-assembly','g-add-assembly'],
-  hangar:  ['h-model','h-units','h-base-override','h-miles','h-ship-override','h-disc','h-design-override','h-design-paid','h-no-assembly','h-add-assembly'],
-  steel:   ['st-name','st-sqft','st-build','st-eng','st-miles','st-rate','st-scope','st-design-override','st-design-paid','st-eng-paid','st-no-assembly','st-add-assembly'],
-  custom:  ['c-name','c-sqft','c-build','c-design-tier','c-design-override','c-eng','c-miles','c-rate','c-scope','c-design-paid','c-eng-paid','c-no-assembly','c-add-assembly']
+  shell:   ['s-model','s-units','s-snow','s-win','s-win-override','s-miles','s-ship-override','s-disc','s-design-override','s-design-paid','s-eng-paid','s-eng-modified','s-assembly-none','s-no-assembly','s-add-assembly'],
+  modular: ['m-model','m-units','m-base-override','m-snow','m-win','m-win-override','m-miles','m-ship-override','m-disc','m-assembly-none','m-no-assembly','m-add-assembly'],
+  garage:  ['g-model','g-units','g-design','g-design-override','g-miles','g-ship-override','g-design-paid','g-assembly-none','g-no-assembly','g-add-assembly'],
+  hangar:  ['h-model','h-units','h-base-override','h-miles','h-ship-override','h-disc','h-design-override','h-design-paid','h-assembly-none','h-no-assembly','h-add-assembly'],
+  steel:   ['st-name','st-sqft','st-build','st-eng','st-miles','st-rate','st-scope','st-design-override','st-design-paid','st-eng-paid','st-assembly-none','st-no-assembly','st-add-assembly'],
+  custom:  ['c-name','c-sqft','c-build','c-design-tier','c-design-override','c-eng','c-miles','c-rate','c-scope','c-design-paid','c-eng-paid','c-assembly-none','c-no-assembly','c-add-assembly']
 };
 
 var ZK_BUYER_FIELDS = ['prop-buyer','prop-project','prop-location','prop-email','prop-phone','prop-num','prop-date'];
@@ -2709,7 +2725,7 @@ async function zkShowMyQuotes(){
     // Filter out contracts (saved via the Contract Generator, stored in the same table with product_kind="contract-*")
     var quotes = all.filter(function(q){ return !q.product_kind || q.product_kind.indexOf('contract-') !== 0; });
     if(!quotes.length){
-      listDiv.innerHTML = '<p style="text-align:center;color:#888;padding:30px 0;">No saved quotes yet. Configure a quote and click <b>Save Quote</b>.</p>';
+      listDiv.innerHTML = '<p style="text-align:center;color:#888;padding:30px 0;">No saved projects yet. Configure a quote and click <b>Save Project</b>.</p>';
       return;
     }
     var html = '<table style="width:100%;border-collapse:collapse;font-size:13px;">'
@@ -2770,12 +2786,22 @@ async function zkOpenQuote(id){
     // Switch to the right mode (this triggers the mode's calc as a side effect)
     if(typeof setMode === 'function') setMode(mode);
 
-    // Restore field values for the mode (checkboxes use .checked, everything else uses .value)
+    // Restore field values for the mode (checkboxes + radios use .checked, everything else uses .value)
     if(cfg.fields){
       Object.keys(cfg.fields).forEach(function(id){
         var el = document.getElementById(id); if(!el) return;
-        if(el.type === 'checkbox') el.checked = !!cfg.fields[id];
+        if(el.type === 'checkbox' || el.type === 'radio') el.checked = !!cfg.fields[id];
         else el.value = cfg.fields[id];
+      });
+      // Backward compat: legacy configs (before the radio conversion) only
+      // saved -no-assembly + -add-assembly. If neither was true and the
+      // -assembly-none default radio wasn't in the saved config, force it on
+      // so the group has exactly one selection.
+      ['s','m','g','h','st','c'].forEach(function(pfx){
+        var noneEl = document.getElementById(pfx+'-assembly-none');
+        var noEl   = document.getElementById(pfx+'-no-assembly');
+        var addEl  = document.getElementById(pfx+'-add-assembly');
+        if(noneEl && !((noEl && noEl.checked) || (addEl && addEl.checked))) noneEl.checked = true;
       });
     }
 

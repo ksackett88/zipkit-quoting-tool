@@ -2108,19 +2108,21 @@ function generateChangeOrder(){
   </div>
 </div>
 
-<div id="zk-toolbar" style="display:none;position:fixed;top:14px;right:18px;z-index:100;gap:8px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
-  <span id="zk-user-email" style="font-size:12px;color:#5f5e5a;align-self:center;margin-right:6px;"></span>
-  <a href="index.html" style="height:34px;padding:0 14px;font-size:12px;border:1px solid #c9c7bd;background:#fff;border-radius:8px;cursor:pointer;font-family:inherit;color:#1c1c1a;display:inline-flex;align-items:center;text-decoration:none;">← Portal</a>
-  <button onclick="zkShowMyContracts()" style="height:34px;padding:0 14px;font-size:12px;border:1px solid #c9c7bd;background:#fff;border-radius:8px;cursor:pointer;font-family:inherit;color:#1c1c1a;">My Contracts</button>
-  <button onclick="zkSaveCurrentContract()" style="height:34px;padding:0 14px;font-size:12px;border:1px solid #d85a30;background:#d85a30;color:#fff;border-radius:8px;cursor:pointer;font-family:inherit;font-weight:600;">Save Contract</button>
+<div id="zk-toolbar" style="display:none;position:fixed;top:0;left:0;right:0;z-index:100;padding:10px 20px;background:rgba(255,255,255,0.96);backdrop-filter:blur(6px);border-bottom:1px solid #e2e0d8;box-shadow:0 2px 8px rgba(0,0,0,0.04);align-items:center;justify-content:flex-end;gap:8px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+  <span id="zk-user-email" style="font-size:12px;color:#5f5e5a;margin-right:auto;padding-left:6px;"></span>
+  <a href="index.html" style="height:34px;padding:0 14px;font-size:12px;border:1px solid #c9c7bd;background:#fff;border-radius:8px;cursor:pointer;font-family:inherit;color:#1c1c1a;display:inline-flex;align-items:center;text-decoration:none;" title="Back to Sales Portal">← Portal</a>
+  <button onclick="zkShowMyContracts()" style="height:34px;padding:0 14px;font-size:12px;border:1px solid #c9c7bd;background:#fff;border-radius:8px;cursor:pointer;font-family:inherit;color:#1c1c1a;" title="See your saved projects">My Projects</button>
+  <button onclick="dispatchGenerate()" style="height:34px;padding:0 14px;font-size:12px;border:1px solid #2f5d4a;background:#2f5d4a;color:#fff;border-radius:8px;cursor:pointer;font-family:inherit;font-weight:600;" title="Open the contract document in a new tab">Generate Contract ↗</button>
+  <button onclick="zkSaveCurrentContract()" style="height:34px;padding:0 14px;font-size:12px;border:1px solid #d85a30;background:#d85a30;color:#fff;border-radius:8px;cursor:pointer;font-family:inherit;font-weight:600;" title="Save this configuration as a project">Save Project</button>
   <button onclick="zkSignOut()" style="height:34px;padding:0 14px;font-size:12px;border:1px solid #c9c7bd;background:#fff;border-radius:8px;cursor:pointer;font-family:inherit;color:#5f5e5a;">Sign out</button>
 </div>
+<div id="zk-toolbar-spacer" style="display:none; height:54px;"></div>
 
 <!-- ============ MY CONTRACTS MODAL ============ -->
 <div id="zk-contracts-overlay" style="display:none;position:fixed;inset:0;background:rgba(28,28,26,0.6);z-index:9998;align-items:flex-start;justify-content:center;padding:60px 20px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;overflow-y:auto;">
   <div style="background:#fff;border-radius:14px;padding:28px 32px;max-width:920px;width:100%;max-height:80vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.4);">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;">
-      <h2 style="margin:0;font-size:20px;font-weight:600;color:#1c1c1a;">My contracts</h2>
+      <h2 style="margin:0;font-size:20px;font-weight:600;color:#1c1c1a;">My projects</h2>
       <button id="zk-contracts-close" style="background:none;border:none;cursor:pointer;font-size:28px;color:#5f5e5a;line-height:1;" onclick="document.getElementById('zk-contracts-overlay').style.display='none';">×</button>
     </div>
     <div id="zk-contracts-list" style="min-height:80px;"></div>
@@ -2165,10 +2167,11 @@ function generateChangeOrder(){
   var errEl    = document.getElementById('zk-login-error');
   var subBtn   = document.getElementById('zk-login-submit');
 
-  function showOverlay(){ overlay.style.display='flex'; toolbar.style.display='none'; document.body.style.overflow='hidden'; }
+  function showOverlay(){ overlay.style.display='flex'; toolbar.style.display='none'; var sp=document.getElementById('zk-toolbar-spacer'); if(sp) sp.style.display='none'; document.body.style.overflow='hidden'; }
   function hideOverlay(user){
     overlay.style.display='none';
     toolbar.style.display='flex';
+    var sp=document.getElementById('zk-toolbar-spacer'); if(sp) sp.style.display='block';
     emailLbl.textContent = (user && user.email) || '';
     document.body.style.overflow='';
     // Portal / cross-tool handoff:
@@ -2491,7 +2494,7 @@ async function zkShowMyContracts(){
     var all = await zkQuotes.list();
     var contracts = all.filter(function(q){ return q.product_kind && q.product_kind.indexOf('contract-') === 0; });
     if(!contracts.length){
-      listDiv.innerHTML = '<p style="text-align:center;color:#888;padding:30px 0;">No saved contracts yet. Configure a contract and click <b>Save Contract</b>.</p>';
+      listDiv.innerHTML = '<p style="text-align:center;color:#888;padding:30px 0;">No saved projects yet. Configure a contract and click <b>Save Project</b>.</p>';
       return;
     }
     var html = '<table style="width:100%;border-collapse:collapse;font-size:13px;">'
