@@ -1440,6 +1440,183 @@ function updateProposalSummary(){
   el.textContent = QUOTE.kind+' · '+QUOTE.model+' · '+QUOTE.units+' unit'+(QUOTE.units>1?'s':'')+' · total '+fmt(QUOTE.total);
 }
 
+// ============================================================================
+// Preliminary Estimate (1-page ballpark sheet, Sven's spec)
+// ============================================================================
+// Reads whatever quote is configured in the currently active mode and turns it
+// into a range-priced budgetary sheet. Used BEFORE detailed design — reps hand
+// this to the buyer during an early conversation, then move to the full quoting
+// tool + proposal only after the buyer signs the "move forward with design"
+// line. Auto-suggests +/-10% of QUOTE.total (rounded to nearest $1,000); rep
+// can override via prompt if the buyer needs a wider or tighter range.
+function generatePreliminaryEstimate(){
+  if(!QUOTE){ alert('Configure a quote above first — pick a model. The Preliminary Estimate pulls its range from the quote summary.'); return; }
+  var g = function(id){ var el=document.getElementById(id); return el ? el.value.trim() : ''; };
+
+  // ---- Range: auto = +/-10% of total, rounded to nearest $1,000 ----
+  var t = QUOTE.total || 0;
+  var roundK = function(n){ return Math.max(0, Math.round(n / 1000) * 1000); };
+  var autoLow  = roundK(t * 0.90);
+  var autoHigh = roundK(t * 1.10);
+  var rangeAns = prompt(
+    'Preliminary range for this estimate.\n\nAuto-suggested from the quote summary (' + fmt(t) + ' ±10%).\n\n' +
+    'Enter as "low-high" (e.g. "150000-175000"), or leave blank to accept the auto range.',
+    autoLow + '-' + autoHigh
+  );
+  if(rangeAns === null) return; // rep cancelled
+  var low = autoLow, high = autoHigh;
+  var m = String(rangeAns).replace(/[$,\s]/g,'').match(/^(\d+)-(\d+)$/);
+  if(m){
+    low  = Math.min(parseInt(m[1],10), parseInt(m[2],10));
+    high = Math.max(parseInt(m[1],10), parseInt(m[2],10));
+  }
+
+  // ---- Buyer + project info (from the proposal panel, already filled in) ----
+  var buyer    = g('prop-buyer')    || '________________________';
+  var project  = g('prop-project')  || (QUOTE.model + ' project');
+  var location = g('prop-location') || '________________________';
+  var email    = g('prop-email')    || '';
+  var phone    = g('prop-phone')    || '';
+  var rep      = g('rep-name')      || '';
+  var repEmail = g('rep-email')     || '';
+  var repPhone = g('rep-phone')     || '';
+  var num      = g('prop-num')      || '';
+  var date     = g('prop-date')     || new Date().toLocaleDateString('en-US');
+
+  // ---- Brand + manufacturing location per company ----
+  var co = (QUOTE.company === 'mvp')
+    ? { name:'Mountain Valley Prefab', addr:'3791 East 49th North, Idaho Falls ID 83401', tel:'(435) 592·3596', email:'sales@mountainvalleyprefab.com', logo:MVP_LOGO, mfrgCity:'Idaho Falls, Idaho' }
+    : (QUOTE.company === 'zksteel')
+      ? { name:'Zip Kit Steel', addr:'3665 West 2700 South, Cedar City UT 84720', tel:'(435) 340·1171', email:'sales@zipkitsteel.com', logo:zkImageUrl('zksteel-logo.png'), mfrgCity:'Cedar City, Utah' }
+      : { name:'Zip Kit Homes', addr:'3665 West 2700 South, Cedar City UT 84720', tel:'(435) 340·1171', email:'sales@zipkithomes.com', logo:ZIPKIT_LOGO, mfrgCity:'Cedar City, Utah' };
+
+  // ---- Building type description ----
+  var buildingType = QUOTE.kind + (QUOTE.kind === 'Modular' ? ' (factory-built, delivered move-in ready)'
+    : QUOTE.kind === 'Steel Frame' ? ' (light-gauge steel frame package)'
+    : QUOTE.kind === 'Custom Home' ? ' (custom-designed panelized home)'
+    : ' (pre-framed panelized ' + (QUOTE.kind === 'Shell Kit' ? 'shell kit' : QUOTE.kind === 'Garage' ? 'garage' : QUOTE.kind === 'Hangar' ? 'hangar' : 'kit') + ')');
+
+  // ---- Scope bullets: pull from PROPOSAL_SCOPE for standard kinds, or QUOTE.customScope for freeform ----
+  var scopeBullets = [];
+  if(QUOTE.kind === 'Custom Home' || QUOTE.kind === 'Steel Frame'){
+    scopeBullets = (QUOTE.customScope && QUOTE.customScope.length)
+      ? QUOTE.customScope.slice()
+      : ['Full custom scope — details finalized during design phase'];
+  } else if(PROPOSAL_SCOPE[QUOTE.kind]){
+    scopeBullets = PROPOSAL_SCOPE[QUOTE.kind].included.slice();
+    // If dry-in is on, add those bullets too so the ballpark reflects it
+    if(QUOTE.dryin && DRYIN_BULLETS[QUOTE.kind]){
+      scopeBullets = scopeBullets.concat(DRYIN_BULLETS[QUOTE.kind]);
+    }
+  } else {
+    scopeBullets = ['Panelized ' + QUOTE.kind.toLowerCase() + ' package per model spec'];
+  }
+  var scopeHTML = '<ul style="margin:6px 0 0 20px;padding:0;font-size:12px;color:#1c1c1a;line-height:1.55;">' +
+    scopeBullets.map(function(t){ return '<li style="margin-bottom:3px;">' + t + '</li>'; }).join('') + '</ul>';
+
+  // ---- Assembly note (respects the current assembly radio) ----
+  var asmNote = '';
+  if(QUOTE.assembly && QUOTE.assembly.mode === 'added'){
+    asmNote = 'Site assembly is included in this estimate range and will be billed via a separate Zip Kit Assembly LLC contract.';
+  } else if(QUOTE.assembly && QUOTE.assembly.mode === 'removed'){
+    asmNote = 'Site assembly is NOT included — customer takes curb delivery and arranges own site set.';
+  } else {
+    asmNote = 'Site assembly is optional and quoted separately by Zip Kit Assembly LLC. Ask your sales rep for the assembly range.';
+  }
+
+  var brandColor     = QUOTE.company === 'mvp' ? '#2f5d4a' : '#d85a30';
+  var brandColorDark = QUOTE.company === 'mvp' ? '#1f3f32' : '#993c1d';
+
+  // ---- The 1-page sheet ----
+  var html = ''
+    +'<div style="max-width:760px; margin:0 auto; font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif; color:#1c1c1a; padding:22px 24px;">'
+    // Header
+    +'<div style="display:flex; justify-content:space-between; align-items:flex-start; border-bottom:2px solid #1c1c1a; padding-bottom:12px;">'
+    +'<div><img src="'+co.logo+'" alt="'+co.name+'" style="height:'+(QUOTE.company==='mvp'?68:52)+'px;" onerror="this.style.display=\'none\';"><div style="font-size:11px; color:#5f5e5a; margin-top:6px; line-height:1.5;">'+co.addr+'<br>'+co.tel+' &nbsp;|&nbsp; '+co.email+'</div></div>'
+    +'<div style="text-align:right;"><div style="font-size:22px; font-weight:700; letter-spacing:-0.02em; color:'+brandColorDark+';">PRELIMINARY ESTIMATE</div><div style="font-size:11px; color:#5f5e5a; margin-top:4px; text-transform:uppercase; letter-spacing:0.05em;">For budgetary purposes only</div><div style="font-size:11px; color:#5f5e5a; margin-top:4px;">'+(num?'#'+num+' &middot; ':'')+date+'</div></div>'
+    +'</div>'
+    // Client + project info grid
+    +'<div style="display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-top:14px; font-size:12px;">'
+    +'<div style="background:#faf9f5; padding:10px 12px; border-radius:6px;">'
+    +'<div style="color:#888; text-transform:uppercase; font-size:10px; letter-spacing:0.05em; margin-bottom:3px;">Prepared for</div>'
+    +'<div style="font-size:14px; font-weight:600;">'+_escStr(buyer)+'</div>'
+    +(location ? '<div style="color:#5f5e5a; font-size:11px; margin-top:2px;">'+_escStr(location)+'</div>' : '')
+    +(email ? '<div style="color:#5f5e5a; font-size:11px;">'+_escStr(email)+'</div>' : '')
+    +(phone ? '<div style="color:#5f5e5a; font-size:11px;">'+_escStr(phone)+'</div>' : '')
+    +'</div>'
+    +'<div style="background:#faf9f5; padding:10px 12px; border-radius:6px;">'
+    +'<div style="color:#888; text-transform:uppercase; font-size:10px; letter-spacing:0.05em; margin-bottom:3px;">Project</div>'
+    +'<div style="font-size:14px; font-weight:600;">'+_escStr(project)+'</div>'
+    +'<div style="color:#5f5e5a; font-size:11px; margin-top:2px;">'+_escStr(QUOTE.model)+(QUOTE.units>1 ? ' × '+QUOTE.units : '')+'</div>'
+    +'<div style="color:#5f5e5a; font-size:11px;">Building type: '+_escStr(buildingType)+'</div>'
+    +'<div style="color:#5f5e5a; font-size:11px;">Manufactured at: <b>'+_escStr(co.mfrgCity)+'</b></div>'
+    +'</div>'
+    +'</div>'
+    // Big range price
+    +'<div style="text-align:center; margin-top:18px; padding:18px 14px; background:linear-gradient(135deg, '+brandColor+', '+brandColorDark+'); color:#fff; border-radius:8px;">'
+    +'<div style="font-size:11px; text-transform:uppercase; letter-spacing:0.12em; opacity:0.9;">Estimated project range</div>'
+    +'<div style="font-size:32px; font-weight:700; margin-top:6px; letter-spacing:-0.02em;">'+fmt(low)+' &nbsp;—&nbsp; '+fmt(high)+'</div>'
+    +'<div style="font-size:11px; margin-top:4px; opacity:0.85;">Ballpark for budgetary planning &middot; not a formal quote or contract</div>'
+    +'</div>'
+    // Scope included
+    +'<div style="margin-top:14px; border:1px solid #e2e0d8; border-radius:6px; padding:10px 14px;">'
+    +'<div style="font-size:11px; text-transform:uppercase; letter-spacing:0.05em; color:#888; margin-bottom:4px;">General scope included in this range</div>'
+    +scopeHTML
+    +'<div style="font-size:11px; color:#5f5e5a; margin-top:8px; padding-top:8px; border-top:1px solid #f0eee7;"><b>Assembly:</b> '+_escStr(asmNote)+'</div>'
+    +'</div>'
+    // Timeline + attachments (fillable)
+    +'<div style="display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-top:12px; font-size:12px;">'
+    +'<div style="border:1px solid #e2e0d8; border-radius:6px; padding:10px 12px;">'
+    +'<div style="color:#888; text-transform:uppercase; font-size:10px; letter-spacing:0.05em; margin-bottom:6px;">Ideal construction start</div>'
+    +'<div style="border-bottom:1px solid #1c1c1a; height:20px;"></div>'
+    +'<div style="font-size:10px; color:#888; margin-top:3px;">When the buyer plans to break ground</div>'
+    +'</div>'
+    +'<div style="border:1px solid #e2e0d8; border-radius:6px; padding:10px 12px;">'
+    +'<div style="color:#888; text-transform:uppercase; font-size:10px; letter-spacing:0.05em; margin-bottom:6px;">Attached building plans</div>'
+    +'<div style="font-size:11px; color:#5f5e5a;">Concept sketches, floor plans, or reference photos attached to this estimate: <b>_____</b> page(s)</div>'
+    +'</div>'
+    +'</div>'
+    // Disclaimers
+    +'<div style="margin-top:12px; background:#f5f3ec; border-left:3px solid #5f5e5a; border-radius:4px; padding:10px 14px; font-size:11px; color:#5f5e5a; line-height:1.55;">'
+    +'<div style="font-weight:700; text-transform:uppercase; letter-spacing:0.05em; color:#1c1c1a; margin-bottom:4px;">Important &mdash; this is a preliminary estimate</div>'
+    +'&bull; Ballpark range for budgetary purposes only. <b>Not a formal proposal, quote, or contract.</b><br>'
+    +'&bull; Actual pricing is determined after design finalization, engineering completion, and confirmed specifications (windows, doors, snow load, etc.).<br>'
+    +'&bull; Range assumes standard materials and options as described above. Change orders, upgrades, or custom scope may adjust final pricing outside this range.<br>'
+    +'&bull; Estimate is valid for thirty (30) days from the date above. Material pricing is subject to market fluctuation.<br>'
+    +'&bull; Design retainer and engineering fees are separate and paid up front. See your formal proposal for the full payment schedule.'
+    +'</div>'
+    // Next steps
+    +'<div style="margin-top:12px; background:#fff7e6; border-left:3px solid '+brandColor+'; border-radius:4px; padding:10px 14px; font-size:12px; color:#1c1c1a; line-height:1.55;">'
+    +'<div style="font-weight:700; text-transform:uppercase; letter-spacing:0.05em; color:'+brandColorDark+'; margin-bottom:4px;">Next steps</div>'
+    +'<b>1.</b> Finalize your design with our design team (complete the Design Intake form).<br>'
+    +'<b>2.</b> Confirm your specifications and selections (windows, doors, siding, roofing, etc.).<br>'
+    +'<b>3.</b> Prepare your site and financing.<br>'
+    +'<b>4.</b> Once the above is complete, we\'ll prepare your formal proposal with a firm price and payment schedule.'
+    +'</div>'
+    // Signature — move forward with design
+    +'<div style="margin-top:16px; border-top:2px solid #1c1c1a; padding-top:12px;">'
+    +'<div style="font-size:11px; color:#5f5e5a; margin-bottom:8px; line-height:1.5;">By signing below, I acknowledge that this is a preliminary estimate for budgetary purposes only, and I would like to move forward with the design phase.</div>'
+    +'<div style="display:grid; grid-template-columns:1.5fr 1fr; gap:16px; font-size:11px;">'
+    +'<div><div style="border-bottom:1px solid #1c1c1a; height:26px;"></div><div style="color:#888; margin-top:2px;">Buyer signature</div></div>'
+    +'<div><div style="border-bottom:1px solid #1c1c1a; height:26px;"></div><div style="color:#888; margin-top:2px;">Date</div></div>'
+    +'<div><div style="border-bottom:1px solid #1c1c1a; height:26px;"></div><div style="color:#888; margin-top:2px;">Printed name</div></div>'
+    +'<div></div>'
+    +'</div>'
+    +'</div>'
+    // Rep footer
+    +(rep ? '<div style="margin-top:14px; padding-top:8px; border-top:1px solid #e2e0d8; font-size:10.5px; color:#888;">Prepared by <b>'+_escStr(rep)+'</b>'+(repEmail?' &middot; '+_escStr(repEmail):'')+(repPhone?' &middot; '+_escStr(repPhone):'')+'</div>' : '')
+    +'</div>';
+
+  var w = window.open('', '_blank');
+  if(!w){ alert('Please allow pop-ups to generate the preliminary estimate.'); return; }
+  w.document.write('<!DOCTYPE html><html><head><meta charset="utf-8"><title>Preliminary Estimate — '+_escStr(buyer)+'</title></head><body style="margin:0; background:#fff;">'+html
+    +'<div style="text-align:center; padding:20px;" class="noprint"><button onclick="window.print()" style="padding:10px 28px; font-size:14px; background:#d85a30; color:#fff; border:none; border-radius:8px; cursor:pointer; font-weight:600;">Print / Save as PDF</button></div>'
+    +'<style>@page{size:letter;margin:0.5in;}@media print{.noprint{display:none;} body{-webkit-print-color-adjust:exact; print-color-adjust:exact;}}</style></body></html>');
+  w.document.close();
+}
+// tiny HTML-escape used only inside the preliminary estimate template
+function _escStr(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;'); }
+
 function generateProposal(){
   if(!QUOTE){ alert('Configure a quote above first — pick a model and any options.'); return; }
   applyPromoFlagFromUI();
@@ -2602,6 +2779,7 @@ function calcSteel(){
   <span id="zk-user-email" style="font-size:12px;color:#5f5e5a;margin-right:auto; padding-left:6px;"></span>
   <a href="index.html" style="height:34px;padding:0 14px;font-size:12px;border:1px solid #c9c7bd;background:#fff;border-radius:8px;cursor:pointer;font-family:inherit;color:#1c1c1a;display:inline-flex;align-items:center;text-decoration:none;" title="Back to Sales Portal">← Portal</a>
   <button onclick="zkShowMyQuotes()" style="height:34px;padding:0 14px;font-size:12px;border:1px solid #c9c7bd;background:#fff;border-radius:8px;cursor:pointer;font-family:inherit;color:#1c1c1a;" title="See your saved projects">My Projects</button>
+  <button onclick="generatePreliminaryEstimate()" style="height:34px;padding:0 14px;font-size:12px;border:1px solid #5f5e5a;background:#fff;color:#5f5e5a;border-radius:8px;cursor:pointer;font-family:inherit;font-weight:500;" title="1-page ballpark range-priced sheet for early buyer conversations (Sven's Preliminary Estimate)">Prelim Estimate ↗</button>
   <button onclick="generateProposal()" style="height:34px;padding:0 14px;font-size:12px;border:1px solid #2f5d4a;background:#2f5d4a;color:#fff;border-radius:8px;cursor:pointer;font-family:inherit;font-weight:600;" title="Open the customer-facing proposal PDF in a new tab">Generate Proposal ↗</button>
   <button onclick="zkSaveCurrentQuote()" style="height:34px;padding:0 14px;font-size:12px;border:1px solid #d85a30;background:#d85a30;color:#fff;border-radius:8px;cursor:pointer;font-family:inherit;font-weight:600;" title="Save this configuration as a project (safe to come back to later)">Save Project</button>
   <button onclick="zkSignOut()" style="height:34px;padding:0 14px;font-size:12px;border:1px solid #c9c7bd;background:#fff;border-radius:8px;cursor:pointer;font-family:inherit;color:#5f5e5a;">Sign out</button>
