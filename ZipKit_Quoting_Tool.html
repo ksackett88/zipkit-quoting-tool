@@ -973,7 +973,7 @@ var PAYMENT_INFO = {
       accountNumber: '501019237956',
       routingNumber: '324079555',
       bank: 'Mountain America Credit Union',
-      bankBranch: 'Royal Hunt Drive UT Branch',
+      bankBranch: 'Royal Hunte Drive UT Branch',
       bankAddress: ['1701 Royal Hunte Dr.', 'Cedar City, UT 84720'],
       businessAddress: ['3665 W 2700 S', 'Cedar City, UT 84720']
     }
@@ -1001,7 +1001,7 @@ var PAYMENT_INFO = {
       accountNumber: '501019237956',
       routingNumber: '324079555',
       bank: 'Mountain America Credit Union',
-      bankBranch: 'Royal Hunt Drive UT Branch',
+      bankBranch: 'Royal Hunte Drive UT Branch',
       bankAddress: ['1701 Royal Hunte Dr.', 'Cedar City, UT 84720'],
       businessAddress: ['3665 W 2700 S', 'Cedar City, UT 84720']
     }
@@ -1342,12 +1342,16 @@ var PROPOSAL_SCOPE = {
     notIncluded: ['Foundation','Crane to set panels (scheduled by GC)','Roof sheathing dry-in (ice & water shield + labor)','Siding — materials and installation','Finished roofing (metal, shingles, etc.)','Mechanical, electrical, plumbing — materials and labor','Insulation, drywall, and interior finishes','General Contractor fee / profit','Sales tax']
   },
   'Modular': {
-    included: ['Completed move-in-ready modular unit','Architectural design and full engineering','Standard window and exterior door package','Interior finishes — cabinets, countertops, flooring, fixtures','Mechanical, electrical, plumbing fully installed','Appliances per standard spec','Shipping within UT, ID, MT, and WY'],
-    notIncluded: ['Site prep and foundation','Crane set on site','Utility connections (water, sewer, power, gas)','Building permits and inspections','Sales tax']
+    included: ['Completed move-in-ready modular unit','Architectural design and full engineering','Standard window and exterior door package','Interior finishes — cabinets, countertops, flooring, fixtures','Mechanical, electrical, plumbing fully installed','Appliances per standard spec'],
+    notIncluded: ['Site prep and foundation','Crane set on site','Shipping (billed per mile — see pricing breakdown)','Utility connections (water, sewer, power, gas)','Building permits and inspections','Sales tax']
   },
   'Garage': {
     included: ['Pre-framed 2×6 panel shell','Design and engineering','Shipping to the job site'],
     notIncluded: ['Foundation','Garage doors','Windows and exterior entry doors','Roof sheathing dry-in (ice & water shield + labor)','Siding and finished roofing','Mechanical, electrical, plumbing','Interior finishes','Sales tax']
+  },
+  'Hangar': {
+    included: ['Pre-framed hangar shell — walls, roof panels, structural components','Zip Wall sheathing with taped seams','All structural posts, beams, headers, and metal hardware','Design and engineering (stamped)','Shipping to the job site'],
+    notIncluded: ['Foundation and slab','Crane to set panels (scheduled by GC)','Hangar door (bifold, sliding, or hydraulic — supplied separately)','Personnel windows and entry doors','Roof sheathing dry-in (ice & water shield + labor)','Siding and finished roofing','Insulation, drywall, and interior finishes','Mechanical, electrical, plumbing — materials and labor','Aviation-specific items (hangar door hardware, fire suppression, lighting)','Snow load engineering beyond model default','Sales tax']
   }
 };
 // Bullets to inject into scope.included WHEN the mode's dry-in toggle is on.
@@ -2042,10 +2046,14 @@ function calcModular(){
   var customTotal = customs.reduce(function(a,c){return a+c.amt;}, 0);
   customs.forEach(function(c){ rows += rowM(c.desc, c.amt, {sub: c.amt<0 ? 'credit' : 'add-on'}); });
 
-  // Site assembly toggle
-  var asm = zkAssembly('m', base, units);
-  if(asm.no)  rows += rowM('Assembly credit (curb delivery)', asm.total, {d:true, sub:'10% of base · customer arranges own site set'});
-  if(asm.add) rows += rowM('Site assembly',                   asm.total,           {sub:'10% of base · billed via separate Zip Kit Assembly LLC contract'});
+  // Site assembly toggle. Modular base bundles design + engineering + windows,
+  // so a flat 10% of base overcharges (or credits) for the physical set work.
+  // Apply the 10% to a shell-only fraction (~85% of base) so modular assembly
+  // pricing stays proportional to the equivalent shell-kit set work.
+  var MODULAR_SHELL_FRACTION = 0.85;
+  var asm = zkAssembly('m', base * MODULAR_SHELL_FRACTION, units);
+  if(asm.no)  rows += rowM('Assembly credit (curb delivery)', asm.total, {d:true, sub:'10% of shell portion (≈85% of base) · customer arranges own site set'});
+  if(asm.add) rows += rowM('Site assembly',                   asm.total,           {sub:'10% of shell portion (≈85% of base) · billed via separate Zip Kit Assembly LLC contract'});
 
   document.getElementById('m-lines').innerHTML=rows;
   document.getElementById('m-summary-model').textContent = m[0] + (units>1?(m[13]==='per-module'?' × '+units+' modules':' × '+units+' units'):'');
@@ -2636,7 +2644,7 @@ function calcSteel(){
 <div id="zk-toast" style="display:none;position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:10000;background:#1c1c1a;color:#fff;padding:12px 20px;border-radius:8px;font-size:13px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;box-shadow:0 6px 20px rgba(0,0,0,0.3);"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="lib/supabase.js?v=5"></script>
+<script src="lib/supabase.js?v=6"></script>
 <script>
 /* ============================================================================
    AUTH WIRING + SAVE/LOAD QUOTES
