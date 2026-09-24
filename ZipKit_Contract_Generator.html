@@ -867,6 +867,13 @@ function zkContractCSS(brand){
     +'.running-header{top:0.35in;border-bottom:1px solid #e2e0d8;padding-bottom:4px;display:flex;justify-content:space-between;}'
     +'.running-footer{bottom:0.35in;border-top:1px solid #e2e0d8;padding-top:4px;display:flex;justify-content:space-between;}'
     +'@media screen{.running-header,.running-footer{position:static;margin:16px auto;max-width:7.5in;}}'
+    // Print: hide the running header + footer entirely. Chrome renders
+    // position:fixed elements on every printed page but does not reliably
+    // reserve space for them, so they overlap content on pages 2+. The
+    // cover page + section titles already brand the document well; the
+    // repeating strip isn't essential and its overlap is visible on the
+    // printed PDF (see 2026-09 payment-schedule overlap report).
+    +'@media print{.running-header,.running-footer{display:none !important;}}'
     +'.noprint{display:block;}'
     +'@media print{.noprint{display:none;}body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}}'
     +'</style>';
