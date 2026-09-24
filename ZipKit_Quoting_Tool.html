@@ -1511,8 +1511,13 @@ function generatePreliminaryEstimate(){
   } else {
     scopeBullets = ['Panelized ' + QUOTE.kind.toLowerCase() + ' package per model spec'];
   }
-  var scopeHTML = '<ul style="margin:6px 0 0 20px;padding:0;font-size:12px;color:#1c1c1a;line-height:1.55;">' +
-    scopeBullets.map(function(t){ return '<li style="margin-bottom:3px;">' + t + '</li>'; }).join('') + '</ul>';
+  // Two-column bullet list — packs 8-10 bullets in the same vertical footprint
+  // as a single-column list of 5. If there are more than 12, cap the display and
+  // reference the full proposal for details.
+  var scopeCapped = scopeBullets.length > 12 ? scopeBullets.slice(0, 12) : scopeBullets;
+  var scopeHTML = '<ul style="margin:3px 0 0;padding:0 0 0 16px;font-size:10.5px;color:#1c1c1a;line-height:1.4;columns:2;column-gap:20px;">' +
+    scopeCapped.map(function(t){ return '<li style="margin-bottom:1px;break-inside:avoid;">' + t + '</li>'; }).join('') + '</ul>' +
+    (scopeBullets.length > 12 ? '<div style="font-size:10px;color:#888;margin-top:3px;font-style:italic;">+ additional scope details in the formal proposal</div>' : '');
 
   // ---- Assembly note (respects the current assembly radio) ----
   var asmNote = '';
@@ -1527,91 +1532,88 @@ function generatePreliminaryEstimate(){
   var brandColor     = QUOTE.company === 'mvp' ? '#2f5d4a' : '#d85a30';
   var brandColorDark = QUOTE.company === 'mvp' ? '#1f3f32' : '#993c1d';
 
-  // ---- The 1-page sheet ----
+  // ---- The 1-page sheet (compacted to fit letter portrait at 0.35" margins) ----
   var html = ''
-    +'<div style="max-width:760px; margin:0 auto; font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif; color:#1c1c1a; padding:22px 24px;">'
+    +'<div style="max-width:780px; margin:0 auto; font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif; color:#1c1c1a; padding:0;">'
     // Header
-    +'<div style="display:flex; justify-content:space-between; align-items:flex-start; border-bottom:2px solid #1c1c1a; padding-bottom:12px;">'
-    +'<div><img src="'+co.logo+'" alt="'+co.name+'" style="height:'+(QUOTE.company==='mvp'?68:52)+'px;" onerror="this.style.display=\'none\';"><div style="font-size:11px; color:#5f5e5a; margin-top:6px; line-height:1.5;">'+co.addr+'<br>'+co.tel+' &nbsp;|&nbsp; '+co.email+'</div></div>'
-    +'<div style="text-align:right;"><div style="font-size:22px; font-weight:700; letter-spacing:-0.02em; color:'+brandColorDark+';">PRELIMINARY ESTIMATE</div><div style="font-size:11px; color:#5f5e5a; margin-top:4px; text-transform:uppercase; letter-spacing:0.05em;">For budgetary purposes only</div><div style="font-size:11px; color:#5f5e5a; margin-top:4px;">'+(num?'#'+num+' &middot; ':'')+date+'</div></div>'
+    +'<div style="display:flex; justify-content:space-between; align-items:flex-start; border-bottom:2px solid #1c1c1a; padding-bottom:6px;">'
+    +'<div><img src="'+co.logo+'" alt="'+co.name+'" style="height:'+(QUOTE.company==='mvp'?46:36)+'px;" onerror="this.style.display=\'none\';"><div style="font-size:10px; color:#5f5e5a; margin-top:3px; line-height:1.4;">'+co.addr+' &middot; '+co.tel+' &middot; '+co.email+'</div></div>'
+    +'<div style="text-align:right;"><div style="font-size:19px; font-weight:700; letter-spacing:-0.02em; color:'+brandColorDark+';">PRELIMINARY ESTIMATE</div><div style="font-size:9.5px; color:#5f5e5a; margin-top:2px; text-transform:uppercase; letter-spacing:0.05em;">For budgetary purposes only</div><div style="font-size:10px; color:#5f5e5a; margin-top:2px;">'+(num?'#'+num+' &middot; ':'')+date+'</div></div>'
     +'</div>'
     // Client + project info grid
-    +'<div style="display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-top:14px; font-size:12px;">'
-    +'<div style="background:#faf9f5; padding:10px 12px; border-radius:6px;">'
-    +'<div style="color:#888; text-transform:uppercase; font-size:10px; letter-spacing:0.05em; margin-bottom:3px;">Prepared for</div>'
-    +'<div style="font-size:14px; font-weight:600;">'+_escStr(buyer)+'</div>'
-    +(location ? '<div style="color:#5f5e5a; font-size:11px; margin-top:2px;">'+_escStr(location)+'</div>' : '')
-    +(email ? '<div style="color:#5f5e5a; font-size:11px;">'+_escStr(email)+'</div>' : '')
-    +(phone ? '<div style="color:#5f5e5a; font-size:11px;">'+_escStr(phone)+'</div>' : '')
+    +'<div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:8px; font-size:11px;">'
+    +'<div style="background:#faf9f5; padding:6px 10px; border-radius:5px;">'
+    +'<div style="color:#888; text-transform:uppercase; font-size:9px; letter-spacing:0.05em;">Prepared for</div>'
+    +'<div style="font-size:13px; font-weight:600; line-height:1.2;">'+_escStr(buyer)+'</div>'
+    +(location ? '<div style="color:#5f5e5a; font-size:10.5px;">'+_escStr(location)+'</div>' : '')
+    +(email ? '<div style="color:#5f5e5a; font-size:10.5px;">'+_escStr(email)+'</div>' : '')
+    +(phone ? '<div style="color:#5f5e5a; font-size:10.5px;">'+_escStr(phone)+'</div>' : '')
     +'</div>'
-    +'<div style="background:#faf9f5; padding:10px 12px; border-radius:6px;">'
-    +'<div style="color:#888; text-transform:uppercase; font-size:10px; letter-spacing:0.05em; margin-bottom:3px;">Project</div>'
-    +'<div style="font-size:14px; font-weight:600;">'+_escStr(project)+'</div>'
-    +'<div style="color:#5f5e5a; font-size:11px; margin-top:2px;">'+_escStr(QUOTE.model)+(QUOTE.units>1 ? ' × '+QUOTE.units : '')+'</div>'
-    +'<div style="color:#5f5e5a; font-size:11px;">Building type: '+_escStr(buildingType)+'</div>'
-    +'<div style="color:#5f5e5a; font-size:11px;">Manufactured at: <b>'+_escStr(co.mfrgCity)+'</b></div>'
+    +'<div style="background:#faf9f5; padding:6px 10px; border-radius:5px;">'
+    +'<div style="color:#888; text-transform:uppercase; font-size:9px; letter-spacing:0.05em;">Project</div>'
+    +'<div style="font-size:13px; font-weight:600; line-height:1.2;">'+_escStr(project)+'</div>'
+    +'<div style="color:#5f5e5a; font-size:10.5px;">'+_escStr(QUOTE.model)+(QUOTE.units>1 ? ' × '+QUOTE.units : '')+' &middot; '+_escStr(buildingType)+'</div>'
+    +'<div style="color:#5f5e5a; font-size:10.5px;">Manufactured at <b>'+_escStr(co.mfrgCity)+'</b></div>'
     +'</div>'
     +'</div>'
     // Big range price
-    +'<div style="text-align:center; margin-top:18px; padding:18px 14px; background:linear-gradient(135deg, '+brandColor+', '+brandColorDark+'); color:#fff; border-radius:8px;">'
-    +'<div style="font-size:11px; text-transform:uppercase; letter-spacing:0.12em; opacity:0.9;">Estimated project range</div>'
-    +'<div style="font-size:32px; font-weight:700; margin-top:6px; letter-spacing:-0.02em;">'+fmt(low)+' &nbsp;—&nbsp; '+fmt(high)+'</div>'
-    +'<div style="font-size:11px; margin-top:4px; opacity:0.85;">Ballpark for budgetary planning &middot; not a formal quote or contract</div>'
+    +'<div style="text-align:center; margin-top:9px; padding:10px 14px; background:linear-gradient(135deg, '+brandColor+', '+brandColorDark+'); color:#fff; border-radius:6px;">'
+    +'<div style="font-size:10px; text-transform:uppercase; letter-spacing:0.12em; opacity:0.9;">Estimated project range</div>'
+    +'<div style="font-size:26px; font-weight:700; margin-top:3px; letter-spacing:-0.02em; line-height:1.15;">'+fmt(low)+' &nbsp;&mdash;&nbsp; '+fmt(high)+'</div>'
+    +'<div style="font-size:10px; margin-top:2px; opacity:0.85;">Ballpark for budgetary planning &middot; not a formal quote or contract</div>'
     +'</div>'
     // Scope included
-    +'<div style="margin-top:14px; border:1px solid #e2e0d8; border-radius:6px; padding:10px 14px;">'
-    +'<div style="font-size:11px; text-transform:uppercase; letter-spacing:0.05em; color:#888; margin-bottom:4px;">General scope included in this range</div>'
+    +'<div style="margin-top:8px; border:1px solid #e2e0d8; border-radius:5px; padding:6px 10px;">'
+    +'<div style="font-size:10px; text-transform:uppercase; letter-spacing:0.05em; color:#888;">General scope included in this range</div>'
     +scopeHTML
-    +'<div style="font-size:11px; color:#5f5e5a; margin-top:8px; padding-top:8px; border-top:1px solid #f0eee7;"><b>Assembly:</b> '+_escStr(asmNote)+'</div>'
+    +'<div style="font-size:10px; color:#5f5e5a; margin-top:5px; padding-top:4px; border-top:1px solid #f0eee7; line-height:1.35;"><b>Assembly:</b> '+_escStr(asmNote)+'</div>'
     +'</div>'
-    // Timeline + attachments (fillable)
-    +'<div style="display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-top:12px; font-size:12px;">'
-    +'<div style="border:1px solid #e2e0d8; border-radius:6px; padding:10px 12px;">'
-    +'<div style="color:#888; text-transform:uppercase; font-size:10px; letter-spacing:0.05em; margin-bottom:6px;">Ideal construction start</div>'
-    +'<div style="border-bottom:1px solid #1c1c1a; height:20px;"></div>'
-    +'<div style="font-size:10px; color:#888; margin-top:3px;">When the buyer plans to break ground</div>'
+    // Timeline + attachments (fillable) — SIDE-BY-SIDE COMPACT
+    +'<div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:6px; font-size:11px;">'
+    +'<div style="border:1px solid #e2e0d8; border-radius:5px; padding:6px 10px;">'
+    +'<div style="color:#888; text-transform:uppercase; font-size:9px; letter-spacing:0.05em;">Ideal construction start (buyer fills)</div>'
+    +'<div style="border-bottom:1px solid #1c1c1a; height:16px;"></div>'
     +'</div>'
-    +'<div style="border:1px solid #e2e0d8; border-radius:6px; padding:10px 12px;">'
-    +'<div style="color:#888; text-transform:uppercase; font-size:10px; letter-spacing:0.05em; margin-bottom:6px;">Attached building plans</div>'
-    +'<div style="font-size:11px; color:#5f5e5a;">Concept sketches, floor plans, or reference photos attached to this estimate: <b>_____</b> page(s)</div>'
+    +'<div style="border:1px solid #e2e0d8; border-radius:5px; padding:6px 10px;">'
+    +'<div style="color:#888; text-transform:uppercase; font-size:9px; letter-spacing:0.05em;">Attached plans / sketches</div>'
+    +'<div style="font-size:10.5px; color:#5f5e5a; margin-top:2px;"><b>_____</b> page(s) of concept sketches, floor plans, or reference photos attached</div>'
     +'</div>'
     +'</div>'
-    // Disclaimers
-    +'<div style="margin-top:12px; background:#f5f3ec; border-left:3px solid #5f5e5a; border-radius:4px; padding:10px 14px; font-size:11px; color:#5f5e5a; line-height:1.55;">'
-    +'<div style="font-weight:700; text-transform:uppercase; letter-spacing:0.05em; color:#1c1c1a; margin-bottom:4px;">Important &mdash; this is a preliminary estimate</div>'
-    +'&bull; Ballpark range for budgetary purposes only. <b>Not a formal proposal, quote, or contract.</b><br>'
-    +'&bull; Actual pricing is determined after design finalization, engineering completion, and confirmed specifications (windows, doors, snow load, etc.).<br>'
-    +'&bull; Range assumes standard materials and options as described above. Change orders, upgrades, or custom scope may adjust final pricing outside this range.<br>'
-    +'&bull; Estimate is valid for thirty (30) days from the date above. Material pricing is subject to market fluctuation.<br>'
-    +'&bull; Design retainer and engineering fees are separate and paid up front. See your formal proposal for the full payment schedule.'
+    // Disclaimers — compact, 4-bullet
+    +'<div style="margin-top:6px; background:#f5f3ec; border-left:3px solid #5f5e5a; border-radius:3px; padding:6px 10px; font-size:9.5px; color:#5f5e5a; line-height:1.35;">'
+    +'<b style="text-transform:uppercase; letter-spacing:0.05em; color:#1c1c1a;">Important &mdash; this is a preliminary estimate.</b> '
+    +'Ballpark range for budgetary purposes only &mdash; <b>not a formal proposal, quote, or contract</b>. '
+    +'Actual pricing is set after design finalization, engineering, and confirmed specifications (windows, doors, snow load, etc.). '
+    +'Change orders, upgrades, or custom scope may adjust final pricing outside this range. '
+    +'Valid for 30 days from the date above; material pricing is subject to market fluctuation. '
+    +'Design retainer and engineering fees are separate and paid up front.'
     +'</div>'
-    // Next steps
-    +'<div style="margin-top:12px; background:#fff7e6; border-left:3px solid '+brandColor+'; border-radius:4px; padding:10px 14px; font-size:12px; color:#1c1c1a; line-height:1.55;">'
-    +'<div style="font-weight:700; text-transform:uppercase; letter-spacing:0.05em; color:'+brandColorDark+'; margin-bottom:4px;">Next steps</div>'
-    +'<b>1.</b> Finalize your design with our design team (complete the Design Intake form).<br>'
-    +'<b>2.</b> Confirm your specifications and selections (windows, doors, siding, roofing, etc.).<br>'
-    +'<b>3.</b> Prepare your site and financing.<br>'
-    +'<b>4.</b> Once the above is complete, we\'ll prepare your formal proposal with a firm price and payment schedule.'
+    // Next steps — compact horizontal
+    +'<div style="margin-top:6px; background:#fff7e6; border-left:3px solid '+brandColor+'; border-radius:3px; padding:6px 10px; font-size:10.5px; color:#1c1c1a; line-height:1.4;">'
+    +'<b style="text-transform:uppercase; letter-spacing:0.05em; color:'+brandColorDark+';">Next steps &nbsp;</b>'
+    +'<b>1.</b> Finalize your design (Design Intake). &nbsp; '
+    +'<b>2.</b> Confirm specs and selections. &nbsp; '
+    +'<b>3.</b> Prepare site and financing. &nbsp; '
+    +'<b>4.</b> Receive your formal proposal with a firm price and payment schedule.'
     +'</div>'
     // Signature — move forward with design
-    +'<div style="margin-top:16px; border-top:2px solid #1c1c1a; padding-top:12px;">'
-    +'<div style="font-size:11px; color:#5f5e5a; margin-bottom:8px; line-height:1.5;">By signing below, I acknowledge that this is a preliminary estimate for budgetary purposes only, and I would like to move forward with the design phase.</div>'
-    +'<div style="display:grid; grid-template-columns:1.5fr 1fr; gap:16px; font-size:11px;">'
-    +'<div><div style="border-bottom:1px solid #1c1c1a; height:26px;"></div><div style="color:#888; margin-top:2px;">Buyer signature</div></div>'
-    +'<div><div style="border-bottom:1px solid #1c1c1a; height:26px;"></div><div style="color:#888; margin-top:2px;">Date</div></div>'
-    +'<div><div style="border-bottom:1px solid #1c1c1a; height:26px;"></div><div style="color:#888; margin-top:2px;">Printed name</div></div>'
-    +'<div></div>'
+    +'<div style="margin-top:8px; border-top:2px solid #1c1c1a; padding-top:6px;">'
+    +'<div style="font-size:10px; color:#5f5e5a; margin-bottom:6px; line-height:1.4;">By signing below, I acknowledge that this is a preliminary estimate for budgetary purposes only, and I would like to move forward with the design phase.</div>'
+    +'<div style="display:grid; grid-template-columns:1.5fr 1fr 1fr; gap:12px; font-size:10px;">'
+    +'<div><div style="border-bottom:1px solid #1c1c1a; height:20px;"></div><div style="color:#888;">Buyer signature</div></div>'
+    +'<div><div style="border-bottom:1px solid #1c1c1a; height:20px;"></div><div style="color:#888;">Printed name</div></div>'
+    +'<div><div style="border-bottom:1px solid #1c1c1a; height:20px;"></div><div style="color:#888;">Date</div></div>'
     +'</div>'
     +'</div>'
     // Rep footer
-    +(rep ? '<div style="margin-top:14px; padding-top:8px; border-top:1px solid #e2e0d8; font-size:10.5px; color:#888;">Prepared by <b>'+_escStr(rep)+'</b>'+(repEmail?' &middot; '+_escStr(repEmail):'')+(repPhone?' &middot; '+_escStr(repPhone):'')+'</div>' : '')
+    +(rep ? '<div style="margin-top:6px; padding-top:4px; border-top:1px solid #e2e0d8; font-size:9px; color:#888; text-align:center;">Prepared by <b>'+_escStr(rep)+'</b>'+(repEmail?' &middot; '+_escStr(repEmail):'')+(repPhone?' &middot; '+_escStr(repPhone):'')+'</div>' : '')
     +'</div>';
 
   var w = window.open('', '_blank');
   if(!w){ alert('Please allow pop-ups to generate the preliminary estimate.'); return; }
   w.document.write('<!DOCTYPE html><html><head><meta charset="utf-8"><title>Preliminary Estimate — '+_escStr(buyer)+'</title></head><body style="margin:0; background:#fff;">'+html
     +'<div style="text-align:center; padding:20px;" class="noprint"><button onclick="window.print()" style="padding:10px 28px; font-size:14px; background:#d85a30; color:#fff; border:none; border-radius:8px; cursor:pointer; font-weight:600;">Print / Save as PDF</button></div>'
-    +'<style>@page{size:letter;margin:0.5in;}@media print{.noprint{display:none;} body{-webkit-print-color-adjust:exact; print-color-adjust:exact;}}</style></body></html>');
+    +'<style>@page{size:letter;margin:0.35in;}@media print{.noprint{display:none;} body{-webkit-print-color-adjust:exact; print-color-adjust:exact;}}</style></body></html>');
   w.document.close();
 }
 // tiny HTML-escape used only inside the preliminary estimate template
