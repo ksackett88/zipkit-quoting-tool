@@ -1020,22 +1020,28 @@ function generateContract(){
     +coverSumRows
     +'<tr><td style="padding:6px 8px;border:1px solid #ccc;font-weight:700;">Contract Total</td><td style="padding:6px 8px;border:1px solid #ccc;text-align:right;font-weight:700;">'+fmt(c.contract)+'</td><td style="padding:6px 8px;border:1px solid #ccc;"></td></tr>'
     +'</table>'
-    // Payment schedule
-    +'<table style="width:100%;border-collapse:collapse;margin-top:14px;font-size:12px;">'
-    +'<tr><td style="padding:5px 8px;border:1px solid #ccc;background:#f5f3ec;font-weight:600;" colspan="3">Estimated Timing &amp; Payment Schedule</td></tr>'
+    // Payment schedule — wrapped so the whole block (header + 4 payment rows +
+    // summary note + short sig line + bridge) stays intact on one page. Without
+    // page-break-inside:avoid, browsers were splitting the table and leaving a
+    // huge whitespace gap under the schedule header (rendered on page N, rows
+    // pushed to page N+1).
+    +'<div style="page-break-inside:avoid;break-inside:avoid;">'
+    +'<table style="width:100%;border-collapse:collapse;margin-top:14px;font-size:11.5px;">'
+    +'<tr><td style="padding:4px 8px;border:1px solid #ccc;background:#f5f3ec;font-weight:600;" colspan="3">Estimated Timing &amp; Payment Schedule</td></tr>'
     +(c.engPaid
-      ? '<tr><td style="padding:6px 8px;border:1px solid #ccc;">Payment 1 (engineering)</td><td style="padding:6px 8px;border:1px solid #ccc;text-align:right;color:#888;">PAID</td><td style="padding:6px 8px;border:1px solid #ccc;font-size:11px;">Already received · was '+fmt(c.p1Base||c.p1)+'</td></tr>'
-      : '<tr><td style="padding:6px 8px;border:1px solid #ccc;">Payment 1 (engineering)</td><td style="padding:6px 8px;border:1px solid #ccc;text-align:right;">'+fmt(c.p1)+'</td><td style="padding:6px 8px;border:1px solid #ccc;font-size:11px;">Full submit-ready, engineer-stamped plans, delivered within 4 weeks of execution. Secures the project on the production schedule.'+(c.promoCredit>0?' · '+fmt(c.p1Base)+' less '+fmt(c.promoCredit)+' design-retainer promo credit':'')+'</td></tr>')
-    +'<tr><td style="padding:6px 8px;border:1px solid #ccc;">Payment 2 (45%)</td><td style="padding:6px 8px;border:1px solid #ccc;text-align:right;">'+fmt(c.p2)+'</td><td style="padding:6px 8px;border:1px solid #ccc;font-size:11px;">45% of remainder after engineering. Covers long-lead-time materials (lumber, windows, etc.) and begins production.</td></tr>'
-    +'<tr><td style="padding:6px 8px;border:1px solid #ccc;">Payment 3 (45%)</td><td style="padding:6px 8px;border:1px solid #ccc;text-align:right;">'+fmt(c.p3)+'</td><td style="padding:6px 8px;border:1px solid #ccc;font-size:11px;">45% of remainder. Due before the kit ships, unless agreed otherwise in writing.</td></tr>'
-    +'<tr><td style="padding:6px 8px;border:1px solid #ccc;">Final Payment (10%)</td><td style="padding:6px 8px;border:1px solid #ccc;text-align:right;">'+fmt(c.p4)+'</td><td style="padding:6px 8px;border:1px solid #ccc;font-size:11px;">10% of remainder. Due when framing and Zip Kit Homes scope of work is completed onsite.</td></tr>'
+      ? '<tr><td style="padding:4px 8px;border:1px solid #ccc;">Payment 1 (engineering)</td><td style="padding:4px 8px;border:1px solid #ccc;text-align:right;color:#888;">PAID</td><td style="padding:4px 8px;border:1px solid #ccc;font-size:10.5px;">Already received · was '+fmt(c.p1Base||c.p1)+'</td></tr>'
+      : '<tr><td style="padding:4px 8px;border:1px solid #ccc;">Payment 1 (engineering)</td><td style="padding:4px 8px;border:1px solid #ccc;text-align:right;">'+fmt(c.p1)+'</td><td style="padding:4px 8px;border:1px solid #ccc;font-size:10.5px;">Full submit-ready, engineer-stamped plans, delivered within 4 weeks of execution. Secures the project on the production schedule.'+(c.promoCredit>0?' · '+fmt(c.p1Base)+' less '+fmt(c.promoCredit)+' design-retainer promo credit':'')+'</td></tr>')
+    +'<tr><td style="padding:4px 8px;border:1px solid #ccc;">Payment 2 (45%)</td><td style="padding:4px 8px;border:1px solid #ccc;text-align:right;">'+fmt(c.p2)+'</td><td style="padding:4px 8px;border:1px solid #ccc;font-size:10.5px;">45% of remainder after engineering. Covers long-lead-time materials (lumber, windows, etc.) and begins production.</td></tr>'
+    +'<tr><td style="padding:4px 8px;border:1px solid #ccc;">Payment 3 (45%)</td><td style="padding:4px 8px;border:1px solid #ccc;text-align:right;">'+fmt(c.p3)+'</td><td style="padding:4px 8px;border:1px solid #ccc;font-size:10.5px;">45% of remainder. Due before the kit ships, unless agreed otherwise in writing.</td></tr>'
+    +'<tr><td style="padding:4px 8px;border:1px solid #ccc;">Final Payment (10%)</td><td style="padding:4px 8px;border:1px solid #ccc;text-align:right;">'+fmt(c.p4)+'</td><td style="padding:4px 8px;border:1px solid #ccc;font-size:10.5px;">10% of remainder. Due when framing and Zip Kit Homes scope of work is completed onsite.</td></tr>'
     +'</table>'
-    +'<div style="font-size:11px;color:#555;margin-top:6px;font-style:italic;">Design retainer is separate and paid up front. Contract is billed engineering first, then 45% / 45% / 10% of the remainder. Sums to the contract total.</div>'
-    +'<div style="margin-top:36px;display:flex;justify-content:space-between;font-size:12px;">'
+    +'<div style="font-size:10.5px;color:#555;margin-top:5px;font-style:italic;">Design retainer is separate and paid up front. Contract is billed engineering first, then 45% / 45% / 10% of the remainder. Sums to the contract total.</div>'
+    +'<div style="margin-top:24px;display:flex;justify-content:space-between;font-size:11.5px;">'
     +'<div style="width:45%;">Seller: ______________________ Date: __________</div>'
     +'<div style="width:45%;">Buyer: ______________________ Date: __________</div>'
     +'</div>'
-    +'<div style="font-size:11px;color:#888;margin-top:14px;font-style:italic;text-align:center;">The signatures above acknowledge the cost summary. The full binding purchase agreement follows on the next page and must also be signed.</div>'
+    +'<div style="font-size:10.5px;color:#888;margin-top:10px;font-style:italic;text-align:center;">The signatures above acknowledge the cost summary. The full binding purchase agreement follows on the next page and must also be signed.</div>'
+    +'</div>'
 
     // ===== PAGE 3+: v8 PURCHASE AGREEMENT =====
     +'<div class="pagebreak"></div>'
@@ -2542,21 +2548,26 @@ function generateCustomContract(){
     +coverSumRows
     +'<tr><td style="padding:6px 8px;border:1px solid #ccc;font-weight:700;">Contract Total</td><td style="padding:6px 8px;border:1px solid #ccc;text-align:right;font-weight:700;">'+fmt(c.contract)+'</td><td style="padding:6px 8px;border:1px solid #ccc;"></td></tr>'
     +'</table>'
-    +'<table style="width:100%;border-collapse:collapse;margin-top:14px;font-size:12px;">'
-    +'<tr><td style="padding:5px 8px;border:1px solid #ccc;background:#f5f3ec;font-weight:600;" colspan="3">Estimated Timing &amp; Payment Schedule</td></tr>'
+    // Payment schedule + short sig + bridge line wrapped in a single
+    // break-inside:avoid block so nothing gets cut between the schedule
+    // header and the payment rows on print.
+    +'<div style="page-break-inside:avoid;break-inside:avoid;">'
+    +'<table style="width:100%;border-collapse:collapse;margin-top:14px;font-size:11.5px;">'
+    +'<tr><td style="padding:4px 8px;border:1px solid #ccc;background:#f5f3ec;font-weight:600;" colspan="3">Estimated Timing &amp; Payment Schedule</td></tr>'
     +(c.engPaid
-      ? '<tr><td style="padding:6px 8px;border:1px solid #ccc;">Payment 1 (engineering)</td><td style="padding:6px 8px;border:1px solid #ccc;text-align:right;color:#888;">PAID</td><td style="padding:6px 8px;border:1px solid #ccc;font-size:11px;">Already received · was '+fmt(c.p1Base||c.p1)+'</td></tr>'
-      : '<tr><td style="padding:6px 8px;border:1px solid #ccc;">Payment 1 (engineering)</td><td style="padding:6px 8px;border:1px solid #ccc;text-align:right;">'+fmt(c.p1)+'</td><td style="padding:6px 8px;border:1px solid #ccc;font-size:11px;">Full submit-ready, engineer-stamped plans, delivered within 4 weeks of execution. Secures the project on the production schedule.'+(c.promoCredit>0?' · '+fmt(c.p1Base)+' less '+fmt(c.promoCredit)+' design-retainer promo credit':'')+'</td></tr>')
-    +'<tr><td style="padding:6px 8px;border:1px solid #ccc;">Payment 2 (45%)</td><td style="padding:6px 8px;border:1px solid #ccc;text-align:right;">'+fmt(c.p2)+'</td><td style="padding:6px 8px;border:1px solid #ccc;font-size:11px;">45% of the contract remainder. Long-lead materials, begins production.</td></tr>'
-    +'<tr><td style="padding:6px 8px;border:1px solid #ccc;">Payment 3 (45%)</td><td style="padding:6px 8px;border:1px solid #ccc;text-align:right;">'+fmt(c.p3)+'</td><td style="padding:6px 8px;border:1px solid #ccc;font-size:11px;">45% of the contract remainder. Due before the home ships.</td></tr>'
-    +'<tr><td style="padding:6px 8px;border:1px solid #ccc;">Final Payment (10%)</td><td style="padding:6px 8px;border:1px solid #ccc;text-align:right;">'+fmt(c.p4)+'</td><td style="padding:6px 8px;border:1px solid #ccc;font-size:11px;">10% of the contract remainder. Due when Zip Kit Homes scope of work is completed on-site.</td></tr>'
+      ? '<tr><td style="padding:4px 8px;border:1px solid #ccc;">Payment 1 (engineering)</td><td style="padding:4px 8px;border:1px solid #ccc;text-align:right;color:#888;">PAID</td><td style="padding:4px 8px;border:1px solid #ccc;font-size:10.5px;">Already received · was '+fmt(c.p1Base||c.p1)+'</td></tr>'
+      : '<tr><td style="padding:4px 8px;border:1px solid #ccc;">Payment 1 (engineering)</td><td style="padding:4px 8px;border:1px solid #ccc;text-align:right;">'+fmt(c.p1)+'</td><td style="padding:4px 8px;border:1px solid #ccc;font-size:10.5px;">Full submit-ready, engineer-stamped plans, delivered within 4 weeks of execution. Secures the project on the production schedule.'+(c.promoCredit>0?' · '+fmt(c.p1Base)+' less '+fmt(c.promoCredit)+' design-retainer promo credit':'')+'</td></tr>')
+    +'<tr><td style="padding:4px 8px;border:1px solid #ccc;">Payment 2 (45%)</td><td style="padding:4px 8px;border:1px solid #ccc;text-align:right;">'+fmt(c.p2)+'</td><td style="padding:4px 8px;border:1px solid #ccc;font-size:10.5px;">45% of the contract remainder. Long-lead materials, begins production.</td></tr>'
+    +'<tr><td style="padding:4px 8px;border:1px solid #ccc;">Payment 3 (45%)</td><td style="padding:4px 8px;border:1px solid #ccc;text-align:right;">'+fmt(c.p3)+'</td><td style="padding:4px 8px;border:1px solid #ccc;font-size:10.5px;">45% of the contract remainder. Due before the home ships.</td></tr>'
+    +'<tr><td style="padding:4px 8px;border:1px solid #ccc;">Final Payment (10%)</td><td style="padding:4px 8px;border:1px solid #ccc;text-align:right;">'+fmt(c.p4)+'</td><td style="padding:4px 8px;border:1px solid #ccc;font-size:10.5px;">10% of the contract remainder. Due when Zip Kit Homes scope of work is completed on-site.</td></tr>'
     +'</table>'
-    +'<div style="font-size:11px;color:#555;margin-top:6px;font-style:italic;">Design retainer ('+fmt(c.designAmt)+') is separate and paid up front. Contract is billed engineering first, then 45% / 45% / 10% of the remainder. Sums to the contract total.</div>'
-    +'<div style="margin-top:36px;display:flex;justify-content:space-between;font-size:12px;">'
+    +'<div style="font-size:10.5px;color:#555;margin-top:5px;font-style:italic;">Design retainer ('+fmt(c.designAmt)+') is separate and paid up front. Contract is billed engineering first, then 45% / 45% / 10% of the remainder. Sums to the contract total.</div>'
+    +'<div style="margin-top:24px;display:flex;justify-content:space-between;font-size:11.5px;">'
     +'<div style="width:45%;">Seller: ______________________ Date: __________</div>'
     +'<div style="width:45%;">Buyer: ______________________ Date: __________</div>'
     +'</div>'
-    +'<div style="font-size:11px;color:#888;margin-top:14px;font-style:italic;text-align:center;">The signatures above acknowledge the cost summary. The full binding purchase agreement follows on the next page and must also be signed.</div>'
+    +'<div style="font-size:10.5px;color:#888;margin-top:10px;font-style:italic;text-align:center;">The signatures above acknowledge the cost summary. The full binding purchase agreement follows on the next page and must also be signed.</div>'
+    +'</div>''
 
     // ===== PAGE 3+: v8 PURCHASE AGREEMENT (Custom Home) =====
     +'<div class="pagebreak"></div>'
