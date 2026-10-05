@@ -1295,6 +1295,10 @@ var MODEL_PHOTO_MAP = {
   'Apache':'apache4','Birch':'birch1','Bluebell':'bluebell2','Bozeman':'bozeman1',
   'Cedar':'cedar1','Clyde':'clyde1','Dakota':'dakota1','Meadow':'meadow.1',
   'Moab':'moab1','Sunstone':'sunstone1','Timberline':'timberline1','Willow':'willow3',
+  // Gallatin series — drop hero shots into photos/gallatin.jpg and
+  // photos/gallatin-ii.jpg (the fallback-stem loop in modelPhotoUrls will try
+  // other variants too: gallatin.png, gallatinii, gallatin_ii, etc.).
+  'Gallatin':'gallatin', 'Gallatin II':'gallatin-ii',
   '1-Car':'1car-garage','2-Car':'2car-garage','3-Car':'3car-garage','4-Car':'4car-garage',
   'Custom Home':'customhome',
   'Steel Frame':'steelhouse',
@@ -1900,6 +1904,14 @@ var MODULAR = [
   ["Teton","Zip Kit Homes","340",119600,1500,4965,15,22,"35 to 100 PSF","up to 250 PSF","Cascade WinPro Vinyl — Clay",[],[["Cascade Black ext / White int",4450],["Andersen 100 Series",9750]]],
   ["XL 470","Zip Kit Homes","470",126500,3500,7965,15,22,"35 to 100 PSF","up to 250 PSF","Cascade WinPro Vinyl — Clay",[["Additional Loft (+120 sqft)",16235]],[["Cascade Black ext / White int",4450],["Andersen 100 Series",9750]]],
   ["Yellowstone","Zip Kit Homes","550",176900,4675,9965,15,22,"35 to 100 PSF","up to 250 PSF","Cascade WinPro Vinyl — Clay",[["Rooftop Deck w/ Spiral Staircase",21865]],[["Cascade Black ext / White int",4450],["Andersen 100 Series",9750]]],
+  // Gallatin series — Complete Modular (Pkg 4) only for now. The brochures
+  // list four build packages (Panelized Kit / Framed Module / Modular Shell /
+  // Complete Modular); other tiers will be added when the tiering UI lands.
+  // Module dims: Gallatin 14'×35'6" · Gallatin II 14'×44'. Both ship Cedar
+  // City FOB; shipping and snow upgrade pricing follow the existing ZKH
+  // modular pattern (Teton/XL 470/Yellowstone).
+  ["Gallatin","Zip Kit Homes","497",123790,2500,6750,15,22,"35 to 100 PSF","up to 250 PSF","Cascade WinPro Vinyl — Clay",[],[["Cascade Black ext / White int",4450],["Andersen 100 Series",9750]]],
+  ["Gallatin II","Zip Kit Homes","620",153740,3200,8450,15,22,"35 to 100 PSF","up to 250 PSF","Cascade WinPro Vinyl — Clay",[],[["Cascade Black ext / White int",4450],["Andersen 100 Series",9750]]],
   ["Sierra","Mountain Valley Prefab","806",195000,4500,9965,15,22,"35 to 100 PSF","up to 250 PSF","Andersen 100 Series",[],[]],
   ["Ridgeline","Mountain Valley Prefab","840",259500,4500,9965,10,15,"40 to 100 PSF","80 to 250+ PSF","Andersen 100 Series",[],[]],
   ["Dakota","Mountain Valley Prefab","840 / module",296900,4500,9965,10,15,"40 to 100 PSF","80 to 250+ PSF","Andersen 100 Series",[],[],"per-module"]
