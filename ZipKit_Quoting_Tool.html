@@ -1330,7 +1330,7 @@ function modelPhotoUrls(modelName){
   stems.forEach(function(s){
     if(!s || seenStem[s]) return;
     seenStem[s]=true;
-    ['.png','.jpg'].forEach(function(ext){
+    ['.webp','.png','.jpg'].forEach(function(ext){
       var u=base+encodeURIComponent(s)+ext;
       if(!seenUrl[u]){ seenUrl[u]=true; urls.push(u); }
     });
