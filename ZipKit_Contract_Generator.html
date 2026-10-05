@@ -2038,7 +2038,7 @@ function calcModular(){
     modSumEl.style.color = modSched.isValid ? '#0f6e56' : (modSched.stages.length===0 ? '#888' : '#993c1d');
   }
 
-  var p1, p2, p3, p4, customStages = null;
+  var p1, p2, p3, p4, p5, customStages = null;
   var prows = '';
   function prow(l,a,sub){var s=sub?'<div class="sub">'+sub+'</div>':''; return '<tr><td class="label">'+l+s+'</td><td class="amt">'+fmt(a)+'</td></tr>';}
 
@@ -2051,31 +2051,44 @@ function calcModular(){
       return { name: s.name, pct: s.pct, desc: s.desc, amount: amt };
     });
     customStages.forEach(function(s){ prows += prow(s.name + ' ('+(Math.round(s.pct*100)/100)+'%)', s.amount, s.desc); });
+    // Positional mapping for the first five stages (empty slots stay 0).
+    // The portal + stashed payment_schedule read all five directly.
     p1 = customStages[0] ? customStages[0].amount : 0;
     p2 = customStages[1] ? customStages[1].amount : 0;
     p3 = customStages[2] ? customStages[2].amount : 0;
-    p4 = customStages[customStages.length-1] ? customStages[customStages.length-1].amount : 0;
+    p4 = customStages[3] ? customStages[3].amount : 0;
+    p5 = customStages[4] ? customStages[4].amount : 0;
   } else {
-    p1 = Math.round(total*0.30); p2 = Math.round(total*0.30); p3 = Math.round(total*0.30);
-    p4 = total - p1 - p2 - p3;
-    prows += prow('Payment 1 (30%)', p1, 'upon signing contract · deposit to order windows, doors, trusses & long lead time items');
-    prows += prow('Payment 2 (30%)', p2, 'when framing is completed on all units');
-    prows += prow('Payment 3 (30%)', p3, 'when exterior siding & interior painting are completed');
-    prows += prow('Final Payment (10%)', p4, 'when unit is set & connected to foundation');
+    // Default 5 / 30 / 30 / 30 / 5 schedule (brochure spec).
+    // p5 absorbs rounding so the five sum to the contract total exactly.
+    p1 = Math.round(total * 0.05);
+    p2 = Math.round(total * 0.30);
+    p3 = Math.round(total * 0.30);
+    p4 = Math.round(total * 0.30);
+    p5 = total - p1 - p2 - p3 - p4;
+    prows += prow('Payment 1 — Design & Engineering (5%)',    p1, 'at project start · drafting, coordination, project setup');
+    prows += prow('Payment 2 — Materials & Production (30%)', p2, 'once plans are approved · secures materials and factory slot');
+    prows += prow('Payment 3 — Construction Begins (30%)',    p3, 'factory fabrication commences');
+    prows += prow('Payment 4 — Factory Completion (30%)',     p4, 'unit complete and ready for transport');
+    prows += prow('Payment 5 — Set & Completion (5%)',        p5, 'after delivery and set on the foundation');
   }
   document.getElementById('c-payments').innerHTML = prows;
 
-  CURRENT_MODULAR = {m:m, units:units, miles:miles, shipPer:shipPer, shipLow:shipLow, shipHigh:shipHigh, customs:customs, calcTotal:calcTotal, total:total, isNegOverride:isNegOverride, p1:p1, p2:p2, p3:p3, p4:p4, customStages:customStages};
+  CURRENT_MODULAR = {m:m, units:units, miles:miles, shipPer:shipPer, shipLow:shipLow, shipHigh:shipHigh, customs:customs, calcTotal:calcTotal, total:total, isNegOverride:isNegOverride, p1:p1, p2:p2, p3:p3, p4:p4, p5:p5, customStages:customStages};
 }
 
 // Editable modular contract schedule — safe pattern: constants + function
 // declarations only, no auto-seed at parse time. Left empty by default; the rep
 // clicks "Reset to default" or "+ Add stage" to start filling it in.
+// Modular default schedule: 5 / 30 / 30 / 30 / 5 — matches the Gallatin
+// brochure spec (Design & Engineering / Materials & Production /
+// Construction Begins / Factory Completion / Set & Completion).
 var MOD_CONTRACT_SCHEDULE_DEFAULT = [
-  { name: 'Payment 1',     pct: 30, desc: 'upon signing contract · deposit to order windows, doors, trusses & long-lead items' },
-  { name: 'Payment 2',     pct: 30, desc: 'when framing is completed on all units' },
-  { name: 'Payment 3',     pct: 30, desc: 'when exterior siding & interior painting are completed' },
-  { name: 'Final Payment', pct: 10, desc: 'when unit is set & connected to foundation' }
+  { name: 'Payment 1 — Design & Engineering',    pct: 5,  desc: 'at project start · drafting, coordination, project setup' },
+  { name: 'Payment 2 — Materials & Production',  pct: 30, desc: 'once plans are approved · secures materials and factory slot' },
+  { name: 'Payment 3 — Construction Begins',     pct: 30, desc: 'factory fabrication commences' },
+  { name: 'Payment 4 — Factory Completion',      pct: 30, desc: 'unit complete and ready for transport' },
+  { name: 'Payment 5 — Set & Completion',        pct: 5,  desc: 'after delivery and set on the foundation' }
 ];
 
 function addModContractStage(name, pct, desc){
@@ -2221,10 +2234,11 @@ function generateModularContract(){
       ? c.customStages.map(function(s){
           return '<tr><td style="padding:5px 8px;border:1px solid #ccc;">'+s.name+' ('+(Math.round(s.pct*100)/100)+'%)</td><td style="padding:5px 8px;border:1px solid #ccc;text-align:right;">'+fmt(s.amount)+'</td><td style="padding:5px 8px;border:1px solid #ccc;font-size:11px;color:#555;">'+(s.desc||'')+'</td></tr>';
         }).join('')
-      : '<tr><td style="padding:5px 8px;border:1px solid #ccc;">Payment 1 (30%)</td><td style="padding:5px 8px;border:1px solid #ccc;text-align:right;">'+fmt(c.p1)+'</td><td style="padding:5px 8px;border:1px solid #ccc;font-size:11px;color:#555;">Upon signing contract — deposit to order windows, doors, trusses and all long lead time items.</td></tr>'
-        +'<tr><td style="padding:5px 8px;border:1px solid #ccc;">Payment 2 (30%)</td><td style="padding:5px 8px;border:1px solid #ccc;text-align:right;">'+fmt(c.p2)+'</td><td style="padding:5px 8px;border:1px solid #ccc;font-size:11px;color:#555;">When framing is completed on all units.</td></tr>'
-        +'<tr><td style="padding:5px 8px;border:1px solid #ccc;">Payment 3 (30%)</td><td style="padding:5px 8px;border:1px solid #ccc;text-align:right;">'+fmt(c.p3)+'</td><td style="padding:5px 8px;border:1px solid #ccc;font-size:11px;color:#555;">When exterior siding is completed and interior painting is completed.</td></tr>'
-        +'<tr><td style="padding:5px 8px;border:1px solid #ccc;">Final Payment (10%)</td><td style="padding:5px 8px;border:1px solid #ccc;text-align:right;">'+fmt(c.p4)+'</td><td style="padding:5px 8px;border:1px solid #ccc;font-size:11px;color:#555;">Final payment (contract price, less all deposits and payments) — due when the modular unit is set and connected to the foundation.</td></tr>')
+      : '<tr><td style="padding:5px 8px;border:1px solid #ccc;">Payment 1 — Design &amp; Engineering (5%)</td><td style="padding:5px 8px;border:1px solid #ccc;text-align:right;">'+fmt(c.p1)+'</td><td style="padding:5px 8px;border:1px solid #ccc;font-size:11px;color:#555;">At project start — drafting, coordination, and project setup.</td></tr>'
+        +'<tr><td style="padding:5px 8px;border:1px solid #ccc;">Payment 2 — Materials &amp; Production (30%)</td><td style="padding:5px 8px;border:1px solid #ccc;text-align:right;">'+fmt(c.p2)+'</td><td style="padding:5px 8px;border:1px solid #ccc;font-size:11px;color:#555;">Once plans are approved — secures materials and the factory production slot.</td></tr>'
+        +'<tr><td style="padding:5px 8px;border:1px solid #ccc;">Payment 3 — Construction Begins (30%)</td><td style="padding:5px 8px;border:1px solid #ccc;text-align:right;">'+fmt(c.p3)+'</td><td style="padding:5px 8px;border:1px solid #ccc;font-size:11px;color:#555;">Factory fabrication commences.</td></tr>'
+        +'<tr><td style="padding:5px 8px;border:1px solid #ccc;">Payment 4 — Factory Completion (30%)</td><td style="padding:5px 8px;border:1px solid #ccc;text-align:right;">'+fmt(c.p4)+'</td><td style="padding:5px 8px;border:1px solid #ccc;font-size:11px;color:#555;">Unit complete and ready for transport.</td></tr>'
+        +'<tr><td style="padding:5px 8px;border:1px solid #ccc;">Payment 5 — Set &amp; Completion (5%)</td><td style="padding:5px 8px;border:1px solid #ccc;text-align:right;">'+fmt(c.p5)+'</td><td style="padding:5px 8px;border:1px solid #ccc;font-size:11px;color:#555;">After delivery and set on the foundation.</td></tr>')
     +'</table>'
     +'<div style="margin-top:30px;display:flex;justify-content:space-between;font-size:12px;">'
     +'<div style="width:45%;"><div style="border-top:1px solid #1c1c1a;padding-top:4px;">Seller: Sven Heistad</div><div style="margin-top:18px;border-top:1px solid #1c1c1a;padding-top:4px;">Signature / Date</div></div>'
@@ -3361,10 +3375,11 @@ function zkContractPaymentSchedule(mode){
       });
       return stages;
     }
-    stages.push({key:'pay1',  name:'Payment 1 (30%)',     desc:'Upon signing contract — deposit to order windows, doors, trusses and all long lead time items', amount:m.p1});
-    stages.push({key:'pay2',  name:'Payment 2 (30%)',     desc:'When framing is completed on all units',                                                        amount:m.p2});
-    stages.push({key:'pay3',  name:'Payment 3 (30%)',     desc:'When exterior siding is completed and interior painting is completed',                          amount:m.p3});
-    stages.push({key:'final', name:'Final Payment (10%)', desc:'Final payment (contract price, less all deposits and payments) — due when unit is set on the foundation', amount:m.p4});
+    stages.push({key:'pay1',  name:'Payment 1 — Design & Engineering (5%)',    desc:'At project start — drafting, coordination, and project setup.',                     amount:m.p1});
+    stages.push({key:'pay2',  name:'Payment 2 — Materials & Production (30%)', desc:'Once plans are approved — secures materials and the factory production slot.',    amount:m.p2});
+    stages.push({key:'pay3',  name:'Payment 3 — Construction Begins (30%)',    desc:'Factory fabrication commences.',                                                   amount:m.p3});
+    stages.push({key:'pay4',  name:'Payment 4 — Factory Completion (30%)',     desc:'Unit complete and ready for transport.',                                           amount:m.p4});
+    stages.push({key:'final', name:'Payment 5 — Set & Completion (5%)',        desc:'After delivery and set on the foundation.',                                        amount:m.p5});
     return stages;
   }
   if(mode === 'custom' && window.CURRENT_CUSTOM){
