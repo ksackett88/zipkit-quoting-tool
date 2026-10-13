@@ -219,7 +219,7 @@
     var title = ctx.result ? ctx.result.quote.model : (p ? p.name : cat.typeLabel(state.cfg.type));
     return '<h1 class="step-title">' + esc(title) + '</h1>'
       + '<p class="step-lead">The defaults make a complete quote. Change only what the buyer asked for.</p>'
-      + serviceAreaWarning()
+      + loadNotice() + serviceAreaWarning()
       + '<div class="two-col"><div class="card" id="options-form">' + O.renderOptions(ctx) + '</div>'
       + '<aside class="card summary sticky" id="summary" aria-live="polite">' + summaryHTML(ctx.result) + '</aside></div>'
       + '<div class="actions"><button type="button" class="btn quiet" data-goto="product">Back</button><div class="right"><button type="button" class="btn primary" data-next="review">Next: review</button></div></div>';
@@ -284,7 +284,7 @@
     var r = currentResult(), c = state.customer;
     var where = [c.city, c.state].filter(Boolean).join(', ');
     var h = '<h1 class="step-title">Review and send</h1><p class="step-lead">Check it over, then create the document for the buyer.</p>'
-      + serviceAreaWarning() + adjustmentsList()
+      + loadNotice() + serviceAreaWarning() + adjustmentsList()
       + '<div class="two-col"><div class="stack">'
       + '<div class="card"><div class="subtle-head first">Buyer</div>'
       + '<div class="buyer-name">' + esc(c.name) + '</div>'
@@ -602,10 +602,66 @@
     }).then(function(user){
       state.user = user;
       if(user && user.email) $('#user-email').textContent = user.email;
-      return root.ZKStore.loadProfile(user).then(function(rep){ state.rep = rep; if(state.step === 'review') render(); });
+      return root.ZKStore.loadProfile(user).then(function(rep){
+        state.rep = rep;
+        var openId = new URLSearchParams(location.search).get('open');
+        if(openId) return openSaved(openId);
+        if(state.step === 'review') render();
+      });
     }).catch(function(e){
       $('#main').innerHTML = '<div class="notice bad"><b>The quote tool couldn\'t load its price list.</b> Check your connection and reload the page. If it keeps happening, tell the office.</div>';
       console.error(e);
+    });
+  }
+
+  // ---------- opening a saved quote (?open=<id>) ----------
+  function loadNotice(){
+    var n = state.ui.loadNote;
+    if(!n) return '';
+    return '<div class="notice ' + (n.bad ? 'warn' : 'info') + '">' + n.html + '</div>';
+  }
+
+  function openSaved(id){
+    if(!root.zkQuotes) return Promise.resolve();
+    return root.zkQuotes.get(id).then(function(row){
+      if(!row) throw new Error('not found');
+      var kind = row.product_kind || '';
+      if(kind.indexOf('contract-') === 0){ location.replace('ZipKit_Contract_Generator.html?open=' + encodeURIComponent(id)); return; }
+      // MVP is parked: its quotes open in the old tool, kept at legacy/mvp-quote.html.
+      if(row.brand === 'mvp'){ location.replace('legacy/mvp-quote.html?open=' + encodeURIComponent(id)); return; }
+      var cfg = row.config || {}, loaded, notes = [];
+      if(cfg.schema_version >= 2 && cfg.quote){
+        loaded = { customer: cfg.quote.customer, cfg: cfg.quote.cfg };
+      } else {
+        loaded = root.ZKLegacy.fromLegacy(cat, row);
+        if(loaded.error === 'parked'){ location.replace('legacy/mvp-quote.html?open=' + encodeURIComponent(id)); return; }
+        if(loaded.error) throw new Error(loaded.error);
+        notes = loaded.notes || [];
+        notes.unshift('Saved by the old quote tool.');
+      }
+      state.customer = Object.assign({ name:'', project:'', city:'', state:'', email:'', phone:'' }, loaded.customer);
+      state.cfg = loaded.cfg;
+      state.type = state.cfg.type;
+      state.saved = { id: row.id, number: row.quote_number, hasInvoices: Array.isArray(row.invoices) && row.invoices.length > 0,
+        readOnly: !!(state.user && row.created_by && row.created_by !== state.user.id) };
+      if(state.saved.hasInvoices) notes.push('This quote already has invoices, so saving makes a new copy. The original keeps its payment schedule.');
+      if(state.saved.readOnly) notes.push('This is another rep\'s quote. Saving makes your own copy.');
+      // Same price as when it was saved? Never change a price without saying so.
+      var r = currentResult(), saved = Number(row.total);
+      var bad = false;
+      if(r && isFinite(saved) && Math.round(r.total) !== Math.round(saved)){
+        bad = true;
+        notes.unshift('<b>Price check:</b> it was saved at ' + fmt(saved) + '; with today\'s price list it comes to ' + fmt(r.total)
+          + ' (' + (r.total > saved ? '+' : '−') + fmt(Math.abs(r.total - saved)) + '). Check the options before you send it.');
+      }
+      state.ui.loadNote = { bad: bad, html: '<b>Opened ' + esc(row.quote_number || 'saved quote') + '.</b> ' + notes.join(' ') };
+      state.reached = stepIndex('review');
+      state.step = 'review';
+      render();
+    }).catch(function(e){
+      console.error(e);
+      state.ui.loadNote = { bad: true, html: '<b>That saved quote couldn\'t be opened.</b> ' + esc((e && e.message) || '') + ' Start a new one, or ask the office.' };
+      render();
     });
   }
 
@@ -615,7 +671,7 @@
     state.customer = { name:'', project:'', city:'', state:'', email:'', phone:'' };
     state.type = cat.activeTypes(ENABLED_TYPES)[0]; state.search = '';
     state.cfg = null; state.ui = { moreOpen:false, adjustOpen:false }; state.shownErrors = {};
-    state.saved = null;
+    state.saved = null; state.ui.loadNote = null;
     render(); window.scrollTo(0, 0);
   }
 
@@ -624,6 +680,7 @@
     go: go,
     newQuote: newQuote,
     catalog: function(){ return cat; },
+    openSaved: openSaved,
     result: currentResult,
     enabledTypes: ENABLED_TYPES,
     // Test helper: hide the sign-in screen on a local test server only.

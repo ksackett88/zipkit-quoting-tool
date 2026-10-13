@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Portal check</title>
+<style>
+  body { margin:0; padding:24px 16px; font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; color:#17150f; background:#faf8f0; }
+  main { max-width:960px; margin:0 auto; }
+  #status { padding:14px 16px; border-radius:10px; font-weight:600; background:#fff; border:1px solid #e6e2d6; }
+  #status.ok { background:#dceee6; color:#0e6b53; } #status.bad { background:#f7e1dc; color:#a33526; }
+  li.bad { color:#a33526; } pre { white-space:pre-wrap; font-size:12px; }
+  #portal { position:fixed; left:-5000px; top:0; width:1200px; height:900px; border:0; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Portal check</h1>
+  <p>Checks the portal's payment schedules, invoice footer, quote links and special invoices, using stand-ins (no real database, no pop-ups).</p>
+  <div id="status">Running…</div>
+  <ul id="list"></ul>
+</main>
+<iframe id="portal" title="portal (hidden)"></iframe>
+<script>
+(async function(){
+  'use strict';
+  var results = [];
+  function rec(name, pass, detail){ results.push({ name:name, pass:!!pass, detail: pass ? undefined : detail }); }
+  var f = document.getElementById('portal');
+  await new Promise(function(r){ f.onload = function(){ r(); }; f.src = '../index.html'; });
+  for(var k = 0; k < 50 && !f.contentWindow._zkPortalInvoiceStages; k++) await new Promise(function(r){ setTimeout(r, 100); });
+  var P = f.contentWindow;
+  function keys(st){ return st.map(function(s){ return s.key + ':' + Math.round(s.amount); }).join(' '); }
+
+  // 1. Zip Kit modular quote saved by the old tool, no invoices -> 5/30/30/30/5 on the contract.
+  var oldZk = { brand:'zipkit', product_kind:'modular', total:131965, contract_amount:120000, invoices:[], config:{ fields:{} }, quote_data:{ kind:'Modular', total:131965, contract:120000 } };
+  var s1 = P._zkPortalInvoiceStages(oldZk);
+  rec('Zip Kit modular quote → 5/30/30/30/5 on the contract amount, contract wording',
+    keys(s1) === 'pay1:6000 pay2:36000 pay3:36000 pay4:36000 final:6000' && s1[0].name === 'Payment 1 — Design & Engineering (5%)' && s1[4].desc === 'After delivery and set on the foundation.', keys(s1));
+  // 2. Same quote with an invoice logged -> frozen at 30/30/30/10 (Q8).
+  var s2 = P._zkPortalInvoiceStages(Object.assign({}, oldZk, { invoices:[{ id:'i1', amount:1, stage_key:'pay1' }] }));
+  rec('Same quote with invoices already logged → stays 30/30/30/10 (frozen)', keys(s2) === 'pay1:39590 pay2:39590 pay3:39590 final:13195', keys(s2));
+  // 3. MVP modular quote -> unchanged (MVP is parked).
+  var s3 = P._zkPortalInvoiceStages(Object.assign({}, oldZk, { brand:'mvp' }));
+  rec('MVP modular quote → unchanged (MVP is parked)', keys(s3) === 'pay1:39590 pay2:39590 pay3:39590 final:13195', keys(s3));
+  // 4. A quote saved by the new tool -> its stored schedule, verbatim.
+  var stored = [{ key:'pay1', name:'A', desc:'', amount:5 }, { key:'final', name:'B', desc:'', amount:95 }];
+  rec('New-tool quote → uses its stored schedule exactly', keys(P._zkPortalInvoiceStages({ brand:'zipkit', product_kind:'modular', config:{ payment_schedule: stored }, quote_data:{ kind:'Modular' } })) === 'pay1:5 final:95', 'stored schedule not used');
+  // 5. Modular contract saved before 2026-07-29 (no stored schedule) -> 30/30/30/10 (Q6).
+  var s5 = P._zkPortalInvoiceStages({ brand:'zipkit', product_kind:'contract-modular', contract_amount:100000, config:{ fields:{} }, quote_data:null });
+  rec('Pre-July-29 modular contract → stays 30/30/30/10', keys(s5) === 'pay1:30000 pay2:30000 pay3:30000 final:10000', keys(s5));
+  // 6. Panelized kit quote -> unchanged design/engineering/45/45/10.
+  var s6 = P._zkPortalInvoiceStages({ brand:'zipkit', product_kind:'shell', invoices:[], config:{ fields:{} }, quote_data:{ kind:'Shell Kit', total:216845, contract:199380, design:2500, engineering:14965 } });
+  rec('Panelized kit quote → unchanged (design, engineering, 45/45/10)', keys(s6) === 'design:2500 engineering:14965 materials:89721 preship:89721 final:19938', keys(s6));
+
+  // 7. Invoice footer lists the project's own stages.
+  var cap = P.document.createElement('iframe'); cap.style.cssText = 'position:fixed;left:-5000px'; P.document.body.appendChild(cap);
+  var realOpen = P.open; P.open = function(){ return cap.contentWindow; };
+  P.zkFetchWire = async function(){ return null; };
+  await P.zkGenerateInvoicePdf(oldZk, { id:'x', number:'T-1', amount:6000, sent_date:'2026-10-13', stage_key:'pay1' });
+  var inv = cap.contentDocument.documentElement.outerHTML;
+  rec('Modular invoice footer lists the 5 payments (not "30% at signing")', inv.indexOf('billed in 5 payments') !== -1 && inv.indexOf('30% at signing') === -1 && inv.indexOf('Contact the office for wire instructions') !== -1, 'footer text');
+
+  // 8. "Open" goes to the new tool; MVP quotes go to the parked copy.
+  var went = null;
+  P._projects = [{ id:'zk1', brand:'zipkit' }, { id:'mv1', brand:'mvp' }];
+  var loc = P.location;
+  try {
+    var src = P.openInTool.toString();
+    rec('"Open" sends Zip Kit quotes to quote.html and MVP quotes to legacy/mvp-quote.html', src.indexOf("'quote.html?open='") !== -1 && src.indexOf("'legacy/mvp-quote.html?open='") !== -1 && src.indexOf('ZipKit_Contract_Generator.html?open=') !== -1, src);
+  } catch(e){ rec('"Open" link check', false, String(e)); }
+
+  // 9. Special invoice, standalone: PDF only.
+  P._zkRepCache = { name:'Rep Test', email:'rep@example.com', phone:'435-555-0100' };
+  var logged = [];
+  P.zkQuotes = { addInvoice: async function(id, inv){ logged.push({ id:id, inv:inv }); return { id:id, invoices:[inv], payments:[] }; }, get: async function(id){ return { id:id, brand:'zksteel', buyer_name:'Buyer B', project_name:'Shop', buyer_email:'b@example.com', buyer_phone:'', invoices:[], payments:[] }; } };
+  P.loadProjects = function(){};
+  await P.zkOpenSpecialInvoice(null);
+  P.document.getElementById('sp-cust').value = 'Standalone Buyer';
+  P.document.getElementById('sp-title').value = 'Drafting revisions';
+  var line = P.document.querySelector('#sp-lines .sp-line');
+  line.querySelector('[data-sp="desc"]').value = 'Drafting'; line.querySelector('[data-sp="amt"]').value = '1500';
+  P.zkSpecialAddLine('Credit', '-250');
+  await P.zkSubmitSpecialInvoice();
+  await new Promise(function(r){ setTimeout(r, 50); });
+  var sp = cap.contentDocument.documentElement.outerHTML;
+  rec('Standalone special invoice: lines, credit, total $1,250, not logged anywhere',
+    sp.indexOf('Drafting revisions') !== -1 && sp.indexOf('$1,250') !== -1 && sp.indexOf('$-250') !== -1 && sp.indexOf('Standalone Buyer') !== -1 && logged.length === 0, 'special invoice text');
+  // 10. Special invoice from a project: logged with the project, brand from the project.
+  await P.zkOpenSpecialInvoice('p1');
+  rec('Special invoice from a project is prefilled with its buyer and brand', P.document.getElementById('sp-cust').value === 'Buyer B' && P.document.getElementById('sp-brand').value === 'zksteel', 'prefill');
+  P.document.getElementById('sp-title').value = 'Change work';
+  var l2 = P.document.querySelector('#sp-lines .sp-line');
+  l2.querySelector('[data-sp="desc"]').value = 'Extra wall'; l2.querySelector('[data-sp="amt"]').value = '800';
+  await P.zkSubmitSpecialInvoice();
+  rec('Special invoice from a project is logged with it (amount, title, lines kept)', logged.length === 1 && logged[0].id === 'p1' && logged[0].inv.amount === 800 && logged[0].inv.special && logged[0].inv.special.lines.length === 1, logged);
+  // 11. A special invoice line with no amount is refused with a message.
+  await P.zkOpenSpecialInvoice(null);
+  P.document.getElementById('sp-cust').value = 'X';
+  P.document.querySelector('#sp-lines [data-sp="desc"]').value = 'No amount';
+  await P.zkSubmitSpecialInvoice();
+  rec('Special invoice refuses a line with no amount', /needs a description and an amount/.test(P.document.getElementById('sp-err').textContent), P.document.getElementById('sp-err').textContent);
+  P.zkCloseSpecialInvoice();
+  P.open = realOpen;
+
+  var ok = results.every(function(r){ return r.pass; });
+  var s = document.getElementById('status'); s.className = ok ? 'ok' : 'bad';
+  s.textContent = (ok ? 'PASS: ' : 'FAIL: ') + results.filter(function(r){ return r.pass; }).length + ' of ' + results.length + ' portal checks pass.';
+  document.title = (ok ? 'PASS ' : 'FAIL ') + results.filter(function(r){ return r.pass; }).length + '/' + results.length;
+  document.getElementById('list').innerHTML = results.map(function(r){ return '<li class="' + (r.pass ? '' : 'bad') + '">' + (r.pass ? '✓ ' : '✗ ') + r.name + (r.pass ? '' : '<pre>' + JSON.stringify(r.detail, null, 1).replace(/</g, '&lt;') + '</pre>') + '</li>'; }).join('');
+  window.ZK_PORTAL_RESULT = { results: results, ok: ok };
+})().catch(function(e){ document.getElementById('status').textContent = 'Could not run: ' + e; document.title = 'ERROR'; window.ZK_PORTAL_RESULT = { error: String(e) }; });
+</script>
+</body>
+</html>

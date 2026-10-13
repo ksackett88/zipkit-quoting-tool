@@ -208,6 +208,30 @@
   .pmt-form-row input:focus { outline: none; border-color: var(--accent); box-shadow: var(--shadow-focus); }
   .pmt-form-btn { height: 38px; padding: 0 20px; background: var(--success); color: #fff; border: none; border-radius: var(--radius-sm); font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit; }
   .pmt-form-btn:hover { background: #0a5040; }
+  .pmt-form-btn.special-btn { background: var(--surface); color: var(--accent); border: 1px dashed var(--line-strong); }
+  .pmt-form-btn.special-btn:hover { background: var(--accent-tint); border-color: var(--accent); }
+  /* Special invoice dialog (sits above the Invoices & Payments dialog) */
+  .special-overlay { z-index: 10002; }
+  .special-modal { max-width: 640px; }
+  .sp-lead { margin: 0 0 14px; color: var(--muted); font-size: 13.5px; }
+  .sp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 14px; }
+  .sp-grid label { display: block; font-size: 12.5px; font-weight: 600; color: var(--ink-2); }
+  .sp-grid label input, .sp-grid label select, .sp-grid label textarea { display: block; width: 100%; margin-top: 4px; }
+  .sp-grid .sp-full { grid-column: 1 / -1; }
+  .sp-grid input, .sp-grid select, .sp-grid textarea, .sp-line input { height: 38px; padding: 0 10px; font: inherit; font-size: 14px; font-weight: 400; border: 1px solid var(--line-strong); border-radius: var(--radius-sm); background: var(--surface); color: var(--ink); }
+  .sp-grid textarea { height: auto; padding: 8px 10px; resize: vertical; }
+  .sp-grid input:focus, .sp-grid select:focus, .sp-grid textarea:focus, .sp-line input:focus { outline: none; border-color: var(--accent); box-shadow: var(--shadow-focus); }
+  .sp-opt { font-weight: 400; color: var(--hint); }
+  .sp-lines-head { margin: 16px 0 6px; font-size: 12.5px; font-weight: 600; color: var(--ink-2); }
+  .sp-line { display: grid; grid-template-columns: 1fr 130px 34px; gap: 8px; margin-bottom: 6px; }
+  .sp-line button { border: 1px solid var(--line-strong); background: var(--surface); border-radius: var(--radius-sm); color: var(--muted); font-size: 18px; cursor: pointer; }
+  .sp-add { border: 1px dashed var(--line-strong); background: none; color: var(--accent); height: 34px; padding: 0 12px; border-radius: var(--radius-sm); cursor: pointer; font: inherit; font-size: 13px; }
+  .sp-total { display: flex; justify-content: space-between; align-items: baseline; margin-top: 14px; padding-top: 10px; border-top: 2px solid var(--ink); font-size: 13px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+  .sp-total b { font-size: 22px; color: var(--ink); letter-spacing: -.01em; text-transform: none; }
+  .sp-err { color: var(--danger); font-size: 13px; min-height: 18px; margin-top: 6px; }
+  .sp-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 8px; }
+  .pmt-form-btn.sp-cancel { background: var(--surface); color: var(--muted); border: 1px solid var(--line-strong); }
+  @media (max-width: 600px){ .sp-grid { grid-template-columns: 1fr; } .sp-line { grid-template-columns: 1fr 100px 34px; } }
   .pmt-list-table { width: 100%; border-collapse: collapse; font-size: 13px; }
   .pmt-list-table th { text-align: left; padding: 6px 4px; font-size: 10px; color: var(--hint); text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid var(--line); }
   .pmt-list-table td { padding: 8px 4px; border-bottom: 1px solid var(--line-soft); }
@@ -269,6 +293,7 @@
   <div class="actions-bar">
     <a class="btn primary" href="ZipKit_Quoting_Tool.html">+ New quote</a>
     <a class="btn info" href="ZipKit_Contract_Generator.html">+ New contract</a>
+    <button type="button" class="btn" onclick="zkOpenSpecialInvoice(null)" title="An invoice with your own lines and credits, not tied to a project">Special invoice</button>
     <div id="admin-view-toggle" style="display:none; margin-left:auto; align-items:center; gap:0; border:1px solid var(--line-strong); border-radius:var(--radius); overflow:hidden; height:38px; background:var(--surface);">
       <button type="button" id="view-mine" class="view-mode-btn active" onclick="zkSetViewMode('mine')" style="height:100%; padding:0 14px; border:none; background:var(--accent); color:#fff; font-size:13px; font-weight:500; cursor:pointer;">My projects</button>
       <button type="button" id="view-all"  class="view-mode-btn"        onclick="zkSetViewMode('all')"  style="height:100%; padding:0 14px; border:none; background:transparent; color:var(--muted); font-size:13px; font-weight:500; cursor:pointer;">All projects <span style="opacity:0.7; font-weight:400;">(admin)</span></button>
@@ -289,6 +314,11 @@
     <button class="filter-tab" data-filter="contracts">Contracts <span class="count" id="f-count-contracts"></span></button>
     <button class="filter-tab" data-filter="outstanding">Has Balance <span class="count" id="f-count-outstanding"></span></button>
     <button class="filter-tab" data-filter="paid">Paid in Full <span class="count" id="f-count-paid"></span></button>
+  </div>
+  <div class="filter-tabs" aria-label="Brand">
+    <button class="filter-tab active" data-brand="all">All brands</button>
+    <button class="filter-tab" data-brand="zipkit">Zip Kit <span class="count" id="b-count-zipkit"></span></button>
+    <button class="filter-tab" data-brand="mvp">MVP <span class="count" id="b-count-mvp"></span></button>
   </div>
 
   <div id="project-list"><div class="loading-state">Loading projects&hellip;</div></div>
@@ -326,10 +356,11 @@
         <input type="text" id="zk-rep-email" placeholder="Sales rep email">
         <input type="text" id="zk-rep-phone" placeholder="Sales rep phone">
       </div>
-      <div style="font-size:11px;color:var(--hint);margin:-2px 0 8px;">Sales rep info saves in this browser and appears on every invoice PDF you generate.</div>
+      <div style="font-size:11px;color:var(--hint);margin:-2px 0 8px;">Your name, email and phone come from your profile. Change them here for this invoice only.</div>
       <div style="display:flex; gap:8px; flex-wrap:wrap;">
         <button class="pmt-form-btn" style="background:var(--info);" onclick="zkRecordInvoice(false)">Log invoice</button>
         <button class="pmt-form-btn" onclick="zkRecordInvoice(true)">Log + Generate PDF →</button>
+        <button class="pmt-form-btn special-btn" onclick="zkOpenSpecialInvoice(_zkPmtProjectId)" title="Several lines, credits, or anything outside the payment schedule">Special invoice…</button>
       </div>
     </div>
 
@@ -346,6 +377,37 @@
         <input type="date" id="zk-pmt-date">
       </div>
       <button class="pmt-form-btn" onclick="zkRecordPayment()">Record payment</button>
+    </div>
+  </div>
+</div>
+
+<!-- Special invoice: your own lines and credits. Logged to a project when opened from one. -->
+<div id="zk-special-overlay" class="modal-overlay special-overlay">
+  <div class="modal special-modal" role="dialog" aria-modal="true" aria-labelledby="sp-title-head">
+    <div class="modal-head">
+      <h2 id="sp-title-head">Special invoice</h2>
+      <button class="modal-close" onclick="zkCloseSpecialInvoice()" aria-label="Close">&times;</button>
+    </div>
+    <p class="sp-lead" id="sp-lead"></p>
+    <div class="sp-grid">
+      <label>Brand<select id="sp-brand"><option value="zipkit">Zip Kit Homes</option><option value="zksteel">Zip Kit Steel</option><option value="mvp">Mountain Valley Prefab</option></select></label>
+      <label>Invoice # <span class="sp-opt">(optional)</span><input type="text" id="sp-num"></label>
+      <label>Bill to<input type="text" id="sp-cust"></label>
+      <label>Date<input type="date" id="sp-date"></label>
+      <label>Email <span class="sp-opt">(optional)</span><input type="email" id="sp-email"></label>
+      <label>Phone <span class="sp-opt">(optional)</span><input type="tel" id="sp-phone"></label>
+      <label class="sp-full">Project <span class="sp-opt">(optional)</span><input type="text" id="sp-project"></label>
+      <label class="sp-full">Title<input type="text" id="sp-title" placeholder="e.g. Drafting — multi-unit revisions"></label>
+      <label class="sp-full">Note <span class="sp-opt">(optional, shows on the invoice)</span><textarea id="sp-note" rows="2"></textarea></label>
+    </div>
+    <div class="sp-lines-head">Lines <span class="sp-opt">— use a minus amount for a credit</span></div>
+    <div id="sp-lines"></div>
+    <button type="button" class="sp-add" onclick="zkSpecialAddLine()">+ Add a line</button>
+    <div class="sp-total"><span>Amount due</span><b id="sp-total">$0</b></div>
+    <div class="sp-err" id="sp-err" role="alert"></div>
+    <div class="sp-actions">
+      <button type="button" class="pmt-form-btn sp-cancel" onclick="zkCloseSpecialInvoice()">Cancel</button>
+      <button type="button" class="pmt-form-btn" id="sp-go" onclick="zkSubmitSpecialInvoice()">Create invoice</button>
     </div>
   </div>
 </div>
@@ -494,9 +556,14 @@ function projectKind(p){
   return (p.product_kind || '').indexOf('contract-') === 0 ? 'contract' : 'quote';
 }
 
+// Brand filter: Zip Kit includes Zip Kit Steel (same company).
+var _brandFilter = 'all';
+function projectBrand(p){ return p.brand === 'mvp' ? 'mvp' : 'zipkit'; }
+
 function filterProjects(list){
   var q = _query.toLowerCase().trim();
   return list.filter(function(p){
+    if(_brandFilter !== 'all' && projectBrand(p) !== _brandFilter) return false;
     var kind = projectKind(p);
     if(_filter === 'quotes' && kind !== 'quote') return false;
     if(_filter === 'contracts' && kind !== 'contract') return false;
@@ -536,6 +603,8 @@ function renderCounts(){
   document.getElementById('f-count-contracts').textContent = _projects.filter(function(p){ return projectKind(p) === 'contract'; }).length;
   document.getElementById('f-count-outstanding').textContent = _projects.filter(function(p){ var b = window.zkProjectBalance(p); return b.remaining > 0; }).length;
   document.getElementById('f-count-paid').textContent       = _projects.filter(function(p){ var b = window.zkProjectBalance(p); return b.contract > 0 && b.remaining === 0; }).length;
+  document.getElementById('b-count-zipkit').textContent = _projects.filter(function(p){ return projectBrand(p) === 'zipkit'; }).length;
+  document.getElementById('b-count-mvp').textContent    = _projects.filter(function(p){ return projectBrand(p) === 'mvp'; }).length;
 }
 
 function renderProjects(){
@@ -605,11 +674,19 @@ function _esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').re
 
 /* ----- Filter / search wiring ----- */
 
-document.querySelectorAll('.filter-tab').forEach(function(t){
+document.querySelectorAll('.filter-tab[data-filter]').forEach(function(t){
   t.addEventListener('click', function(){
-    document.querySelectorAll('.filter-tab').forEach(function(x){ x.classList.remove('active'); });
+    document.querySelectorAll('.filter-tab[data-filter]').forEach(function(x){ x.classList.remove('active'); });
     t.classList.add('active');
     _filter = t.dataset.filter;
+    renderStats(); renderProjects();
+  });
+});
+document.querySelectorAll('.filter-tab[data-brand]').forEach(function(t){
+  t.addEventListener('click', function(){
+    document.querySelectorAll('.filter-tab[data-brand]').forEach(function(x){ x.classList.remove('active'); });
+    t.classList.add('active');
+    _brandFilter = t.dataset.brand;
     renderStats(); renderProjects();
   });
 });
@@ -620,10 +697,14 @@ document.getElementById('project-search').addEventListener('input', function(e){
 
 /* ----- Tool handoff ----- */
 
+// Saved quotes open in the new quote tool (quote.html), which converts quotes
+// saved by the old tool. MVP quotes open in the parked copy of the old tool
+// (legacy/mvp-quote.html) until the MVP sector is built.
 function openInTool(id, kind){
+  var p = (_projects || []).filter(function(x){ return x.id === id; })[0];
   var url = kind === 'contract'
     ? 'ZipKit_Contract_Generator.html?open=' + encodeURIComponent(id)
-    : 'ZipKit_Quoting_Tool.html?open=' + encodeURIComponent(id);
+    : ((p && p.brand === 'mvp') ? 'legacy/mvp-quote.html?open=' : 'quote.html?open=') + encodeURIComponent(id);
   window.location.href = url;
 }
 
@@ -860,7 +941,8 @@ async function zkOpenInvoicePdf(invId){
     var q = await zkQuotes.get(_zkPmtProjectId);
     var inv = (q.invoices || []).filter(function(i){ return i.id === invId; })[0];
     if(!inv){ zkToast('Invoice not found.', true); return; }
-    zkGenerateInvoicePdf(q, inv);
+    if(inv.special) zkGenerateSpecialInvoicePdf(inv.special, { number: inv.number, date: inv.sent_date, rep: _zkRepFromForm() });
+    else zkGenerateInvoicePdf(q, inv);
   } catch(e){
     zkToast('Load failed: ' + (e.message || e), true);
   }
@@ -898,6 +980,10 @@ function _zkPortalInvoiceStages(project){
       return legacy;
     }
     if(mode === 'modular'){
+      // Leave this at 30/30/30/10 (decision Q6, 2026-10-13). This path only runs
+      // for contracts saved before 2026-07-29 (commit a53c02a), when contracts
+      // started storing their own schedule. Every one of those was signed under
+      // the old 30/30/30/10 terms; 5/30/30/30/5 only started on 2026-10-05.
       // Engineering is baked into the modular base — plain 30/30/30/10 of total.
       var p1 = Math.round(full * 0.30), p2 = Math.round(full * 0.30), p3 = Math.round(full * 0.30);
       legacy.push({key:'pay1',  name:'Payment 1 (30%)',     desc:'Upon signing contract — deposit to order windows, doors, trusses and all long lead time items', amount:p1});
@@ -922,6 +1008,23 @@ function _zkPortalInvoiceStages(project){
   var designCreditPromo = !!q.designCreditPromo;
   var stages = [];
 
+  // Zip Kit modular quotes: 5/30/30/30/5 on the contract amount, with the modular
+  // contract's exact stage names and wording (decisions 2026-10-13). Quotes saved
+  // by the new tool never get here (they store their schedule). Two exceptions keep
+  // the old 30/30/30/10 below: a quote that already has invoices logged (its
+  // schedule is frozen at what was billed, Q8), and MVP quotes (MVP is parked).
+  var hasInvoices = Array.isArray(project.invoices) && project.invoices.length > 0;
+  if(kind === 'Modular' && (project.brand || 'zipkit') === 'zipkit' && !hasInvoices){
+    var c5 = contract;
+    var m1 = Math.round(c5 * 0.05), m2 = Math.round(c5 * 0.30), m3 = Math.round(c5 * 0.30), m4 = Math.round(c5 * 0.30);
+    var m5 = c5 - m1 - m2 - m3 - m4;
+    stages.push({key:'pay1',  name:'Payment 1 — Design & Engineering (5%)',    desc:'At project start — drafting, coordination, and project setup.',                  amount:m1});
+    stages.push({key:'pay2',  name:'Payment 2 — Materials & Production (30%)', desc:'Once plans are approved — secures materials and the factory production slot.',  amount:m2});
+    stages.push({key:'pay3',  name:'Payment 3 — Construction Begins (30%)',    desc:'Factory fabrication commences.',                                                 amount:m3});
+    stages.push({key:'pay4',  name:'Payment 4 — Factory Completion (30%)',     desc:'Unit complete and ready for transport.',                                         amount:m4});
+    stages.push({key:'final', name:'Payment 5 — Set & Completion (5%)',        desc:'After delivery and set on the foundation.',                                      amount:m5});
+    return stages;
+  }
   if(kind === 'Modular'){
     var p1 = Math.round(total * 0.30), p2 = Math.round(total * 0.30), p3 = Math.round(total * 0.30);
     var p4 = total - p1 - p2 - p3;
@@ -1006,18 +1109,34 @@ function _zkOnStageChange(){
   document.getElementById('zk-inv-amount').value = stage.amount;
 }
 
-// Load rep info from localStorage on modal open; wire inputs to auto-save.
-function _zkLoadRep(){
+// Rep info comes from the signed-in rep's profile (full_name, phone) and sign-in
+// email, the same place the quote tool reads it. The fields can be changed for
+// one invoice; nothing is stored in the browser.
+var _zkRepCache = null;
+async function _zkRepFromProfile(){
+  if(_zkRepCache) return _zkRepCache;
+  var rep = { name:'', email:'', phone:'' };
+  try {
+    var u = await zkAuth.getCurrentUser();
+    if(u){
+      rep.email = u.email || '';
+      var r = await zkAuth.client.from('profiles').select('full_name, phone').eq('id', u.id).maybeSingle();
+      if(r && r.data){ rep.name = r.data.full_name || ''; rep.phone = r.data.phone || ''; }
+    }
+  } catch(e){ /* blank fields; the rep can type them for this invoice */ }
+  _zkRepCache = rep;
+  return rep;
+}
+async function _zkLoadRep(){
+  var rep = await _zkRepFromProfile();
   ['name','email','phone'].forEach(function(f){
     var el = document.getElementById('zk-rep-'+f);
-    if(!el) return;
-    el.value = localStorage.getItem('zk_rep_'+f) || '';
-    if(!el.dataset.zkRepBound){
-      el.dataset.zkRepBound = '1';
-      el.addEventListener('change', function(){ localStorage.setItem('zk_rep_'+f, el.value); });
-      el.addEventListener('blur',   function(){ localStorage.setItem('zk_rep_'+f, el.value); });
-    }
+    if(el) el.value = rep[f] || '';
   });
+}
+function _zkRepFromForm(){
+  function v(f){ var el = document.getElementById('zk-rep-'+f); return el ? el.value.trim() : ''; }
+  return { name: v('name'), email: v('email'), phone: v('phone') };
 }
 
 // ---------- Invoice PDF generator ----------
@@ -1052,10 +1171,11 @@ async function zkGenerateInvoicePdf(project, invoice){
   var modelStr = (q.model || project.model || '') + ((q.units || project.units) > 1 ? ' ×' + (q.units || project.units) : '');
   var projectHead = [kind, modelStr].filter(function(x){return x;}).join(' · ');
 
-  // Rep info from localStorage (auto-saved from the invoice modal inputs).
-  var repName  = localStorage.getItem('zk_rep_name')  || '';
-  var repEmail = localStorage.getItem('zk_rep_email') || '';
-  var repPhone = localStorage.getItem('zk_rep_phone') || '';
+  // Rep info: the invoice form's fields (filled from the rep's profile).
+  var repForm  = _zkRepFromForm();
+  var repName  = repForm.name;
+  var repEmail = repForm.email;
+  var repPhone = repForm.phone;
 
   // Rebuild the payment schedule from the stored quote data. Then match this
   // invoice to a specific stage so we can show "← this invoice" and grey out
@@ -1172,7 +1292,9 @@ async function zkGenerateInvoicePdf(project, invoice){
     +(isDesignInvoice
       ? 'Architectural design retainer · paid up front, separate from the contract. The contract document and its payment schedule (engineering first, then 45% / 45% / 10% of the remainder) will follow once the design retainer is received. Pricing subject to change and correction. No sales tax applied. <b>Payments are non-refundable.</b>'
       : (kind === 'Modular'
-          ? 'Modular contract is billed 30% at signing (long-lead materials deposit), 30% at framing complete, 30% at exterior siding + interior paint complete, and a final 10% when the unit is set and connected to the foundation. Design, engineering, and standard windows are included in the contract price. Shipping is included. No sales tax applied. Pricing subject to change and correction. This invoice reflects one stage of a multi-stage billing schedule. <b>Payments are non-refundable.</b>'
+          // Lists this project's own stages, so the text always matches the schedule above
+          // (5/30/30/30/5 for current Zip Kit modulars, 30/30/30/10 for older ones).
+          ? 'Modular contract is billed in ' + contractStages.length + ' payments: ' + contractStages.map(function(s){ return _esc(s.name); }).join('; ') + '. Design, engineering, and standard windows are included in the contract price. Shipping is included. No sales tax applied. Pricing subject to change and correction. This invoice reflects one stage of a multi-stage billing schedule. <b>Payments are non-refundable.</b>'
           : 'Contract is billed engineering first, then 45% / 45% / 10% of the remainder. Shipping is included in the contract. No sales tax applied. Pricing subject to change and correction. This invoice reflects one stage of a multi-stage billing schedule. <b>Payments are non-refundable.</b>'))
     +'</div>'
     +'</div>';
@@ -1181,6 +1303,158 @@ async function zkGenerateInvoicePdf(project, invoice){
   w.document.write('<!DOCTYPE html><html><head><meta charset="utf-8"><title>Invoice '+_esc(num)+' — '+_esc(stageName)+'</title></head><body style="margin:0; background:#fff;">'+html
     +'<div style="text-align:center; padding:20px;" class="noprint"><button onclick="window.print()" style="padding:10px 24px; font-size:14px; background:#d85a30; color:#fff; border:none; border-radius:8px; cursor:pointer;">Print / Save as PDF</button></div>'
     +'<style>@page{size:letter;margin:0.35in;}@media print{.noprint{display:none;}.invoice-page{padding:0!important;}body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}}</style></body></html>');
+  w.document.close();
+}
+
+/* ----- Special invoice (moved here from the old quote tool) ----- */
+// Opened from a project: prefilled with that buyer and logged with the project.
+// Opened from the top bar: not tied to a project; only the PDF is made.
+var _zkSpecialProject = null;
+
+function zkSpecialAddLine(desc, amt){
+  var box = document.getElementById('sp-lines');
+  var row = document.createElement('div');
+  row.className = 'sp-line';
+  row.innerHTML = '<input type="text" data-sp="desc" placeholder="What is it?" aria-label="Line description">'
+    + '<input type="number" data-sp="amt" step="any" placeholder="$" aria-label="Line amount">'
+    + '<button type="button" title="Remove" aria-label="Remove line">×</button>';
+  if(desc != null) row.querySelector('[data-sp="desc"]').value = desc;
+  if(amt != null)  row.querySelector('[data-sp="amt"]').value  = amt;
+  row.querySelectorAll('input').forEach(function(i){ i.addEventListener('input', _zkSpecialTotal); });
+  row.querySelector('button').addEventListener('click', function(){ row.remove(); _zkSpecialTotal(); });
+  box.appendChild(row);
+  _zkSpecialTotal();
+}
+function _zkSpecialLines(){
+  var items = [];
+  document.querySelectorAll('#sp-lines .sp-line').forEach(function(r){
+    var d = r.querySelector('[data-sp="desc"]').value.trim();
+    var raw = r.querySelector('[data-sp="amt"]').value.trim();
+    if(d || raw) items.push({ desc: d, amt: parseFloat(raw), raw: raw });
+  });
+  return items;
+}
+function _zkSpecialTotal(){
+  var t = _zkSpecialLines().reduce(function(a, c){ return a + (isFinite(c.amt) ? c.amt : 0); }, 0);
+  document.getElementById('sp-total').textContent = window.zkFmtMoney(t);
+  document.getElementById('sp-err').textContent = '';
+}
+
+async function zkOpenSpecialInvoice(projectId){
+  _zkSpecialProject = null;
+  var p = projectId ? (window._zkCurrentProject && window._zkCurrentProject.id === projectId ? window._zkCurrentProject : null) : null;
+  if(projectId && !p){ try { p = await zkQuotes.get(projectId); } catch(e){ p = null; } }
+  _zkSpecialProject = p;
+  function set(id, v){ document.getElementById(id).value = v || ''; }
+  set('sp-brand', (p && p.brand) || 'zipkit');
+  set('sp-num', ''); set('sp-date', new Date().toISOString().slice(0,10));
+  set('sp-cust', p ? p.buyer_name : ''); set('sp-email', p ? p.buyer_email : ''); set('sp-phone', p ? p.buyer_phone : '');
+  set('sp-project', p ? p.project_name : ''); set('sp-title', ''); set('sp-note', '');
+  document.getElementById('sp-lines').innerHTML = '';
+  zkSpecialAddLine();
+  document.getElementById('sp-lead').textContent = p
+    ? 'For anything outside the payment schedule: drafting, change work, credits. It\'s logged with ' + (p.buyer_name || p.quote_number) + '.'
+    : 'Not tied to a project. To keep it with a project\'s invoices, open the project\'s Invoices & Payments instead.';
+  document.getElementById('sp-go').textContent = p ? 'Log + create PDF' : 'Create PDF';
+  document.getElementById('sp-err').textContent = '';
+  document.getElementById('zk-special-overlay').style.display = 'flex';
+  _zkRepFromProfile();
+  document.getElementById('sp-title').focus();
+}
+function zkCloseSpecialInvoice(){ document.getElementById('zk-special-overlay').style.display = 'none'; }
+
+async function zkSubmitSpecialInvoice(){
+  var err = document.getElementById('sp-err');
+  var items = _zkSpecialLines();
+  var bad = items.filter(function(i){ return !i.desc || !isFinite(i.amt); });
+  if(!items.length){ err.textContent = 'Add at least one line with a description and an amount.'; return; }
+  if(bad.length){ err.textContent = 'Each line needs a description and an amount.'; return; }
+  var cust = document.getElementById('sp-cust').value.trim();
+  if(!cust){ err.textContent = 'Add who the invoice is for (Bill to).'; document.getElementById('sp-cust').focus(); return; }
+  var total = items.reduce(function(a, c){ return a + c.amt; }, 0);
+  var special = {
+    brand:   document.getElementById('sp-brand').value || 'zipkit',
+    title:   document.getElementById('sp-title').value.trim() || 'Special invoice',
+    note:    document.getElementById('sp-note').value.trim(),
+    cust:    cust,
+    project: document.getElementById('sp-project').value.trim(),
+    email:   document.getElementById('sp-email').value.trim(),
+    phone:   document.getElementById('sp-phone').value.trim(),
+    lines:   items.map(function(i){ return { desc: i.desc, amt: i.amt }; })
+  };
+  var num  = document.getElementById('sp-num').value.trim();
+  var date = document.getElementById('sp-date').value || new Date().toISOString().slice(0,10);
+  // Open the window during the click (pop-up blockers), then fill it.
+  var w = window.open('', '_blank');
+  if(!w){ err.textContent = 'Your browser blocked the new window. Allow pop-ups for this site, then try again.'; return; }
+  w.document.write(window.zkInvoiceLoadingHTML); w.document.close();
+  var rep = await _zkRepFromProfile();
+  var formRep = _zkRepFromForm(); if(formRep.name || formRep.email || formRep.phone) rep = formRep;
+  if(_zkSpecialProject){
+    try {
+      var updated = await zkQuotes.addInvoice(_zkSpecialProject.id, { number: num, description: special.title, amount: total, sent_date: date, stage_key: null, stage_name: null, special: special });
+      if(_zkPmtProjectId === _zkSpecialProject.id) _zkRenderProject(updated);
+      loadProjects();
+      zkToast('Special invoice logged');
+    } catch(e){
+      zkToast('Couldn\'t log it (' + (e.message || e) + '). The PDF still opened; log it again later.', true);
+    }
+  }
+  zkCloseSpecialInvoice();
+  await zkGenerateSpecialInvoicePdf(special, { number: num, date: date, rep: rep }, w);
+}
+
+// The special-invoice PDF. Same layout as the old quote tool's special invoice.
+async function zkGenerateSpecialInvoicePdf(sp, meta, w){
+  if(!w){
+    w = window.open('', '_blank');
+    if(!w){ zkToast('Please allow pop-ups to generate the invoice PDF.', true); return; }
+    w.document.write(window.zkInvoiceLoadingHTML); w.document.close();
+  }
+  var brand = sp.brand || 'zipkit';
+  var co  = window.zkBrandInfo[brand] || window.zkBrandInfo.zipkit;
+  var pay = window.zkPaymentInfo[brand] || window.zkPaymentInfo.zipkit;
+  var wire = await window.zkFetchWire(brand);
+  var fmt = window.zkFmtMoney, rep = meta.rep || {};
+  var total = (sp.lines || []).reduce(function(a, c){ return a + (Number(c.amt) || 0); }, 0);
+  var logoH = brand === 'mvp' ? 76 : 54;
+  var lineRows = (sp.lines || []).map(function(it){
+    return '<tr style="border-bottom:1px solid #e2e0d8;"><td style="padding:9px 0; font-size:13px;">' + _esc(it.desc) + '</td>'
+      + '<td style="padding:9px 0; text-align:right; font-size:14px; font-weight:500; white-space:nowrap;">' + fmt(it.amt) + '</td></tr>';
+  }).join('');
+  var html = ''
+    + '<div class="invoice-page" style="max-width:760px; margin:0 auto; font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif; color:#1c1c1a; padding:22px 24px;">'
+    + '<div style="display:flex; justify-content:space-between; align-items:flex-start; border-bottom:2px solid #1c1c1a; padding-bottom:12px;">'
+    + '<div><img src="images/' + co.logoFile + '" alt="' + _esc(co.name) + '" style="height:' + logoH + 'px;"><div style="font-size:11px; color:#5f5e5a; margin-top:6px; line-height:1.5;">' + _esc(co.addr) + '<br>' + _esc(co.tel) + ' &nbsp;|&nbsp; ' + _esc(co.email) + '</div></div>'
+    + '<div style="text-align:right;"><div style="font-size:26px; font-weight:700; letter-spacing:-0.02em;">INVOICE</div>'
+    + '<div style="font-size:12px; color:#5f5e5a; margin-top:4px; line-height:1.6;">Invoice #: <b>' + _esc(meta.number || '—') + '</b><br>Date: ' + _esc(meta.date) + '</div></div></div>'
+    + '<div style="display:flex; justify-content:space-between; margin-top:14px; font-size:12px;">'
+    + '<div><div style="color:#888; text-transform:uppercase; font-size:10px; letter-spacing:0.05em;">Bill to</div><div style="font-size:14px; font-weight:500; margin-top:2px;">' + _esc(sp.cust) + '</div>'
+    + (sp.email || sp.phone ? '<div style="color:#5f5e5a; font-size:11px; margin-top:2px; line-height:1.4;">' + [sp.email, sp.phone].filter(function(x){ return x; }).map(_esc).join('<br>') + '</div>' : '') + '</div>'
+    + (sp.project ? '<div style="text-align:right;"><div style="color:#888; text-transform:uppercase; font-size:10px; letter-spacing:0.05em;">Project</div><div style="font-size:14px; font-weight:500; margin-top:2px;">' + _esc(sp.project) + '</div></div>' : '')
+    + '</div>'
+    + (rep.name ? '<div style="margin-top:8px; padding-top:8px; border-top:1px solid #e2e0d8; display:flex; justify-content:space-between; font-size:11px;"><div><span style="color:#888; text-transform:uppercase; font-size:10px; letter-spacing:0.05em;">Sales rep</span> &nbsp;<b>' + _esc(rep.name) + '</b></div><div style="color:#5f5e5a;">' + [rep.email, rep.phone].filter(function(x){ return x; }).map(_esc).join(' &middot; ') + '</div></div>' : '')
+    + '<div style="margin-top:16px; font-size:14px; font-weight:600; color:#1c1c1a;">' + _esc(sp.title) + '</div>'
+    + (sp.note ? '<div style="margin-top:6px; font-size:12px; color:#5f5e5a; line-height:1.5; white-space:pre-wrap;">' + _esc(sp.note) + '</div>' : '')
+    + '<table style="width:100%; border-collapse:collapse; margin-top:14px; font-size:13px;">'
+    + '<tr style="border-bottom:2px solid #1c1c1a;"><td style="padding:6px 0; text-transform:uppercase; font-size:10px; letter-spacing:0.05em; color:#888;">Description</td><td style="padding:6px 0; text-align:right; text-transform:uppercase; font-size:10px; letter-spacing:0.05em; color:#888;">Amount</td></tr>'
+    + lineRows + '</table>'
+    + '<div style="display:flex; justify-content:flex-end; margin-top:10px;"><table style="font-size:13px; min-width:260px;"><tr><td style="padding:2px 0; color:#5f5e5a;">Amount due this invoice</td><td style="padding:2px 0; text-align:right; font-size:18px; font-weight:700;">' + fmt(total) + '</td></tr></table></div>'
+    + '<div style="margin-top:18px; page-break-inside:avoid; break-inside:avoid;">'
+    + '<div style="font-size:12px; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; border-bottom:2px solid #1c1c1a; padding-bottom:4px; margin-bottom:8px;">How to pay</div>'
+    + '<div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">'
+    + '<div style="border:1px solid #e2e0d8; border-radius:6px; padding:10px 12px; font-size:11px; line-height:1.45;"><div style="font-weight:600; font-size:12px; margin-bottom:6px;">Check</div>'
+    + '<div style="color:#888; text-transform:uppercase; font-size:9px; letter-spacing:0.05em;">Make payable to</div><div style="margin-bottom:6px;">' + _esc(pay.payable) + '</div>'
+    + '<div style="color:#888; text-transform:uppercase; font-size:9px; letter-spacing:0.05em;">Mail to</div><div>' + pay.mailing.map(_esc).join('<br>') + '</div></div>'
+    + '<div style="border:1px solid #e2e0d8; border-radius:6px; padding:10px 12px; font-size:11px; line-height:1.45;"><div style="font-weight:600; font-size:12px; margin-bottom:6px;">Wire transfer</div>'
+    + window.zkWireHTML(wire, co) + '</div>'
+    + '</div><div style="font-size:10px; color:#5f5e5a; margin-top:6px;">QuickBooks online payment also available — reply to this invoice and we\'ll send a payment link.</div></div>'
+    + '<div style="margin-top:14px; font-size:10px; color:#888; line-height:1.5; border-top:1px solid #e2e0d8; padding-top:8px;">Special / case-by-case invoice — not part of a standard contract payment schedule. Pricing reflects the specific scope described above. No sales tax applied. <b>Payments are non-refundable.</b> Contact your sales rep with any questions.</div>'
+    + '</div>';
+  w.document.open();
+  w.document.write('<!DOCTYPE html><html><head><meta charset="utf-8"><title>Special Invoice ' + _esc(meta.number || '') + ' — ' + _esc(sp.cust) + '</title><base href="' + _esc(new URL('.', location.href).href) + '"></head><body style="margin:0; background:#fff;">' + html
+    + '<div style="text-align:center; padding:20px;" class="noprint"><button onclick="window.print()" style="padding:10px 24px; font-size:14px; background:#d85a30; color:#fff; border:none; border-radius:8px; cursor:pointer;">Print / Save as PDF</button></div>'
+    + '<style>@page{size:letter;margin:0.35in;}@media print{.noprint{display:none;}.invoice-page{padding:0!important;}body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}}</style></body></html>');
   w.document.close();
 }
 

@@ -112,6 +112,70 @@ window.ZK_FLOW_EXTRA = async function(cat, W, h){
   var rp = W.ZKFlow.result(), pp = cap.contentDocument.documentElement.outerHTML;
   rec('Proposal applies the design-retainer promo credit', rp.promoCredit > 0 && pp.indexOf(W.ZKPricing.fmt(rp.displayedTotal)) !== -1 && pp.indexOf('Promo: design retainer credited toward engineering') !== -1, { credit: rp.promoCredit });
 
+  // 5. Quotes saved by the OLD tool reopen in the new tool at the same price.
+  //    Rows are made by the frozen old tool's own save code (tests/old-driver.js).
+  var oldFrame = document.createElement('iframe'); oldFrame.style.cssText = 'position:fixed;left:-5000px;width:1200px;height:900px';
+  document.body.appendChild(oldFrame);
+  await new Promise(function(res){ oldFrame.onload = function(){ setTimeout(res, 800); }; oldFrame.src = 'legacy/old-tool.html'; });
+  var OW = oldFrame.contentWindow; OW.alert = function(){};
+  var enabled = W.ZKFlow.enabledTypes;
+  var cases = window.ZK_PRICING_CASES(cat).filter(function(c){
+    var p = c.cfg.productId ? cat.products.filter(function(x){ return x.id === c.cfg.productId; })[0] : null;
+    return enabled.indexOf(c.cfg.type) !== -1 && (!p || p.status === 'active');
+  });
+  var reopenFails = [], reopened = 0, flaggedSteel = 0, steelLost = 0;
+  for(var ci = 0; ci < cases.length; ci++){
+    var cfg = cases[ci].cfg;
+    var row = window.ZK_OLD.oldRow(OW, cat, cfg, { name:'Old Buyer', project:'Old project', location:'Cedar City, UT', email:'old@example.com', phone:'435-555-0199' });
+    rows.push(row);
+    await W.ZKFlow.openSaved(row.id);
+    var st = W.ZKFlow.state, res = W.ZKFlow.result();
+    var note = (st.ui.loadNote && st.ui.loadNote.html) || '';
+    var lostSteelLines = cfg.type === 'steel' && (cfg.customLines || []).some(function(l){ return String(l.desc).trim() || String(l.amount).trim(); });
+    var sameAsm = JSON.stringify(res && res.quote.assembly || null) === JSON.stringify(row.quote_data.assembly || null);
+    if(lostSteelLines){
+      steelLost++;
+      // Old tool bug: steel add-ons were never saved. The new tool must say the price differs.
+      if(note.indexOf('Price check') !== -1) flaggedSteel++;
+      else reopenFails.push({ name: cases[ci].name, why: 'steel add-ons lost but no price-check banner' });
+      continue;
+    }
+    var okCase = st.step === 'review' && res && Math.round(res.total) === Math.round(row.total) && Math.round(res.contract) === Math.round(row.contract_amount)
+      && st.customer.name === 'Old Buyer' && st.customer.city === 'Cedar City' && st.customer.state === 'UT' && sameAsm
+      && note.indexOf('Saved by the old quote tool') !== -1 && note.indexOf('Price check') === -1;
+    if(okCase) reopened++;
+    else reopenFails.push({ name: cases[ci].name, step: st.step, newTotal: res && Math.round(res.total), oldTotal: Math.round(row.total), asm: [res && res.quote.assembly, row.quote_data.assembly], customer: st.customer, note: note.slice(0, 300) });
+  }
+  rec('Old-tool quotes reopen in the new tool at the same price, buyer and assembly (' + reopened + ' of ' + (cases.length - steelLost) + ')', reopenFails.length === 0, reopenFails.slice(0, 5));
+  rec('Old-tool steel quotes whose add-ons the old tool lost show a price-check warning (' + flaggedSteel + ' of ' + steelLost + ')', flaggedSteel === steelLost, 'see above');
+
+  // 6. A quote saved by the NEW tool reopens exactly (every type).
+  var newFails = [];
+  for(var ni = 0; ni < samples.length; ni++){
+    await quoteFor(samples[ni]);
+    var before = W.ZKFlow.result(), cfgBefore = JSON.stringify(W.ZKFlow.state.cfg);
+    var savedRow = await W.zkQuotes.save(W.ZKStore.buildRow(C, W.ZKFlow.state, before, before.schedule));
+    W.ZKFlow.newQuote();
+    await W.ZKFlow.openSaved(savedRow.id);
+    var after = W.ZKFlow.result();
+    if(!(after && Math.round(after.total) === Math.round(before.total) && JSON.stringify(W.ZKFlow.state.cfg) === cfgBefore && W.ZKFlow.state.saved.id === savedRow.id))
+      newFails.push({ type: samples[ni].type, before: Math.round(before.total), after: after && Math.round(after.total) });
+  }
+  rec('New-tool quotes reopen exactly (all six types)', newFails.length === 0, newFails);
+
+  // 7. A quote that already has invoices is saved as a new copy, never overwritten (Q8).
+  await quoteFor({ type:'shell', productId:'alpine' });
+  var r7 = W.ZKFlow.result();
+  var withInv = await W.zkQuotes.save(W.ZKStore.buildRow(C, W.ZKFlow.state, r7, r7.schedule));
+  withInv.invoices = [{ id:'inv-1', amount: 2500, stage_key:'design' }];
+  rows.filter(function(x){ return x.id === withInv.id; })[0].invoices = withInv.invoices;
+  await W.ZKFlow.openSaved(withInv.id);
+  var countBefore = rows.length;
+  W.document.querySelector('[data-save]').click();
+  await settle();
+  rec('Saving a quote that has invoices makes a new copy (the invoiced one is untouched)', rows.length === countBefore + 1 && W.ZKFlow.state.saved.id !== withInv.id, { rows: rows.length, before: countBefore });
+
+  oldFrame.remove();
   W.open = realOpen;
   cg.remove(); cap.remove();
   return results;
