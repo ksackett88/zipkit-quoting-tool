@@ -245,3 +245,6 @@ button { font-family: inherit; }
   .topbar, .actions, .no-print { display: none !important; }
   body { background: #fff; }
 }
+
+/* Project details (steel kit, custom home): room for the full placeholder. */
+.freeform .inline input[type=number] { max-width: 220px; }

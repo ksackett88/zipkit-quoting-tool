@@ -6,7 +6,7 @@
   var fmt = function(n){ return P.fmt(n); };
 
   // Product types switched on in the new tool (added one at a time).
-  var ENABLED_TYPES = ['shell'];
+  var ENABLED_TYPES = ['shell', 'steel'];
 
   var STEPS = [
     { id:'customer', label:'Customer' },
@@ -160,7 +160,8 @@
 
   function renderProduct(){
     var types = cat.activeTypes(ENABLED_TYPES);
-    var h = '<h1 class="step-title">What are they buying?</h1><p class="step-lead">Pick a model. You can change it later.</p>';
+    var lead = O.hasProjectStep(state.type) ? 'Enter the numbers from the estimator.' : 'Pick a model. You can change it later.';
+    var h = '<h1 class="step-title">What are they buying?</h1><p class="step-lead">' + lead + '</p>';
     if(types.length > 1){
       h += '<div class="toolbar"><div class="type-tabs" role="tablist">' + types.map(function(t){
         return '<button type="button" class="type-tab' + (t === state.type ? ' on' : '') + '" role="tab" aria-selected="' + (t === state.type) + '" data-type="' + t + '">' + cat.typeLabel(t) + '</button>';
@@ -468,9 +469,20 @@
     });
   }
 
+  // Clear everything and start over at the Customer step.
+  function newQuote(){
+    state.step = 'customer'; state.reached = 0;
+    state.customer = { name:'', project:'', city:'', state:'', email:'', phone:'' };
+    state.type = cat.activeTypes(ENABLED_TYPES)[0]; state.search = '';
+    state.cfg = null; state.ui = { moreOpen:false, adjustOpen:false }; state.shownErrors = {};
+    state.saved = null;
+    render(); window.scrollTo(0, 0);
+  }
+
   root.ZKFlow = {
     state: state,
     go: go,
+    newQuote: newQuote,
     result: currentResult,
     enabledTypes: ENABLED_TYPES,
     // Test helper: hide the sign-in screen on a local test server only.

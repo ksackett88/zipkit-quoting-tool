@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Screen check</title>
+<style>
+  :root { --ink:#17150f; --muted:#6a6459; --line:#e6e2d6; --ok:#0e6b53; --ok-bg:#dceee6; --bad:#a33526; --bad-bg:#f7e1dc; }
+  body { margin:0; padding:24px 16px; font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; color:var(--ink); background:#faf8f0; }
+  main { max-width:960px; margin:0 auto; }
+  h1 { font-size:22px; margin:0 0 4px; }
+  p { color:var(--muted); margin:0 0 16px; }
+  #status { padding:14px 16px; border-radius:10px; font-weight:600; font-size:16px; background:#fff; border:1px solid var(--line); }
+  #status.ok { background:var(--ok-bg); color:var(--ok); border-color:var(--ok); }
+  #status.bad { background:var(--bad-bg); color:var(--bad); border-color:var(--bad); }
+  table { width:100%; border-collapse:collapse; margin-top:16px; background:#fff; font-size:13px; }
+  th, td { text-align:left; padding:6px 8px; border-bottom:1px solid var(--line); }
+  td.n { text-align:right; }
+  pre { white-space:pre-wrap; font-size:12px; }
+  #app { position:fixed; left:-5000px; top:0; width:1200px; height:900px; border:0; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Screen check</h1>
+  <p>Fills in the new quote tool's real form fields for the same sample quotes as the pricing check, and checks the price on screen equals <code>js/pricing.js</code> for those choices. (The pricing check proves <code>js/pricing.js</code> equals the old tool.) Also checks the extra tests listed at the bottom. Run on a local server, or on the live site while signed in.</p>
+  <div id="status">Running…</div>
+  <table><thead><tr><th>Product type</th><th class="n">Checked</th><th class="n">Pass</th><th class="n">Skipped (form wouldn't allow it)</th></tr></thead><tbody id="summary"></tbody></table>
+  <div id="failures"></div>
+</main>
+<iframe id="app" title="quote tool (hidden)"></iframe>
+<script src="../js/pricing.js"></script>
+<script src="pricing-cases.js"></script>
+<script src="flow-extra.js"></script>
+<script>
+(function(){
+  'use strict';
+  var frame = document.getElementById('app');
+  // Yield without a timer: browsers throttle timers in background tabs (down to
+  // one per minute), which made this check crawl.
+  function sleep(ms){ return ms ? new Promise(function(r){ setTimeout(r, ms); }) : Promise.resolve(); }
+  function fire(el, type){ el.dispatchEvent(new Event(type, { bubbles:true })); }
+  function setVal(el, v){ el.value = v == null ? '' : v; fire(el, 'input'); fire(el, 'change'); }
+
+  var SIMPLE = ['units','garageUse','designTier','miles','snow','assembly','windows','discountPct','shipRate','dryin','designPaid','engineeringPaid','mirroredEngineering','promo','scope'];
+  var PROJECT = ['projectName','buildCost','engineering','sqft'];
+
+  function q(W, sel){ return W.document.querySelector(sel); }
+  function qa(W, sel){ return Array.prototype.slice.call(W.document.querySelectorAll(sel)); }
+
+  function setKey(W, key, v){
+    var els = qa(W, '[data-key="' + key + '"]');
+    if(!els.length) return false;
+    var kind = els[0].getAttribute('data-kind');
+    if(kind === 'choice'){
+      var r = els.filter(function(e){ return e.value === String(v); })[0]; if(!r) return false;
+      r.checked = true; fire(r, 'change'); return true;
+    }
+    if(kind === 'bool'){ els[0].checked = !!v; fire(els[0], 'change'); return true; }
+    setVal(els[0], v); return true;
+  }
+
+  // Drive the real screens. Returns { skipped: reason } or { result, cfg }.
+  async function fill(W, cfg){
+    var F = W.ZKFlow;
+    F.newQuote();
+    setVal(q(W, '[data-cust="name"]'), 'Screen Check');
+    F.go('product'); await sleep(0);
+    if(F.state.step !== 'product') return { skipped:'customer step blocked' };
+    var tab = q(W, '[data-type="' + cfg.type + '"]');
+    if(F.state.type !== cfg.type){ if(!tab) return { skipped:'type not switched on' }; tab.click(); }
+    if(cfg.productId){
+      var card = q(W, '[data-product="' + cfg.productId + '"]'); if(!card) return { skipped:'model not offered' };
+      card.click();
+    } else {
+      PROJECT.forEach(function(k){ if(cfg[k] !== undefined) setKey(W, k, cfg[k]); });
+      F.go('options');
+    }
+    await sleep(0);
+    if(F.state.step !== 'options') return { skipped:'product step blocked (form requires it)' };
+    // Units first: it decides which other controls appear.
+    if(cfg.units !== undefined) setKey(W, 'units', cfg.units);
+    SIMPLE.forEach(function(k){ if(k !== 'units' && cfg[k] !== undefined && cfg[k] !== null) setKey(W, k, cfg[k]); });
+    if(cfg.windows === null) setKey(W, 'windows', '');
+    (cfg.addons || []).forEach(function(id){ var c = q(W, '[data-addon="' + id + '"]'); if(c){ c.checked = true; fire(c, 'change'); } });
+    (cfg.customLines || []).forEach(function(l, i){
+      q(W, '[data-add-line]').click();
+      setVal(q(W, '[data-line="' + i + '"][data-part="desc"]'), l.desc);
+      setVal(q(W, '[data-line="' + i + '"][data-part="amount"]'), l.amount);
+    });
+    if(cfg.customSchedule && cfg.customSchedule.length){
+      cfg.customSchedule.forEach(function(s, i){
+        q(W, '[data-sched-add]').click();
+        setVal(q(W, '[data-sched="' + i + '"][data-part="name"]'), s.name);
+        setVal(q(W, '[data-sched="' + i + '"][data-part="pct"]'), s.pct);
+        setVal(q(W, '[data-sched="' + i + '"][data-part="desc"]'), s.desc);
+      });
+    }
+    var adj = cfg.adjustments || {};
+    var keys = Object.keys(adj);
+    if(keys.length){
+      if(!q(W, '.adjust-box')) q(W, '[data-adjust-toggle]').click();
+      keys.forEach(function(k){
+        var a = q(W, '[data-adj="' + k + '"][data-part="amount"]');
+        if(!a) return;   // not offered on this screen (e.g. window price with no package)
+        setVal(a, adj[k].amount);
+        setVal(q(W, '[data-adj="' + k + '"][data-part="reason"]'), 'screen check');
+      });
+    }
+    return { result: F.result(), cfg: F.state.cfg };
+  }
+
+  function facts(r){
+    return { total: Math.round(r.total), contract: Math.round(r.contract), displayed: Math.round(r.displayedTotal),
+      lines: r.lines.map(function(l){ return [l.label, l.kind, l.kind === 'note' ? l.text : Math.round(l.amount), l.sub]; }),
+      model: r.quote.model, units: r.quote.units };
+  }
+
+  async function run(cat, W){
+    var enabled = W.ZKFlow.enabledTypes;
+    var cases = window.ZK_PRICING_CASES(cat).filter(function(c){ return enabled.indexOf(c.cfg.type) !== -1; });
+    var byType = {}, failures = [];
+    for(var i = 0; i < cases.length; i++){
+      var c = cases[i], t = c.cfg.type;
+      window.ZK_FLOW_PROGRESS = (i + 1) + ' / ' + cases.length + ' — ' + c.name;
+      document.getElementById('status').textContent = 'Running… ' + window.ZK_FLOW_PROGRESS;
+      byType[t] = byType[t] || { n:0, pass:0, skip:0 };
+      var out;
+      try { out = await fill(W, c.cfg); } catch(e){ out = { error: String(e && e.stack || e) }; }
+      if(out.skipped){ byType[t].skip++; continue; }
+      byType[t].n++;
+      if(out.error){ failures.push({ name:c.name, problem:out.error }); continue; }
+      var expected = facts(window.ZKPricing.price(cat, c.cfg));
+      var got = facts(out.result);
+      var shown = (q(W, '#summary .t-value') || {}).textContent;
+      var problems = [];
+      if(JSON.stringify(expected) !== JSON.stringify(got)) problems.push({ expected: expected, screen: got });
+      if(shown !== window.ZKPricing.fmt(expected.total)) problems.push({ shownTotal: shown, expected: window.ZKPricing.fmt(expected.total) });
+      var st1 = JSON.stringify(window.ZKPricing.schedule(cat, window.ZKPricing.price(cat, c.cfg)).map(function(s){ return [s.key, Math.round(s.amount)]; }));
+      var st2 = JSON.stringify(out.result.schedule.map(function(s){ return [s.key, Math.round(s.amount)]; }));
+      if(st1 !== st2) problems.push({ schedule: { expected: st1, screen: st2 } });
+      if(problems.length) failures.push({ name:c.name, problem:problems }); else byType[t].pass++;
+    }
+    var extra = window.ZK_FLOW_EXTRA ? await window.ZK_FLOW_EXTRA(cat, W, { fill: fill, sleep: sleep, setVal: setVal, q: q, qa: qa, fire: fire }) : [];
+    extra.forEach(function(x){ if(!x.pass) failures.push({ name:'Extra: ' + x.name, problem:x.detail || 'failed' }); });
+    return { byType: byType, failures: failures, extra: extra };
+  }
+
+  function show(res){
+    var checked = 0, pass = 0;
+    Object.keys(res.byType).forEach(function(t){ checked += res.byType[t].n; pass += res.byType[t].pass; });
+    var ex = res.extra.length, exPass = res.extra.filter(function(x){ return x.pass; }).length;
+    var ok = !res.failures.length;
+    var s = document.getElementById('status');
+    s.className = ok ? 'ok' : 'bad';
+    s.textContent = (ok ? 'PASS: ' : 'FAIL: ') + pass + ' of ' + checked + ' screen quotes match, ' + exPass + ' of ' + ex + ' extra tests pass.';
+    document.title = (ok ? 'PASS ' : 'FAIL ') + pass + '/' + checked + ' + ' + exPass + '/' + ex;
+    document.getElementById('summary').innerHTML = Object.keys(res.byType).map(function(t){
+      var b = res.byType[t]; return '<tr><td>' + t + '</td><td class="n">' + b.n + '</td><td class="n">' + b.pass + '</td><td class="n">' + b.skip + '</td></tr>';
+    }).join('') + res.extra.map(function(x){ return '<tr><td colspan="4">' + (x.pass ? '✓ ' : '✗ ') + x.name + '</td></tr>'; }).join('');
+    document.getElementById('failures').innerHTML = res.failures.slice(0, 20).map(function(f){
+      return '<h3>' + f.name + '</h3><pre>' + JSON.stringify(f.problem, null, 1).replace(/</g, '&lt;') + '</pre>';
+    }).join('');
+  }
+
+  Promise.all([
+    fetch('../data/catalog.json', { cache:'no-store' }).then(function(r){ return r.json(); }),
+    new Promise(function(resolve){
+      frame.onload = function(){
+        var W = frame.contentWindow;
+        (function wait(){ if(W.ZKFlow && W.document.querySelector('[data-cust="name"]')) resolve(W); else setTimeout(wait, 100); })();
+      };
+      frame.src = '../quote.html';
+    })
+  ]).then(function(v){
+    var W = v[1];
+    W.ZKFlow._unlockForTests();
+    return run(v[0], W);
+  }).then(function(res){ window.ZK_FLOW_RESULT = res; show(res); })
+    .catch(function(e){ var s = document.getElementById('status'); s.className = 'bad'; s.textContent = 'Could not run: ' + e; document.title = 'ERROR'; window.ZK_FLOW_RESULT = { error: String(e) }; });
+})();
+</script>
+</body>
+</html>
