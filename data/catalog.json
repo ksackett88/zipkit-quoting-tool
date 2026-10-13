@@ -1,0 +1,1635 @@
+{
+  "schema_version": 1,
+  "updated": "2026-10-13",
+  "note": "Prices and brand facts for the quote tool. See data/README.md before editing.",
+  "brands": {
+    "zipkit": {
+      "active": true,
+      "name": "Zip Kit Homes",
+      "legal_name": "Zip Kit Homes, LLC",
+      "logo": "images/zk-logo.png",
+      "address": "3665 West 2700 South, Cedar City UT 84721",
+      "phone": "(435) 340·1171",
+      "email": "sales@zipkithomes.com",
+      "colors": {
+        "main": "#d85a30",
+        "dark": "#993c1d"
+      },
+      "has_design_retainer": true,
+      "assembly": {
+        "offered": true,
+        "by": "Zip Kit Assembly LLC",
+        "rate": 0.1
+      },
+      "payment_account": "zipkit"
+    },
+    "zksteel": {
+      "active": true,
+      "parent": "zipkit",
+      "name": "Zip Kit Steel",
+      "legal_name": "Zip Kit Homes, LLC",
+      "logo": "images/zksteel-logo.png",
+      "address": "3665 West 2700 South, Cedar City UT 84721",
+      "phone": "(435) 340·1171",
+      "email": "sales@zipkitsteel.com",
+      "colors": {
+        "main": "#d85a30",
+        "dark": "#993c1d"
+      },
+      "has_design_retainer": true,
+      "assembly": {
+        "offered": true,
+        "by": "Zip Kit Assembly LLC",
+        "rate": 0.1
+      },
+      "payment_account": "zipkit"
+    },
+    "mvp": {
+      "active": false,
+      "parked": true,
+      "note": "Parked until Sven has numbers. Not shown in the quote tool.",
+      "name": "Mountain Valley Prefab",
+      "legal_name": "Mountain Valley Prefab, LLC",
+      "logo": "images/mvp-logo.png",
+      "address": "3791 East 49th North, Idaho Falls ID 83401",
+      "phone": "208-970-6904",
+      "email": "sales@mountainvalleyprefab.com",
+      "colors": {
+        "main": "#2f5d4a",
+        "dark": "#1f3f32"
+      },
+      "has_design_retainer": false,
+      "assembly": {
+        "offered": false
+      },
+      "service_states": [
+        "UT",
+        "ID",
+        "MT",
+        "WY"
+      ],
+      "payment_account": "mvp"
+    }
+  },
+  "payment_schedules": {
+    "zk_kit_standard": {
+      "label": "Design, then engineering, then 45% / 45% / 10%",
+      "stages": [
+        {
+          "key": "design",
+          "name": "Design",
+          "from": "design",
+          "desc": "Architectural design fee · due at project start"
+        },
+        {
+          "key": "engineering",
+          "name": "Engineering",
+          "from": "engineering",
+          "desc": "Full submittal engineering · due after contract signing"
+        },
+        {
+          "key": "materials",
+          "name": "Materials (45%)",
+          "pct": 45,
+          "desc": "45% of contract · due after engineering"
+        },
+        {
+          "key": "preship",
+          "name": "Pre-ship (45%)",
+          "pct": 45,
+          "desc": "45% of contract · due when kit ready to ship"
+        },
+        {
+          "key": "final",
+          "name": "Final set (10%)",
+          "pct": 10,
+          "desc": "10% of contract · due when set on site",
+          "absorbs_rounding": true
+        }
+      ]
+    },
+    "custom_home_default": {
+      "label": "Custom Home editable schedule (starting point)",
+      "stages": [
+        {
+          "name": "Materials",
+          "pct": 45,
+          "desc": "45% of contract · due after engineering"
+        },
+        {
+          "name": "Pre-ship",
+          "pct": 45,
+          "desc": "45% of contract · due before shipment"
+        },
+        {
+          "name": "Final set",
+          "pct": 10,
+          "desc": "10% of contract · due on set"
+        }
+      ]
+    },
+    "zk_modular": {
+      "label": "5 / 30 / 30 / 30 / 5 (same wording as the modular contract)",
+      "stages": [
+        {
+          "key": "pay1",
+          "name": "Payment 1 — Design & Engineering (5%)",
+          "pct": 5,
+          "desc": "At project start — drafting, coordination, and project setup."
+        },
+        {
+          "key": "pay2",
+          "name": "Payment 2 — Materials & Production (30%)",
+          "pct": 30,
+          "desc": "Once plans are approved — secures materials and the factory production slot."
+        },
+        {
+          "key": "pay3",
+          "name": "Payment 3 — Construction Begins (30%)",
+          "pct": 30,
+          "desc": "Factory fabrication commences."
+        },
+        {
+          "key": "pay4",
+          "name": "Payment 4 — Factory Completion (30%)",
+          "pct": 30,
+          "desc": "Unit complete and ready for transport."
+        },
+        {
+          "key": "final",
+          "name": "Payment 5 — Set & Completion (5%)",
+          "pct": 5,
+          "desc": "After delivery and set on the foundation.",
+          "absorbs_rounding": true
+        }
+      ]
+    }
+  },
+  "product_types": {
+    "shell": {
+      "label": "Panelized Kit",
+      "brand": "zipkit",
+      "schedule": "zk_kit_standard",
+      "design_fee": 2500,
+      "ships_from": "Cedar City, UT",
+      "window_packages": [
+        {
+          "id": "cascade_clay_white",
+          "label": "Cascade WinPro Vinyl — Clay/White"
+        },
+        {
+          "id": "cascade_black_white",
+          "label": "Cascade WinPro Vinyl — Black/White"
+        },
+        {
+          "id": "amsco_studios",
+          "label": "Amsco Studios"
+        },
+        {
+          "id": "andersen_100",
+          "label": "Andersen 100 Series"
+        }
+      ],
+      "snow_tiers": {
+        "standard": "Standard (up to 35 PSF) — included",
+        "tier1": "35 to 100 PSF",
+        "tier2": "Up to 250 PSF"
+      },
+      "mirrored_engineering_rate": 0.5
+    },
+    "modular": {
+      "label": "Modular",
+      "brand": "zipkit",
+      "schedule": "zk_modular",
+      "assembly_shell_fraction": 0.85,
+      "service_states": [
+        "UT",
+        "ID",
+        "MT",
+        "WY"
+      ],
+      "note": "Complete modular only. Ships to UT, ID, MT and WY only. No ship-from city on documents until Sven confirms (Q4)."
+    },
+    "garage": {
+      "label": "Garage",
+      "brand": "zipkit",
+      "schedule": "zk_kit_standard",
+      "ships_from": "Cedar City, UT",
+      "design_fee": {
+        "standalone": 1125,
+        "bundled": 562
+      },
+      "ship_per_mile": {
+        "bundled": 6,
+        "standalone": 14,
+        "standalone_over_600_miles": 16
+      }
+    },
+    "hangar": {
+      "label": "Hangar",
+      "brand": "zksteel",
+      "schedule": "zk_kit_standard",
+      "design_fee": 2500,
+      "ship_per_mile": 12,
+      "ships_from": "Cedar City, UT"
+    },
+    "steel": {
+      "label": "Steel Kit",
+      "brand": "zksteel",
+      "schedule": "zk_kit_standard",
+      "design_fee": 2500,
+      "default_ship_per_mile": 14,
+      "ships_from": "Cedar City, UT"
+    },
+    "custom": {
+      "label": "Custom Home",
+      "brand": "zipkit",
+      "schedule": "zk_kit_standard",
+      "design_tiers": {
+        "standard": 2500,
+        "custom": 3500
+      },
+      "default_design_tier": "custom",
+      "default_ship_per_mile": 18,
+      "ships_from": "Cedar City, UT",
+      "editable_schedule": "custom_home_default"
+    }
+  },
+  "products": [
+    {
+      "id": "big-sky",
+      "name": "Big Sky",
+      "type": "shell",
+      "brands": [
+        "zipkit"
+      ],
+      "status": "active",
+      "sqft": 640,
+      "sqft_label": "640",
+      "photo": "photos/bigsky.jpg",
+      "legacy_index": {
+        "shell": 0
+      },
+      "pricing": {
+        "zipkit": {
+          "shell_kit": 51875,
+          "engineering": 6925,
+          "snow": {
+            "tier1": 7150,
+            "tier2": 14965
+          },
+          "ship_per_mile": 14,
+          "windows": {
+            "cascade_clay_white": 6750,
+            "cascade_black_white": 9850,
+            "amsco_studios": 11600,
+            "andersen_100": 17550
+          }
+        }
+      }
+    },
+    {
+      "id": "bridger",
+      "name": "Bridger",
+      "type": "shell",
+      "brands": [
+        "zipkit"
+      ],
+      "status": "active",
+      "sqft": 800,
+      "sqft_label": "800",
+      "photo": "photos/bridger.jpg",
+      "legacy_index": {
+        "shell": 1
+      },
+      "pricing": {
+        "zipkit": {
+          "shell_kit": 71288,
+          "engineering": 7140,
+          "snow": {
+            "tier1": 7225,
+            "tier2": 14257
+          },
+          "ship_per_mile": 14,
+          "windows": {
+            "cascade_clay_white": 3400,
+            "cascade_black_white": 4900,
+            "amsco_studios": 6150,
+            "andersen_100": 9846
+          }
+        }
+      }
+    },
+    {
+      "id": "tahoe",
+      "name": "Tahoe",
+      "type": "shell",
+      "brands": [
+        "zipkit"
+      ],
+      "status": "active",
+      "sqft": 1000,
+      "sqft_label": "1,000",
+      "photo": "photos/tahoe.jpg",
+      "legacy_index": {
+        "shell": 2
+      },
+      "pricing": {
+        "zipkit": {
+          "shell_kit": 67145,
+          "engineering": 6750,
+          "snow": {
+            "tier1": 6675,
+            "tier2": 13400
+          },
+          "ship_per_mile": 14,
+          "windows": {
+            "cascade_clay_white": 7450,
+            "cascade_black_white": 10800,
+            "amsco_studios": 12775,
+            "andersen_100": 19370
+          }
+        }
+      }
+    },
+    {
+      "id": "sequoia",
+      "name": "Sequoia",
+      "type": "shell",
+      "brands": [
+        "zipkit"
+      ],
+      "status": "active",
+      "sqft": 977,
+      "sqft_label": "977",
+      "photo": "photos/sequoia.jpg",
+      "legacy_index": {
+        "shell": 3
+      },
+      "pricing": {
+        "zipkit": {
+          "shell_kit": 87100,
+          "engineering": 8120,
+          "snow": {
+            "tier1": 8710,
+            "tier2": 17420
+          },
+          "ship_per_mile": 16,
+          "windows": {
+            "cascade_clay_white": 8723,
+            "cascade_black_white": 12648,
+            "amsco_studios": 14950,
+            "andersen_100": 22678
+          }
+        }
+      }
+    },
+    {
+      "id": "frontier",
+      "name": "Frontier",
+      "type": "shell",
+      "brands": [
+        "zipkit"
+      ],
+      "status": "active",
+      "sqft": 1044,
+      "sqft_label": "1,044",
+      "photo": "photos/frontier.jpg",
+      "legacy_index": {
+        "shell": 4
+      },
+      "pricing": {
+        "zipkit": {
+          "shell_kit": 74225,
+          "engineering": 6190,
+          "snow": {
+            "tier1": 7650,
+            "tier2": 15675
+          },
+          "ship_per_mile": 14,
+          "windows": {
+            "cascade_clay_white": 6200,
+            "cascade_black_white": 9500,
+            "amsco_studios": 11375,
+            "andersen_100": 17485
+          }
+        }
+      }
+    },
+    {
+      "id": "clyde",
+      "name": "Clyde",
+      "type": "shell",
+      "brands": [
+        "zipkit"
+      ],
+      "status": "active",
+      "sqft": 1198,
+      "sqft_label": "1,198",
+      "photo": "photos/clyde1.jpg",
+      "legacy_index": {
+        "shell": 5
+      },
+      "pricing": {
+        "zipkit": {
+          "shell_kit": 82260,
+          "engineering": 8175,
+          "snow": {
+            "tier1": 7985,
+            "tier2": 16050
+          },
+          "ship_per_mile": 14,
+          "windows": {
+            "cascade_clay_white": 6350,
+            "cascade_black_white": 9225,
+            "amsco_studios": 10900,
+            "andersen_100": 16540
+          }
+        }
+      }
+    },
+    {
+      "id": "birch",
+      "name": "Birch",
+      "type": "shell",
+      "brands": [
+        "zipkit"
+      ],
+      "status": "active",
+      "sqft": 1284,
+      "sqft_label": "1,284",
+      "photo": "photos/birch1.jpg",
+      "legacy_index": {
+        "shell": 6
+      },
+      "pricing": {
+        "zipkit": {
+          "shell_kit": 102595,
+          "engineering": 6750,
+          "snow": {
+            "tier1": 9680,
+            "tier2": 18363
+          },
+          "ship_per_mile": 16,
+          "windows": {
+            "cascade_clay_white": 9264,
+            "cascade_black_white": 13423,
+            "amsco_studios": 15950,
+            "andersen_100": 24085
+          }
+        }
+      }
+    },
+    {
+      "id": "willow",
+      "name": "Willow",
+      "type": "shell",
+      "brands": [
+        "zipkit"
+      ],
+      "status": "active",
+      "sqft": 1290,
+      "sqft_label": "1,290–1,536",
+      "photo": "photos/willow3.jpg",
+      "legacy_index": {
+        "shell": 7
+      },
+      "pricing": {
+        "zipkit": {
+          "shell_kit": 72850,
+          "engineering": 6320,
+          "snow": {
+            "tier1": 7650,
+            "tier2": 15865
+          },
+          "ship_per_mile": 14,
+          "windows": {
+            "cascade_clay_white": 9100,
+            "cascade_black_white": 13900,
+            "amsco_studios": 16550,
+            "andersen_100": 25275
+          }
+        }
+      }
+    },
+    {
+      "id": "bozeman",
+      "name": "Bozeman",
+      "type": "shell",
+      "brands": [
+        "zipkit"
+      ],
+      "status": "active",
+      "sqft": 1403,
+      "sqft_label": "1,403",
+      "photo": "photos/bozeman1.jpg",
+      "legacy_index": {
+        "shell": 8
+      },
+      "pricing": {
+        "zipkit": {
+          "shell_kit": 103600,
+          "engineering": 9945,
+          "snow": {
+            "tier1": 10775,
+            "tier2": 21600
+          },
+          "ship_per_mile": 14,
+          "windows": {
+            "cascade_clay_white": 11500,
+            "cascade_black_white": 17250,
+            "amsco_studios": 19950,
+            "andersen_100": 29550
+          }
+        }
+      }
+    },
+    {
+      "id": "sunstone",
+      "name": "Sunstone",
+      "type": "shell",
+      "brands": [
+        "zipkit"
+      ],
+      "status": "active",
+      "sqft": 1471,
+      "sqft_label": "1,471",
+      "photo": "photos/sunstone1.jpg",
+      "legacy_index": {
+        "shell": 9
+      },
+      "pricing": {
+        "zipkit": {
+          "shell_kit": 89550,
+          "engineering": 6400,
+          "snow": {
+            "tier1": 10884,
+            "tier2": 21768
+          },
+          "ship_per_mile": 16,
+          "windows": {
+            "cascade_clay_white": 6750,
+            "cascade_black_white": 10250,
+            "amsco_studios": 12150,
+            "andersen_100": 18450
+          }
+        }
+      }
+    },
+    {
+      "id": "bluebell",
+      "name": "Bluebell",
+      "type": "shell",
+      "brands": [
+        "zipkit"
+      ],
+      "status": "active",
+      "sqft": 1536,
+      "sqft_label": "1,536",
+      "photo": "photos/bluebell2.jpg",
+      "legacy_index": {
+        "shell": 10
+      },
+      "pricing": {
+        "zipkit": {
+          "shell_kit": 134120,
+          "engineering": 10510,
+          "snow": {
+            "tier1": 11410,
+            "tier2": 18850
+          },
+          "ship_per_mile": 18,
+          "windows": {
+            "cascade_clay_white": 7535,
+            "cascade_black_white": 12055,
+            "amsco_studios": 13185,
+            "andersen_100": 21328
+          }
+        }
+      }
+    },
+    {
+      "id": "oakley",
+      "name": "Oakley",
+      "aliases": [
+        "Shasta"
+      ],
+      "type": "shell",
+      "brands": [
+        "zipkit"
+      ],
+      "status": "active",
+      "sqft": 1590,
+      "sqft_label": "1,590",
+      "photo": "photos/shasta.jpg",
+      "legacy_index": {
+        "shell": 11
+      },
+      "pricing": {
+        "zipkit": {
+          "shell_kit": 96225,
+          "engineering": 8475,
+          "snow": {
+            "tier1": 12400,
+            "tier2": 24875
+          },
+          "ship_per_mile": 16,
+          "windows": {
+            "cascade_clay_white": 10300,
+            "cascade_black_white": 15100,
+            "amsco_studios": 17675,
+            "andersen_100": 26550
+          }
+        }
+      }
+    },
+    {
+      "id": "ozark",
+      "name": "Ozark",
+      "aliases": [
+        "Summit"
+      ],
+      "type": "shell",
+      "brands": [
+        "zipkit"
+      ],
+      "status": "active",
+      "sqft": 1793,
+      "sqft_label": "1,793",
+      "photo": "photos/summit.jpg",
+      "legacy_index": {
+        "shell": 12
+      },
+      "pricing": {
+        "zipkit": {
+          "shell_kit": 102900,
+          "engineering": 9560,
+          "snow": {
+            "tier1": 10290,
+            "tier2": 20580
+          },
+          "ship_per_mile": 16,
+          "windows": {
+            "cascade_clay_white": 9100,
+            "cascade_black_white": 13750,
+            "amsco_studios": 16300,
+            "andersen_100": 24800
+          }
+        }
+      }
+    },
+    {
+      "id": "jasper",
+      "name": "Jasper",
+      "type": "shell",
+      "brands": [
+        "zipkit"
+      ],
+      "status": "active",
+      "sqft": 1800,
+      "sqft_label": "1,800",
+      "photo": "photos/jasper.jpg",
+      "legacy_index": {
+        "shell": 13
+      },
+      "pricing": {
+        "zipkit": {
+          "shell_kit": 124765,
+          "engineering": 11260,
+          "snow": {
+            "tier1": 12895,
+            "tier2": 28965
+          },
+          "ship_per_mile": 16,
+          "windows": {
+            "cascade_clay_white": 8105,
+            "cascade_black_white": 10805,
+            "amsco_studios": 13720,
+            "andersen_100": 18374
+          }
+        }
+      }
+    },
+    {
+      "id": "mesa",
+      "name": "Mesa",
+      "type": "shell",
+      "brands": [
+        "zipkit"
+      ],
+      "status": "active",
+      "sqft": 1823,
+      "sqft_label": "1,823",
+      "photo": "photos/mesa.jpg",
+      "legacy_index": {
+        "shell": 14
+      },
+      "pricing": {
+        "zipkit": {
+          "shell_kit": 127435,
+          "engineering": 11645,
+          "snow": {
+            "tier1": 12215,
+            "tier2": 24428
+          },
+          "ship_per_mile": 16,
+          "windows": {
+            "cascade_clay_white": 12300,
+            "cascade_black_white": 17835,
+            "amsco_studios": 21075,
+            "andersen_100": 31978
+          }
+        }
+      }
+    },
+    {
+      "id": "koda",
+      "name": "Koda",
+      "type": "shell",
+      "brands": [
+        "zipkit"
+      ],
+      "status": "active",
+      "sqft": 1864,
+      "sqft_label": "1,864",
+      "photo": "photos/koda.jpg",
+      "legacy_index": {
+        "shell": 15
+      },
+      "pricing": {
+        "zipkit": {
+          "shell_kit": 131475,
+          "engineering": 11670,
+          "snow": {
+            "tier1": 12750,
+            "tier2": 25965
+          },
+          "ship_per_mile": 16,
+          "windows": {
+            "cascade_clay_white": 7670,
+            "cascade_black_white": 11800,
+            "amsco_studios": 14075,
+            "andersen_100": 21535
+          }
+        }
+      }
+    },
+    {
+      "id": "hayden",
+      "name": "Hayden",
+      "type": "shell",
+      "brands": [
+        "zipkit"
+      ],
+      "status": "active",
+      "sqft": 1959,
+      "sqft_label": "1,959",
+      "photo": "photos/hayden.jpg",
+      "legacy_index": {
+        "shell": 16
+      },
+      "pricing": {
+        "zipkit": {
+          "shell_kit": 127435,
+          "engineering": 11645,
+          "snow": {
+            "tier1": 12215,
+            "tier2": 24428
+          },
+          "ship_per_mile": 16,
+          "windows": {
+            "cascade_clay_white": 12300,
+            "cascade_black_white": 17835,
+            "amsco_studios": 21075,
+            "andersen_100": 31978
+          }
+        }
+      }
+    },
+    {
+      "id": "cedar",
+      "name": "Cedar",
+      "type": "shell",
+      "brands": [
+        "zipkit"
+      ],
+      "status": "active",
+      "sqft": 1989,
+      "sqft_label": "1,989",
+      "photo": "photos/cedar1.jpg",
+      "legacy_index": {
+        "shell": 17
+      },
+      "pricing": {
+        "zipkit": {
+          "shell_kit": 152157,
+          "engineering": 13175,
+          "snow": {
+            "tier1": 15215,
+            "tier2": 29965
+          },
+          "ship_per_mile": 16,
+          "windows": {
+            "cascade_clay_white": 9225,
+            "cascade_black_white": 14375,
+            "amsco_studios": 16400,
+            "andersen_100": 23985
+          }
+        }
+      }
+    },
+    {
+      "id": "timberline",
+      "name": "Timberline",
+      "type": "shell",
+      "brands": [
+        "zipkit"
+      ],
+      "status": "active",
+      "sqft": 2125,
+      "sqft_label": "2,125",
+      "photo": "photos/timberline1.jpg",
+      "legacy_index": {
+        "shell": 18
+      },
+      "pricing": {
+        "zipkit": {
+          "shell_kit": 134120,
+          "engineering": 10510,
+          "snow": {
+            "tier1": 11410,
+            "tier2": 18850
+          },
+          "ship_per_mile": 18,
+          "windows": {
+            "cascade_clay_white": 8535,
+            "cascade_black_white": 13055,
+            "amsco_studios": 14185,
+            "andersen_100": 23328
+          }
+        }
+      }
+    },
+    {
+      "id": "apache",
+      "name": "Apache",
+      "type": "shell",
+      "brands": [
+        "zipkit"
+      ],
+      "status": "active",
+      "sqft": 2170,
+      "sqft_label": "2,170",
+      "barndominium": true,
+      "photo": "photos/apache4.jpg",
+      "legacy_index": {
+        "shell": 19
+      },
+      "pricing": {
+        "zipkit": {
+          "shell_kit": 108475,
+          "engineering": 6850,
+          "snow": {
+            "tier1": 9765,
+            "tier2": 18650
+          },
+          "ship_per_mile": 16,
+          "windows": {
+            "cascade_clay_white": 4420,
+            "cascade_black_white": 6945,
+            "amsco_studios": 9595,
+            "andersen_100": 13465
+          }
+        }
+      }
+    },
+    {
+      "id": "juniper",
+      "name": "Juniper",
+      "type": "shell",
+      "brands": [
+        "zipkit"
+      ],
+      "status": "active",
+      "sqft": 2120,
+      "sqft_label": "2,120",
+      "barndominium": true,
+      "photo": "photos/juniper.jpg",
+      "legacy_index": {
+        "shell": 20
+      },
+      "pricing": {
+        "zipkit": {
+          "shell_kit": 235850,
+          "engineering": 14850,
+          "snow": {
+            "tier1": 13765,
+            "tier2": 23650
+          },
+          "ship_per_mile": 23,
+          "windows": {
+            "cascade_clay_white": 12855,
+            "cascade_black_white": 17930,
+            "amsco_studios": 20475,
+            "andersen_100": 29925
+          }
+        }
+      }
+    },
+    {
+      "id": "zion",
+      "name": "Zion",
+      "type": "shell",
+      "brands": [
+        "zipkit"
+      ],
+      "status": "active",
+      "sqft": 2226,
+      "sqft_label": "2,226",
+      "photo": "photos/zion.jpg",
+      "legacy_index": {
+        "shell": 21
+      },
+      "pricing": {
+        "zipkit": {
+          "shell_kit": 115225,
+          "engineering": 9475,
+          "snow": {
+            "tier1": 13650,
+            "tier2": 24875
+          },
+          "ship_per_mile": 16,
+          "windows": {
+            "cascade_clay_white": 13954,
+            "cascade_black_white": 15117,
+            "amsco_studios": 16600,
+            "andersen_100": 23257
+          }
+        }
+      }
+    },
+    {
+      "id": "columbia",
+      "name": "Columbia",
+      "type": "shell",
+      "brands": [
+        "zipkit"
+      ],
+      "status": "active",
+      "sqft": 2276,
+      "sqft_label": "2,276",
+      "photo": "photos/columbia.jpg",
+      "legacy_index": {
+        "shell": 22
+      },
+      "pricing": {
+        "zipkit": {
+          "shell_kit": 163540,
+          "engineering": 12415,
+          "snow": {
+            "tier1": 14275,
+            "tier2": 21650
+          },
+          "ship_per_mile": 18,
+          "windows": {
+            "cascade_clay_white": 12800,
+            "cascade_black_white": 19750,
+            "amsco_studios": 23450,
+            "andersen_100": 35750
+          }
+        }
+      }
+    },
+    {
+      "id": "alpine",
+      "name": "Alpine",
+      "type": "shell",
+      "brands": [
+        "zipkit"
+      ],
+      "status": "active",
+      "sqft": 2372,
+      "sqft_label": "2,372",
+      "photo": "photos/alpine.jpg",
+      "legacy_index": {
+        "shell": 23
+      },
+      "pricing": {
+        "zipkit": {
+          "shell_kit": 199380,
+          "engineering": 14965,
+          "snow": {
+            "tier1": 18938,
+            "tier2": 37200
+          },
+          "ship_per_mile": 21,
+          "windows": {
+            "cascade_clay_white": 17615,
+            "cascade_black_white": 27830,
+            "amsco_studios": 30440,
+            "andersen_100": 49235
+          }
+        }
+      }
+    },
+    {
+      "id": "moab",
+      "name": "Moab",
+      "type": "shell",
+      "brands": [
+        "zipkit"
+      ],
+      "status": "active",
+      "sqft": 2562,
+      "sqft_label": "2,562",
+      "photo": "photos/moab1.jpg",
+      "legacy_index": {
+        "shell": 24
+      },
+      "pricing": {
+        "zipkit": {
+          "shell_kit": 166280,
+          "engineering": 13780,
+          "snow": {
+            "tier1": 19200,
+            "tier2": 29965
+          },
+          "ship_per_mile": 18,
+          "windows": {
+            "cascade_clay_white": 14200,
+            "cascade_black_white": 21900,
+            "amsco_studios": 26050,
+            "andersen_100": 39785
+          }
+        }
+      }
+    },
+    {
+      "id": "meadow",
+      "name": "Meadow",
+      "type": "shell",
+      "brands": [
+        "zipkit"
+      ],
+      "status": "active",
+      "sqft": 2617,
+      "sqft_label": "2,617",
+      "photo": "photos/meadow.1.jpg",
+      "legacy_index": {
+        "shell": 25
+      },
+      "pricing": {
+        "zipkit": {
+          "shell_kit": 185580,
+          "engineering": 12850,
+          "snow": {
+            "tier1": 18558,
+            "tier2": 31116
+          },
+          "ship_per_mile": 20,
+          "windows": {
+            "cascade_clay_white": 7930,
+            "cascade_black_white": 12200,
+            "amsco_studios": 14500,
+            "andersen_100": 22145
+          }
+        }
+      }
+    },
+    {
+      "id": "kolob",
+      "name": "Kolob",
+      "aliases": [
+        "Solitude"
+      ],
+      "type": "shell",
+      "brands": [
+        "zipkit"
+      ],
+      "status": "active",
+      "sqft": 2955,
+      "sqft_label": "2,955",
+      "photo": "photos/solitude.jpg",
+      "legacy_index": {
+        "shell": 26
+      },
+      "pricing": {
+        "zipkit": {
+          "shell_kit": 179550,
+          "engineering": 14275,
+          "snow": {
+            "tier1": 17665,
+            "tier2": 31325
+          },
+          "ship_per_mile": 20,
+          "windows": {
+            "cascade_clay_white": 13200,
+            "cascade_black_white": 20100,
+            "amsco_studios": 24275,
+            "andersen_100": 37600
+          }
+        }
+      }
+    },
+    {
+      "id": "olympic",
+      "name": "Olympic",
+      "type": "shell",
+      "brands": [
+        "zipkit"
+      ],
+      "status": "active",
+      "sqft": 3516,
+      "sqft_label": "3,516",
+      "photo": "photos/olympic.jpg",
+      "legacy_index": {
+        "shell": 27
+      },
+      "pricing": {
+        "zipkit": {
+          "shell_kit": 209850,
+          "engineering": 13445,
+          "snow": {
+            "tier1": 19750,
+            "tier2": 28965
+          },
+          "ship_per_mile": 23,
+          "windows": {
+            "cascade_clay_white": 14800,
+            "cascade_black_white": 21150,
+            "amsco_studios": 26150,
+            "andersen_100": 41500
+          }
+        }
+      }
+    },
+    {
+      "id": "teton",
+      "name": "Teton",
+      "type": "modular",
+      "brands": [
+        "zipkit"
+      ],
+      "status": "active",
+      "sqft": 340,
+      "sqft_label": "340",
+      "photo": "photos/teton.jpg",
+      "legacy_index": {
+        "modular": 0
+      },
+      "pricing": {
+        "zipkit": {
+          "base": 119600,
+          "price_basis": "per_unit",
+          "snow": {
+            "tier1": 1500,
+            "tier2": 4965,
+            "tier1_label": "35 to 100 PSF",
+            "tier2_label": "up to 250 PSF"
+          },
+          "ship_per_mile": {
+            "low": 15,
+            "high": 22
+          },
+          "standard_windows": "Cascade WinPro Vinyl — Clay",
+          "window_upgrades": [
+            {
+              "id": "cascade_black_ext_white_int",
+              "label": "Cascade Black ext / White int",
+              "price": 4450
+            },
+            {
+              "id": "andersen_100_series",
+              "label": "Andersen 100 Series",
+              "price": 9750
+            }
+          ],
+          "addons": []
+        }
+      }
+    },
+    {
+      "id": "xl-470",
+      "name": "XL 470",
+      "type": "modular",
+      "brands": [
+        "zipkit"
+      ],
+      "status": "active",
+      "sqft": 470,
+      "sqft_label": "470",
+      "photo": "photos/xl470.jpg",
+      "legacy_index": {
+        "modular": 1
+      },
+      "pricing": {
+        "zipkit": {
+          "base": 126500,
+          "price_basis": "per_unit",
+          "snow": {
+            "tier1": 3500,
+            "tier2": 7965,
+            "tier1_label": "35 to 100 PSF",
+            "tier2_label": "up to 250 PSF"
+          },
+          "ship_per_mile": {
+            "low": 15,
+            "high": 22
+          },
+          "standard_windows": "Cascade WinPro Vinyl — Clay",
+          "window_upgrades": [
+            {
+              "id": "cascade_black_ext_white_int",
+              "label": "Cascade Black ext / White int",
+              "price": 4450
+            },
+            {
+              "id": "andersen_100_series",
+              "label": "Andersen 100 Series",
+              "price": 9750
+            }
+          ],
+          "addons": [
+            {
+              "id": "additional_loft_120_sqft",
+              "label": "Additional Loft (+120 sqft)",
+              "price": 16235
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "yellowstone",
+      "name": "Yellowstone",
+      "type": "modular",
+      "brands": [
+        "zipkit"
+      ],
+      "status": "active",
+      "sqft": 550,
+      "sqft_label": "550",
+      "photo": "photos/yellowstone.jpg",
+      "legacy_index": {
+        "modular": 2
+      },
+      "pricing": {
+        "zipkit": {
+          "base": 176900,
+          "price_basis": "per_unit",
+          "snow": {
+            "tier1": 4675,
+            "tier2": 9965,
+            "tier1_label": "35 to 100 PSF",
+            "tier2_label": "up to 250 PSF"
+          },
+          "ship_per_mile": {
+            "low": 15,
+            "high": 22
+          },
+          "standard_windows": "Cascade WinPro Vinyl — Clay",
+          "window_upgrades": [
+            {
+              "id": "cascade_black_ext_white_int",
+              "label": "Cascade Black ext / White int",
+              "price": 4450
+            },
+            {
+              "id": "andersen_100_series",
+              "label": "Andersen 100 Series",
+              "price": 9750
+            }
+          ],
+          "addons": [
+            {
+              "id": "rooftop_deck_w_spiral_staircase",
+              "label": "Rooftop Deck w/ Spiral Staircase",
+              "price": 21865
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "gallatin",
+      "name": "Gallatin",
+      "type": "modular",
+      "brands": [
+        "zipkit"
+      ],
+      "status": "active",
+      "sqft": 497,
+      "sqft_label": "497",
+      "photo": "photos/gallatin.webp",
+      "legacy_index": {
+        "modular": 3
+      },
+      "pricing": {
+        "zipkit": {
+          "base": 123790,
+          "price_basis": "per_unit",
+          "snow": {
+            "tier1": 2500,
+            "tier2": 6750,
+            "tier1_label": "35 to 100 PSF",
+            "tier2_label": "up to 250 PSF"
+          },
+          "ship_per_mile": {
+            "low": 15,
+            "high": 22
+          },
+          "standard_windows": "Cascade WinPro Vinyl — Clay",
+          "window_upgrades": [
+            {
+              "id": "cascade_black_ext_white_int",
+              "label": "Cascade Black ext / White int",
+              "price": 4450
+            },
+            {
+              "id": "andersen_100_series",
+              "label": "Andersen 100 Series",
+              "price": 9750
+            }
+          ],
+          "addons": []
+        }
+      }
+    },
+    {
+      "id": "gallatin-ii",
+      "name": "Gallatin II",
+      "type": "modular",
+      "brands": [
+        "zipkit"
+      ],
+      "status": "active",
+      "sqft": 620,
+      "sqft_label": "620",
+      "photo": "photos/gallatin-ii.webp",
+      "legacy_index": {
+        "modular": 4
+      },
+      "pricing": {
+        "zipkit": {
+          "base": 153740,
+          "price_basis": "per_unit",
+          "snow": {
+            "tier1": 3200,
+            "tier2": 8450,
+            "tier1_label": "35 to 100 PSF",
+            "tier2_label": "up to 250 PSF"
+          },
+          "ship_per_mile": {
+            "low": 15,
+            "high": 22
+          },
+          "standard_windows": "Cascade WinPro Vinyl — Clay",
+          "window_upgrades": [
+            {
+              "id": "cascade_black_ext_white_int",
+              "label": "Cascade Black ext / White int",
+              "price": 4450
+            },
+            {
+              "id": "andersen_100_series",
+              "label": "Andersen 100 Series",
+              "price": 9750
+            }
+          ],
+          "addons": []
+        }
+      }
+    },
+    {
+      "id": "sierra",
+      "name": "Sierra",
+      "type": "modular",
+      "brands": [
+        "mvp"
+      ],
+      "status": "parked",
+      "sqft": 806,
+      "sqft_label": "806",
+      "photo": "photos/sierra.jpg",
+      "legacy_index": {
+        "modular": 5
+      },
+      "pricing": {
+        "mvp": {
+          "base": 195000,
+          "price_basis": "per_unit",
+          "snow": {
+            "tier1": 4500,
+            "tier2": 9965,
+            "tier1_label": "35 to 100 PSF",
+            "tier2_label": "up to 250 PSF"
+          },
+          "ship_per_mile": {
+            "low": 15,
+            "high": 22
+          },
+          "standard_windows": "Andersen 100 Series",
+          "window_upgrades": [],
+          "addons": [],
+          "confirm": [
+            "ship_per_mile",
+            "snow"
+          ],
+          "note": "MVP is parked. These are the old tool numbers, copied from the Zip Kit modular pattern. Confirm with Sven before using."
+        }
+      }
+    },
+    {
+      "id": "ridgeline",
+      "name": "Ridgeline",
+      "type": "modular",
+      "brands": [
+        "mvp"
+      ],
+      "status": "parked",
+      "sqft": 840,
+      "sqft_label": "840",
+      "photo": "photos/ridgeline.jpg",
+      "legacy_index": {
+        "modular": 6
+      },
+      "pricing": {
+        "mvp": {
+          "base": 259500,
+          "price_basis": "per_unit",
+          "snow": {
+            "tier1": 4500,
+            "tier2": 9965,
+            "tier1_label": "40 to 100 PSF",
+            "tier2_label": "80 to 250+ PSF"
+          },
+          "ship_per_mile": {
+            "low": 10,
+            "high": 15
+          },
+          "standard_windows": "Andersen 100 Series",
+          "window_upgrades": [],
+          "addons": [],
+          "confirm": [
+            "ship_per_mile",
+            "snow"
+          ],
+          "note": "MVP is parked. These are the old tool numbers, copied from the Zip Kit modular pattern. Confirm with Sven before using."
+        }
+      }
+    },
+    {
+      "id": "dakota",
+      "name": "Dakota",
+      "type": "modular",
+      "brands": [
+        "mvp"
+      ],
+      "status": "parked",
+      "sqft": 840,
+      "sqft_label": "840 / module",
+      "photo": "photos/dakota1.jpg",
+      "legacy_index": {
+        "modular": 7
+      },
+      "pricing": {
+        "mvp": {
+          "base": 296900,
+          "price_basis": "per_module",
+          "snow": {
+            "tier1": 4500,
+            "tier2": 9965,
+            "tier1_label": "40 to 100 PSF",
+            "tier2_label": "80 to 250+ PSF"
+          },
+          "ship_per_mile": {
+            "low": 10,
+            "high": 15
+          },
+          "standard_windows": "Andersen 100 Series",
+          "window_upgrades": [],
+          "addons": [],
+          "confirm": [
+            "ship_per_mile",
+            "snow"
+          ],
+          "note": "MVP is parked. These are the old tool numbers, copied from the Zip Kit modular pattern. Confirm with Sven before using."
+        }
+      }
+    },
+    {
+      "id": "garage-1-car",
+      "name": "1-Car",
+      "type": "garage",
+      "brands": [
+        "zipkit"
+      ],
+      "status": "active",
+      "dimensions": "20'-11\" × 26'-0\"",
+      "photo": "photos/1car-garage.jpg",
+      "legacy_index": {
+        "garage": 0
+      },
+      "pricing": {
+        "zipkit": {
+          "shell_kit": 14520
+        }
+      }
+    },
+    {
+      "id": "garage-2-car",
+      "name": "2-Car",
+      "type": "garage",
+      "brands": [
+        "zipkit"
+      ],
+      "status": "active",
+      "dimensions": "30'-0\" × 25'-1\"",
+      "photo": "photos/2car-garage.jpg",
+      "legacy_index": {
+        "garage": 1
+      },
+      "pricing": {
+        "zipkit": {
+          "shell_kit": 19640
+        }
+      }
+    },
+    {
+      "id": "garage-3-car",
+      "name": "3-Car",
+      "type": "garage",
+      "brands": [
+        "zipkit"
+      ],
+      "status": "active",
+      "dimensions": "45'-5½\" × 25'-0\"",
+      "photo": "photos/3car-garage.jpg",
+      "legacy_index": {
+        "garage": 2
+      },
+      "pricing": {
+        "zipkit": {
+          "shell_kit": 23720
+        }
+      }
+    },
+    {
+      "id": "garage-4-car",
+      "name": "4-Car",
+      "type": "garage",
+      "brands": [
+        "zipkit"
+      ],
+      "status": "active",
+      "dimensions": "52'-4\" × 26'-4\"",
+      "photo": "photos/4car-garage.jpg",
+      "legacy_index": {
+        "garage": 3
+      },
+      "pricing": {
+        "zipkit": {
+          "shell_kit": 27440
+        }
+      }
+    },
+    {
+      "id": "hangar-64-x-50",
+      "name": "64' × 50'",
+      "type": "hangar",
+      "brands": [
+        "zksteel"
+      ],
+      "status": "active",
+      "dimensions": "64'×50' (3,200 sqft footprint)",
+      "photo": "photos/6450hangar.jpg",
+      "legacy_index": {
+        "hangar": 0
+      },
+      "pricing": {
+        "zksteel": {
+          "kit": 158700
+        }
+      }
+    },
+    {
+      "id": "hangar-80-x-60",
+      "name": "80' × 60'",
+      "type": "hangar",
+      "brands": [
+        "zksteel"
+      ],
+      "status": "active",
+      "dimensions": "80'×60' (4,800 sqft footprint)",
+      "photo": "photos/8060hangar.jpg",
+      "legacy_index": {
+        "hangar": 1
+      },
+      "pricing": {
+        "zksteel": {
+          "kit": 179400
+        }
+      }
+    }
+  ]
+}
