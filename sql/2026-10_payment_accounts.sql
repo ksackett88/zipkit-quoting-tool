@@ -75,5 +75,11 @@ on conflict (brand) do nothing;
 -- update payment_accounts set account_number = 'XXXXXXXX', routing_number = 'XXXXXXXXX', updated_at = now() where brand = 'zipkit';
 -- update payment_accounts set account_number = 'XXXXXXXX', routing_number = 'XXXXXXXXX', updated_at = now() where brand = 'mvp';
 
--- Check (optional): shows which rows still need numbers, without printing them.
--- select brand, account_name, account_number is not null as has_account, routing_number is not null as has_routing from payment_accounts;
+-- Check: shows whether each row has real numbers, without printing them.
+-- "true" means all digits. A placeholder (XXXX), a blank, dashes or spaces
+-- inside the number show "false", and invoices will print "Contact the office"
+-- for that brand until it's fixed. (Same rule the invoice code uses.)
+-- select brand, account_name,
+--        coalesce(btrim(account_number) ~ '^[0-9]+$', false) as account_is_digits,
+--        coalesce(btrim(routing_number) ~ '^[0-9]+$', false) as routing_is_digits
+--   from payment_accounts;
