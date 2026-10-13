@@ -46,7 +46,7 @@ create policy "quotes_select_own_or_admin" on quotes
   );
 
 -- 4. Grant admins read access to every row in `profiles` (so the portal can
--- display rep name / email next to each project card).
+-- display the rep name next to each project card).
 drop policy if exists "Users can view own profile"      on profiles;
 drop policy if exists "profiles_select_own"             on profiles;
 drop policy if exists "profiles_select_own_or_admin"    on profiles;
@@ -58,11 +58,15 @@ create policy "profiles_select_own_or_admin" on profiles
   );
 
 -- 5. Seed admins. Adjust the email list to match who should have access.
-update profiles set is_admin = true where email in (
-  'kelsey@zipkithomes.com'
-  -- add accountant / other admin emails on new lines, comma-separated:
-  -- , 'accountant@zipkithomes.com'
+-- `profiles` has no email column, so admins are found by their sign-in email
+-- in auth.users (the SQL Editor can read auth.users; the app cannot).
+update profiles set is_admin = true where id in (
+  select id from auth.users where email in (
+    'kelsey@zipkithomes.com'
+    -- add accountant / other admin emails on new lines, comma-separated:
+    -- , 'accountant@zipkithomes.com'
+  )
 );
 
 -- 6. Quick check — shows admins after the update runs. Optional to keep.
--- select id, email, is_admin from profiles where is_admin = true;
+-- select p.id, u.email, p.full_name, p.is_admin from profiles p join auth.users u on u.id = p.id where p.is_admin = true;
