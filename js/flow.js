@@ -6,7 +6,7 @@
   var fmt = function(n){ return P.fmt(n); };
 
   // Product types switched on in the new tool (added one at a time).
-  var ENABLED_TYPES = ['shell', 'steel'];
+  var ENABLED_TYPES = ['shell', 'steel', 'modular'];
 
   var STEPS = [
     { id:'customer', label:'Customer' },
