@@ -248,3 +248,12 @@ button { font-family: inherit; }
 
 /* Project details (steel kit, custom home): room for the full placeholder. */
 .freeform .inline input[type=number] { max-width: 220px; }
+
+/* Review step */
+.stack > .card + .card { margin-top: 16px; }
+.subtle-head.first { margin-top: 0; }
+.buyer-name { font-size: 17px; font-weight: 700; color: var(--ink); }
+.rep-line { font-size: 14px; color: var(--ink-2); }
+#saved-line { align-self: center; }
+#range-box { margin: 4px 0 12px; }
+.dialog .btn-row { margin-top: 8px; }

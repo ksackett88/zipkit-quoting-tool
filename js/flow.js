@@ -259,25 +259,126 @@
     }).join('') + '</ul></div>';
   }
 
+  function repCard(){
+    var rep = state.rep || {};
+    if(!state.user) return '';
+    if(rep.name && rep.phone && !state.ui.editRep){
+      return '<div class="card"><div class="subtle-head first">You (on the documents)</div><div class="rep-line">' + esc(rep.name) + ' · ' + esc(rep.phone) + (rep.email ? ' · ' + esc(rep.email) : '') + '</div>'
+        + '<button type="button" class="adjust-link" data-rep-edit="1">Change</button></div>';
+    }
+    return '<div class="card" id="rep-card"><div class="subtle-head first">You (on the documents)</div>'
+      + '<p class="help">Your name and phone go on every document. You only enter them once.</p>'
+      + '<div class="fields">'
+      + '<div class="field" data-field="repName"><label for="rep-name">Your name</label><input type="text" id="rep-name" value="' + esc(rep.name || '') + '" autocomplete="name"><div class="err"></div></div>'
+      + '<div class="field" data-field="repPhone"><label for="rep-phone">Your phone</label><input type="tel" id="rep-phone" value="' + esc(rep.phone || '') + '" autocomplete="tel"><div class="err"></div></div>'
+      + '</div><div class="btn-row"><button type="button" class="btn" data-rep-save="1">Save my details</button></div></div>';
+  }
+
+  function savedLine(){
+    var s = state.saved;
+    if(!s || !s.number) return '<span class="help">Not saved yet. Creating a document saves it.</span>';
+    return '<span class="help">Saved as <b>' + esc(s.number) + '</b>' + (s.note ? ' · ' + esc(s.note) : '') + '</span>';
+  }
+
   function renderReview(){
     var r = currentResult(), c = state.customer;
     var where = [c.city, c.state].filter(Boolean).join(', ');
     var h = '<h1 class="step-title">Review and send</h1><p class="step-lead">Check it over, then create the document for the buyer.</p>'
       + serviceAreaWarning() + adjustmentsList()
-      + '<div class="two-col"><div>'
-      + '<div class="card"><div class="subtle-head" style="margin-top:0">Buyer</div>'
-      + '<div style="font-size:17px;font-weight:700;color:var(--ink)">' + esc(c.name) + '</div>'
+      + '<div class="two-col"><div class="stack">'
+      + '<div class="card"><div class="subtle-head first">Buyer</div>'
+      + '<div class="buyer-name">' + esc(c.name) + '</div>'
       + '<div class="help">' + [esc(c.email), esc(c.phone), esc(where)].filter(Boolean).join(' · ') + '</div>'
       + '<button type="button" class="adjust-link" data-goto="customer">Edit buyer</button></div>'
-      + '<div class="card" style="margin-top:16px"><div class="subtle-head" style="margin-top:0">Payment schedule</div>' + scheduleHTML(r)
+      + '<div class="card"><div class="subtle-head first">Payment schedule</div>' + scheduleHTML(r)
       + (r.quote.assembly && r.quote.assembly.mode === 'added' ? '<div class="help">Site assembly (' + fmt(r.quote.assembly.amount) + ') is billed separately and isn\'t in this schedule.</div>' : '')
-      + '</div></div>'
+      + '</div>' + repCard() + '</div>'
       + '<aside class="card summary">' + summaryHTML(r) + '<button type="button" class="adjust-link" data-goto="options">Change options</button></aside></div>'
-      + '<div class="actions"><button type="button" class="btn quiet" data-goto="options">Back</button><div class="right" id="review-actions">'
-      + '<button type="button" class="btn primary" disabled title="Coming in the next update">Create document</button>'
-      + '</div></div>';
+      + '<div class="actions"><button type="button" class="btn quiet" data-goto="options">Back</button>'
+      + '<div class="right" id="review-actions"><span id="saved-line">' + savedLine() + '</span>'
+      + '<button type="button" class="btn" data-save="1">Save project</button>'
+      + '<button type="button" class="btn" data-contract="1">Make the contract</button>'
+      + '<button type="button" class="btn primary" data-doc="1">Create document</button>'
+      + '</div></div>'
+      + '<div class="actions no-print"><button type="button" class="btn quiet" data-new-quote="1">Start a new quote</button></div>';
     return h;
   }
+
+  // ---------- document / save / contract ----------
+  function toast(msg, bad){
+    var t = document.createElement('div'); t.className = 'toast' + (bad ? ' bad' : ''); t.setAttribute('role', 'status'); t.textContent = msg;
+    document.body.appendChild(t); setTimeout(function(){ t.remove(); }, bad ? 6000 : 3500);
+  }
+  function busy(on){ $$('#review-actions .btn').forEach(function(b){ b.disabled = !!on; }); }
+
+  // Save (or update) the quote. Resolves to the saved row, or null if it failed.
+  function saveNow(){
+    var r = currentResult();
+    // Promise.resolve().then(): an unexpected error becomes a message, not a stuck screen.
+    return Promise.resolve().then(function(){ return root.ZKStore.save(cat, state, r, r.schedule); }).then(function(row){
+      state.saved = { id: row.id, number: row.quote_number, hasInvoices: Array.isArray(row.invoices) && row.invoices.length > 0 };
+      var sl = $('#saved-line'); if(sl) sl.innerHTML = savedLine();
+      return row;
+    }).catch(function(e){
+      console.error(e);
+      toast('Couldn\'t save: ' + ((e && e.message) || e) + '. Check your connection, then try Save project again.', true);
+      return null;
+    });
+  }
+
+  function docData(){
+    var r = currentResult(), t = cat.type(state.cfg.type), p = product();
+    return {
+      result: r, schedule: r.schedule, customer: state.customer, rep: state.rep || {},
+      brand: cat.brandFor(state.cfg.type), number: state.saved && state.saved.number,
+      date: new Date().toLocaleDateString('en-US'), projectName: root.ZKStore.projectName({ customer: state.customer, result: r }),
+      photo: p && p.photo, shipsFrom: t.ships_from
+    };
+  }
+
+  function openDoc(kind, range){
+    // Open the window during the click (pop-up blockers), then fill it.
+    var w = window.open('', '_blank');
+    if(!w){ toast('Your browser blocked the new window. Allow pop-ups for this site, then try again.', true); return; }
+    w.document.write('<!DOCTYPE html><title>Preparing…</title><body style="font-family:sans-serif;color:#6a6459;padding:40px;text-align:center">Preparing your document…</body>'); w.document.close();
+    closeDialog(); busy(true);
+    saveNow().then(function(){
+      var d = docData();
+      if(kind === 'ballpark') d.range = range;
+      var html = kind === 'ballpark' ? root.ZKDocuments.ballpark(d) : root.ZKDocuments.proposal(d);
+      w.document.open(); w.document.write(html); w.document.close();
+    }).then(function(){ busy(false); }, function(){ busy(false); });
+  }
+
+  function openContract(){
+    var w = window.open('', '_blank');
+    if(!w){ toast('Your browser blocked the new window. Allow pop-ups for this site, then try again.', true); return; }
+    w.document.write('<!DOCTYPE html><title>Preparing…</title><body style="font-family:sans-serif;color:#6a6459;padding:40px;text-align:center">Saving the quote and opening the contract…</body>'); w.document.close();
+    busy(true);
+    saveNow().then(function(row){
+      busy(false);
+      if(!row){ w.close(); return; }
+      w.location.href = 'ZipKit_Contract_Generator.html?fromQuote=' + encodeURIComponent(row.id);
+    });
+  }
+
+  function docDialog(){
+    var r = currentResult(), rg = root.ZKDocuments.suggestedRange(r.quote.total);
+    var o = document.createElement('div');
+    o.className = 'overlay'; o.id = 'doc-dialog';
+    o.innerHTML = '<div class="dialog" role="dialog" aria-modal="true" aria-labelledby="doc-title">'
+      + '<h2 id="doc-title">Create a document</h2><p>Which one does the buyer need?</p>'
+      + '<button type="button" class="doc-choice" data-doc-kind="proposal"><b>Proposal</b><span>The real quote: price, scope and payment schedule.</span></button>'
+      + '<button type="button" class="doc-choice" data-doc-kind="ballpark-open"><b>Ballpark estimate</b><span>One page with a price range, for early conversations.</span></button>'
+      + '<div id="range-box" hidden><div class="fields">'
+      + '<div class="field" data-field="rangeLow"><label for="range-low">Low</label><input type="number" id="range-low" min="0" step="1000" value="' + rg.low + '"><div class="err"></div></div>'
+      + '<div class="field" data-field="rangeHigh"><label for="range-high">High</label><input type="number" id="range-high" min="0" step="1000" value="' + rg.high + '"><div class="err"></div></div>'
+      + '</div><p class="help">Suggested: the quote total ±10%, rounded.</p><div class="btn-row"><button type="button" class="btn primary" data-doc-kind="ballpark">Create ballpark estimate</button></div></div>'
+      + '<div class="btn-row"><button type="button" class="btn quiet" data-doc-cancel="1">Cancel</button></div></div>';
+    document.body.appendChild(o);
+    o.querySelector('[data-doc-kind="proposal"]').focus();
+  }
+  function closeDialog(){ var d = $('#doc-dialog'); if(d) d.remove(); }
 
   // ---------- render ----------
   function render(){
@@ -400,6 +501,42 @@
     var t = ev.target.closest('button, [data-product]');
     if(!t) return;
     if(t.hasAttribute('data-next')) return go(t.getAttribute('data-next'));
+    // Review actions
+    if(t.hasAttribute('data-doc')) return docDialog();
+    if(t.hasAttribute('data-doc-cancel')) return closeDialog();
+    if(t.hasAttribute('data-doc-kind')){
+      var kind = t.getAttribute('data-doc-kind');
+      if(kind === 'proposal') return openDoc('proposal');
+      if(kind === 'ballpark-open'){ $('#range-box').hidden = false; $('#range-low').focus(); return; }
+      var lo = parseFloat($('#range-low').value), hi = parseFloat($('#range-high').value), bad = false;
+      [['rangeLow', lo], ['rangeHigh', hi]].forEach(function(x){
+        var f = $('[data-field="' + x[0] + '"]'), ok = x[1] >= 0;
+        f.classList.toggle('invalid', !ok); $('.err', f).textContent = ok ? '' : 'Enter a dollar amount.'; if(!ok) bad = true;
+      });
+      if(!bad && lo > hi){ var fh = $('[data-field="rangeHigh"]'); fh.classList.add('invalid'); $('.err', fh).textContent = 'High must be at least the low number.'; bad = true; }
+      if(!bad) openDoc('ballpark', { low: lo, high: hi });
+      return;
+    }
+    if(t.hasAttribute('data-save')){
+      busy(true);
+      return saveNow().then(function(row){ busy(false); if(row) toast('Saved as ' + row.quote_number + '.'); });
+    }
+    if(t.hasAttribute('data-contract')) return openContract();
+    if(t.hasAttribute('data-new-quote')) return newQuote();
+    if(t.hasAttribute('data-rep-edit')){ state.ui.editRep = true; render(); return; }
+    if(t.hasAttribute('data-rep-save')){
+      var nm = $('#rep-name').value.trim(), ph = $('#rep-phone').value.trim(), errs = false;
+      var fn = $('[data-field="repName"]'), fp = $('[data-field="repPhone"]');
+      fn.classList.toggle('invalid', !nm); $('.err', fn).textContent = nm ? '' : 'Add your name.';
+      var phOk = ph.replace(/\D/g, '').length >= 10;
+      fp.classList.toggle('invalid', !phOk); $('.err', fp).textContent = phOk ? '' : 'Add your phone with area code.';
+      if(!nm || !phOk) return;
+      state.rep = { name: nm, phone: ph, email: (state.user && state.user.email) || '' };
+      state.ui.editRep = false;
+      root.ZKStore.saveProfile(state.user, nm, ph).then(function(){ toast('Saved. Your details will be on every document.'); },
+        function(){ toast('Your details are on this quote, but couldn\'t be saved to your profile. Tell Kelsey.', true); });
+      render(); return;
+    }
     if(t.hasAttribute('data-goto')){ var g = t.getAttribute('data-goto'); if(stepIndex(g) <= state.reached || stepIndex(g) < stepIndex(state.step)) go(g); return; }
     if(t.hasAttribute('data-product')) return chooseProduct(t.getAttribute('data-product'));
     if(t.hasAttribute('data-type')){
@@ -427,6 +564,7 @@
     if(t.hasAttribute('data-remove-sched')){ state.cfg.customSchedule.splice(+t.getAttribute('data-remove-sched'), 1); refreshForm(); return; }
   }
   function onToggle(ev){ if(ev.target.matches && ev.target.matches('[data-more]')) state.ui.moreOpen = ev.target.open; }
+  function onKey(ev){ if(ev.key === 'Escape' && $('#doc-dialog')) closeDialog(); }
 
   // ---------- sign-in gate ----------
   function signInGate(){
@@ -458,11 +596,13 @@
       main.addEventListener('change', onChange);
       main.addEventListener('toggle', onToggle, true);
       document.addEventListener('click', onClick);
+      document.addEventListener('keydown', onKey);
       render();
       return signInGate();
     }).then(function(user){
       state.user = user;
       if(user && user.email) $('#user-email').textContent = user.email;
+      return root.ZKStore.loadProfile(user).then(function(rep){ state.rep = rep; if(state.step === 'review') render(); });
     }).catch(function(e){
       $('#main').innerHTML = '<div class="notice bad"><b>The quote tool couldn\'t load its price list.</b> Check your connection and reload the page. If it keeps happening, tell the office.</div>';
       console.error(e);
@@ -483,6 +623,7 @@
     state: state,
     go: go,
     newQuote: newQuote,
+    catalog: function(){ return cat; },
     result: currentResult,
     enabledTypes: ENABLED_TYPES,
     // Test helper: hide the sign-in screen on a local test server only.
