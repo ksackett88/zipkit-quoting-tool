@@ -211,7 +211,7 @@
     var t = cat.type(state.cfg.type);
     var st = state.customer.state;
     if(!t.service_states || !st || t.service_states.indexOf(st) !== -1) return '';
-    return '<div class="notice warn"><b>Modular homes ship to ' + t.service_states.join(', ').replace(/, (\w+)$/, ' and $1') + ' only.</b> This buyer is in ' + esc(st) + '. Offer a panelized kit instead.</div>';
+    return '<div class="notice warn"><b>Modular homes ship to ' + t.service_states.join(', ').replace(/, (\w+)$/, ' and $1') + ' only.</b> This buyer is in ' + esc(st) + '. Check with the office before you quote it.</div>';
   }
 
   function renderOptions(){
@@ -222,7 +222,7 @@
       + loadNotice() + serviceAreaWarning()
       + '<div class="two-col"><div class="card" id="options-form">' + O.renderOptions(ctx) + '</div>'
       + '<aside class="card summary sticky" id="summary" aria-live="polite">' + summaryHTML(ctx.result) + '</aside></div>'
-      + '<div class="actions"><button type="button" class="btn quiet" data-goto="product">Back</button><div class="right"><button type="button" class="btn primary" data-next="review">Next: review</button></div></div>';
+      + '<div class="actions options-bar"><button type="button" class="btn quiet" data-goto="product">Back</button><div class="right"><span class="bar-total" id="bar-total" aria-hidden="true">' + (ctx.result ? 'Total <b>' + fmt(ctx.result.total) + '</b>' : '') + '</span><button type="button" class="btn primary" data-next="review">Next: review</button></div></div>';
   }
 
   function linesHTML(r){
@@ -254,7 +254,7 @@
     var a = state.cfg.adjustments || {}, items = O.adjustItems(optionCtx());
     var used = items.filter(function(i){ return a[i.key] && String(a[i.key].amount).trim() !== ''; });
     if(!used.length) return '';
-    return '<div class="notice warn"><b>Price adjustments on this quote</b><ul style="margin:6px 0 0;padding-left:18px">' + used.map(function(i){
+    return '<div class="notice warn"><b>Price adjustments on this quote</b><ul class="notice-list">' + used.map(function(i){
       return '<li>' + esc(i.title) + ': ' + fmt(parseFloat(a[i.key].amount) || 0) + ' — ' + esc(a[i.key].reason) + '</li>';
     }).join('') + '</ul></div>';
   }
@@ -294,7 +294,7 @@
       + (r.quote.assembly && r.quote.assembly.mode === 'added' ? '<div class="help">Site assembly (' + fmt(r.quote.assembly.amount) + ') is billed separately and isn\'t in this schedule.</div>' : '')
       + '</div>' + repCard() + '</div>'
       + '<aside class="card summary">' + summaryHTML(r) + '<button type="button" class="adjust-link" data-goto="options">Change options</button></aside></div>'
-      + '<div class="actions"><button type="button" class="btn quiet" data-goto="options">Back</button>'
+      + '<div class="actions options-bar review-bar"><button type="button" class="btn quiet" data-goto="options">Back</button>'
       + '<div class="right" id="review-actions"><span id="saved-line">' + savedLine() + '</span>'
       + '<button type="button" class="btn" data-save="1">Save project</button>'
       + '<button type="button" class="btn" data-contract="1">Make the contract</button>'
@@ -393,6 +393,7 @@
     // click or keystroke in progress is never lost.
     var r = currentResult();
     var s = $('#summary'); if(s) s.innerHTML = summaryHTML(r);
+    var bt = $('#bar-total'); if(bt) bt.innerHTML = r ? 'Total <b>' + fmt(r.total) + '</b>' : '';
     var f = $('#options-form'); if(f && state.cfg) O.patchOptions(optionCtx(), f);
     showErrors(state.step);
   }

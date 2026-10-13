@@ -116,7 +116,7 @@
     var h = '<div class="adjust">';
     h += '<button type="button" class="adjust-link" data-adjust-toggle="1" aria-expanded="' + (open ? 'true' : 'false') + '">' + (open ? 'Hide price adjustments' : 'Adjust a price') + (count ? ' (' + count + ' adjusted)' : '') + '</button>';
     if(open){
-      h += '<div class="adjust-box"><div class="help" style="margin:0 0 8px;color:var(--warn-ink)">Only for a price you agreed with the customer. Each change needs a reason; managers see it on the quote.</div>';
+      h += '<div class="adjust-box"><div class="help adjust-note">Only for a price you agreed with the customer. Each change needs a reason; managers see it on the quote.</div>';
       items.forEach(function(i){
         var a = (ctx.cfg.adjustments || {})[i.key] || {};
         h += '<div class="adj-row">'
@@ -156,7 +156,7 @@
       help:'Up to 15%.', showIf: function(ctx){ return (parseInt(ctx.cfg.units, 10) || 1) > 1; } };
   }
   function snowChoice(){
-    return { key:'snow', type:'choices', label:'Snow load', tip:'Ask the building department for the site\'s snow load. Standard covers most of Utah\'s valleys.',
+    return { key:'snow', type:'choices', label:'Snow load', tip:'Ask the building department for the site\'s snow load.',
       options: function(ctx){
         var z = ctx.pricing, t = ctx.catalog.type(ctx.type);
         var l1 = ctx.type === 'shell' ? t.snow_tiers.tier1 : z.snow.tier1_label;
@@ -181,7 +181,7 @@
         snowChoice(),
         assemblyChoice(' per home'),
         { key:'windows', type:'select', section:'more', label:'Windows & doors (optional, core states only)',
-          tip:'Window and door packages are available but no longer a standard part of the kit.',
+          tip:'Zip Kit is moving away from supplying windows and doors. Offer them only if the buyer asks.',
           options: function(ctx){
             var z = ctx.pricing, list = ctx.catalog.type('shell').window_packages;
             return [{ value:'', title:'Not included' }].concat(list.map(function(w){ return { value:w.id, title:w.label + ' (+' + fmt(z.windows[w.id]) + ' per home)' }; }));
@@ -211,7 +211,7 @@
             var z = ctx.pricing;
             return [{ value:'', title:'Standard: ' + z.standard_windows + ' (included)' }].concat(z.window_upgrades.map(function(w){ return { value:w.id, title:w.label + ' (+' + fmt(w.price) + ' per unit)' }; }));
           } },
-        { key:'addons', type:'addonChecks', section:'more', label:'Add-ons', showIf: function(ctx){ return ctx.pricing.addons.length > 0; } },
+        { key:'addons', type:'addonChecks', section:'more', label:'Upgrades for this model', showIf: function(ctx){ return ctx.pricing.addons.length > 0; } },
         discountCtl('the unit price'),
         linesCtl
       ],
