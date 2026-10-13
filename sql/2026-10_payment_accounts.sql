@@ -62,7 +62,7 @@ insert into payment_accounts (brand, account_name, bank_name, bank_branch, bank_
 values
   ('zipkit', 'ZipKit USA LLC', 'Mountain America Credit Union', 'Royal Hunte Drive UT Branch',
      array['1701 Royal Hunte Dr.', 'Cedar City, UT 84720'],
-     array['3665 W 2700 S', 'Cedar City, UT 84720']),
+     array['3665 W 2700 S', 'Cedar City, UT 84721']),
   ('mvp', 'Mountain Valley Prefab', 'Mountain America Credit Union', null,
      array[]::text[],
      array['3791 East 49th North', 'Idaho Falls, ID 83401'])

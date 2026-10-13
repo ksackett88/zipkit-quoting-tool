@@ -280,3 +280,6 @@ button { font-family: inherit; }
   .review-bar .btn { flex: 1 1 45%; padding: 0 10px; font-size: 14px; }
   .review-bar .btn.primary { flex-basis: 100%; order: -1; }
 }
+.doc-choice:disabled { cursor: not-allowed; background: var(--warn-bg); border-color: var(--line); }
+.doc-choice:disabled b { color: var(--muted); }
+.doc-choice:disabled span { color: var(--warn-ink); }

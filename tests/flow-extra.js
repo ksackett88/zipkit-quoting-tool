@@ -219,6 +219,25 @@ window.ZK_FLOW_EXTRA = async function(cat, W, h){
   var b4bItems = b4b.G.getCustomItems();
   rec('Bug 4: a simple one-home quote hands off with no extra adjustment line', b4bItems.length === 0, b4bItems);
 
+  // Out-of-area modular: Proposal blocked with Kelsey's message, Ballpark still offered.
+  var areaMsg = 'Complete modular only ships to UT, ID, MT and WY. Quote this as a panelized kit instead.';
+  async function docChoices(cfg, st){
+    await h.fill(W, cfg); W.ZKFlow.state.customer.state = st; W.ZKFlow.go('review'); await h.sleep(0);
+    var warn = W.document.getElementById('area-warning');
+    W.document.querySelector('[data-doc="1"]').click(); await h.sleep(0);
+    var dlg = W.document.getElementById('doc-dialog');
+    var out = { warn: warn ? warn.textContent : '', proposal: !!dlg.querySelector('[data-doc-kind="proposal"]'), ballpark: !!dlg.querySelector('[data-doc-kind="ballpark-open"]'), text: dlg.textContent };
+    dlg.querySelector('[data-doc-cancel]').click();
+    return out;
+  }
+  var oa = await docChoices({ type:'modular', productId:'yellowstone', miles:250 }, 'CO');
+  rec('Out-of-area modular (CO): Proposal blocked with the ship-to message, Ballpark allowed',
+    oa.warn === areaMsg && !oa.proposal && oa.ballpark && oa.text.indexOf(areaMsg) !== -1, oa);
+  var ia = await docChoices({ type:'modular', productId:'yellowstone', miles:250 }, 'ID');
+  var kc = await docChoices({ type:'shell', productId:'alpine', miles:300 }, 'CO');
+  rec('In-area modular (ID) and a kit in CO still offer the Proposal, with no warning',
+    ia.proposal && !ia.warn && kc.proposal && !kc.warn, { ia: ia, kc: kc });
+
   oldFrame.remove();
   W.open = realOpen;
   cg.remove(); cap.remove();

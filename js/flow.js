@@ -193,7 +193,7 @@
       var start = cat.startingPrice(p);
       var lead = state.type === 'modular' ? 'Complete from ' : (state.type === 'hangar' ? 'Starting at ' : 'Kit from ');
       return '<button type="button" class="pcard' + (p.id === sel ? ' on' : '') + '" data-product="' + p.id + '">'
-        + '<div class="ph">' + (p.photo ? '<img src="' + esc(p.photo) + '" alt="" loading="lazy">' : '') + '</div>'
+        + '<div class="ph">' + (p.photo ? '<img src="' + esc(cardPhoto(p.photo)) + '" data-full="' + esc(p.photo) + '" alt="" loading="lazy" onerror="if(this.dataset.full){this.src=this.dataset.full;this.removeAttribute(\x27data-full\x27);}">' : '') + '</div>'
         + '<div class="pc-body"><div class="pc-name">' + esc(p.name) + (p.barndominium ? '<span class="tag">Barndominium</span>' : '') + '</div>'
         + '<div class="pc-meta">' + esc(meta) + '</div>'
         + (start != null ? '<div class="pc-price">' + lead + fmt(start) + '</div>' : '')
@@ -201,17 +201,29 @@
     }).join('');
   }
 
+  // Small copies for the photo cards (photos/cards/, made by resizing only).
+  // Documents still use the full-size originals.
+  function cardPhoto(src){ return src.replace(/^photos\/([^\/]+)\.[a-z]+$/i, 'photos/cards/$1.jpg'); }
+
   function optionCtx(){
     var p = product();
     return { catalog: cat, type: state.cfg ? state.cfg.type : state.type, product: p, pricing: pricingOf(p), cfg: state.cfg || defaultCfg(state.type), result: currentResult(), ui: state.ui };
   }
 
-  function serviceAreaWarning(){
-    if(!state.cfg) return '';
+  // Complete modular ships to the service states only. Outside them the rep
+  // can still make a Ballpark, but not a Proposal (Kelsey, 2026-10-13).
+  function outOfArea(){
+    if(!state.cfg) return false;
+    var t = cat.type(state.cfg.type), st = state.customer.state;
+    return !!(t.service_states && st && t.service_states.indexOf(st) === -1);
+  }
+  function serviceAreaText(){
     var t = cat.type(state.cfg.type);
-    var st = state.customer.state;
-    if(!t.service_states || !st || t.service_states.indexOf(st) !== -1) return '';
-    return '<div class="notice warn"><b>Modular homes ship to ' + t.service_states.join(', ').replace(/, (\w+)$/, ' and $1') + ' only.</b> This buyer is in ' + esc(st) + '. Check with the office before you quote it.</div>';
+    return 'Complete modular only ships to ' + t.service_states.join(', ').replace(/, (\w+)$/, ' and $1') + '. Quote this as a panelized kit instead.';
+  }
+  function serviceAreaWarning(){
+    if(!outOfArea()) return '';
+    return '<div class="notice warn" id="area-warning"><b>' + esc(serviceAreaText()) + '</b></div>';
   }
 
   function renderOptions(){
@@ -337,6 +349,7 @@
   }
 
   function openDoc(kind, range){
+    if(kind === 'proposal' && outOfArea()){ toast(serviceAreaText(), true); return; }
     // Open the window during the click (pop-up blockers), then fill it.
     var w = window.open('', '_blank');
     if(!w){ toast('Your browser blocked the new window. Allow pop-ups for this site, then try again.', true); return; }
@@ -368,7 +381,9 @@
     o.className = 'overlay'; o.id = 'doc-dialog';
     o.innerHTML = '<div class="dialog" role="dialog" aria-modal="true" aria-labelledby="doc-title">'
       + '<h2 id="doc-title">Create a document</h2><p>Which one does the buyer need?</p>'
-      + '<button type="button" class="doc-choice" data-doc-kind="proposal"><b>Proposal</b><span>The real quote: price, scope and payment schedule.</span></button>'
+      + (outOfArea()
+        ? '<button type="button" class="doc-choice" disabled aria-describedby="doc-area"><b>Proposal</b><span id="doc-area">' + esc(serviceAreaText()) + '</span></button>'
+        : '<button type="button" class="doc-choice" data-doc-kind="proposal"><b>Proposal</b><span>The real quote: price, scope and payment schedule.</span></button>')
       + '<button type="button" class="doc-choice" data-doc-kind="ballpark-open"><b>Ballpark estimate</b><span>One page with a price range, for early conversations.</span></button>'
       + '<div id="range-box" hidden><div class="fields">'
       + '<div class="field" data-field="rangeLow"><label for="range-low">Low</label><input type="number" id="range-low" min="0" step="1000" value="' + rg.low + '"><div class="err"></div></div>'
@@ -376,7 +391,7 @@
       + '</div><p class="help">Suggested: the quote total ±10%, rounded.</p><div class="btn-row"><button type="button" class="btn primary" data-doc-kind="ballpark">Create ballpark estimate</button></div></div>'
       + '<div class="btn-row"><button type="button" class="btn quiet" data-doc-cancel="1">Cancel</button></div></div>';
     document.body.appendChild(o);
-    o.querySelector('[data-doc-kind="proposal"]').focus();
+    o.querySelector('.doc-choice[data-doc-kind]').focus();
   }
   function closeDialog(){ var d = $('#doc-dialog'); if(d) d.remove(); }
 
