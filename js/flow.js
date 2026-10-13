@@ -6,7 +6,7 @@
   var fmt = function(n){ return P.fmt(n); };
 
   // Product types switched on in the new tool (added one at a time).
-  var ENABLED_TYPES = ['shell', 'steel', 'modular'];
+  var ENABLED_TYPES = ['shell', 'steel', 'modular', 'garage'];
 
   var STEPS = [
     { id:'customer', label:'Customer' },
@@ -216,7 +216,7 @@
 
   function renderOptions(){
     var p = product(), ctx = optionCtx();
-    var title = p ? p.name : (state.cfg.projectName || cat.typeLabel(state.cfg.type));
+    var title = ctx.result ? ctx.result.quote.model : (p ? p.name : cat.typeLabel(state.cfg.type));
     return '<h1 class="step-title">' + esc(title) + '</h1>'
       + '<p class="step-lead">The defaults make a complete quote. Change only what the buyer asked for.</p>'
       + serviceAreaWarning()
