@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pricing check</title>
+<style>
+  :root { --ink:#17150f; --muted:#6a6459; --line:#e6e2d6; --ok:#0e6b53; --ok-bg:#dceee6; --bad:#a33526; --bad-bg:#f7e1dc; }
+  body { margin:0; padding:24px 16px; font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; color:var(--ink); background:#faf8f0; }
+  main { max-width:960px; margin:0 auto; }
+  h1 { font-size:22px; margin:0 0 4px; }
+  p { color:var(--muted); margin:0 0 16px; }
+  #status { padding:14px 16px; border-radius:10px; font-weight:600; font-size:16px; background:#fff; border:1px solid var(--line); }
+  #status.ok { background:var(--ok-bg); color:var(--ok); border-color:var(--ok); }
+  #status.bad { background:var(--bad-bg); color:var(--bad); border-color:var(--bad); }
+  table { width:100%; border-collapse:collapse; margin-top:16px; background:#fff; font-size:13px; }
+  th, td { text-align:left; padding:6px 8px; border-bottom:1px solid var(--line); vertical-align:top; }
+  td.n { text-align:right; font-variant-numeric:tabular-nums; }
+  .fail td { background:var(--bad-bg); }
+  pre { white-space:pre-wrap; font-size:12px; margin:4px 0 0; }
+  #old { position:fixed; left:-5000px; top:0; width:1200px; height:900px; border:0; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Pricing check</h1>
+  <p>Runs sample quotes through the old tool's math (<code>tests/legacy/old-tool.html</code>) and the new <code>js/pricing.js</code>, and checks that every line, total, contract amount and payment stage match to the dollar. Zip Kit modular payment stages are checked against the modular contract's 5/30/30/30/5 instead.</p>
+  <div id="status">Running…</div>
+  <table><thead><tr><th>Product type</th><th class="n">Cases</th><th class="n">Pass</th><th class="n">Fail</th></tr></thead><tbody id="summary"></tbody></table>
+  <div id="failures"></div>
+</main>
+<iframe id="old" title="old tool (hidden)"></iframe>
+<script src="../js/pricing.js"></script>
+<script src="pricing-cases.js"></script>
+<script>
+(function(){
+  'use strict';
+  var WIN_IDS = ['cascade_clay_white','cascade_black_white','amsco_studios','andersen_100'];
+  var PREFIX = { shell:'s', modular:'m', garage:'g', hangar:'h', steel:'st', custom:'c' };
+  var CALC   = { shell:'calcShell', modular:'calcModular', garage:'calcGarage', hangar:'calcHangar', steel:'calcSteel', custom:'calcCustom' };
+  var RESET  = { shell:'resetShell', modular:'resetModular', garage:'resetGarage', hangar:'resetHangar', steel:'resetSteel', custom:'resetCustom' };
+
+  function product(cat, id){ return cat.products.filter(function(p){ return p.id === id; })[0]; }
+  function adjText(cfg, k){ var a = cfg.adjustments && cfg.adjustments[k]; return a && a.amount != null ? String(a.amount) : ''; }
+
+  // Fill the old tool's form from a new-style config, then run its calc.
+  function driveOld(w, cat, cfg){
+    var d = w.document, t = cfg.type, px = PREFIX[t];
+    function set(id, v){ var e = d.getElementById(id); if(!e) throw new Error('old tool has no #' + id); e.value = v; }
+    function chk(id, v){ var e = d.getElementById(id); if(e) e.checked = !!v; }
+    w.setMode(t);
+    w[RESET[t]]();
+    var promo = d.getElementById('prop-promo-design-credit'); if(promo) promo.checked = !!cfg.promo;
+    var p = cfg.productId ? product(cat, cfg.productId) : null;
+    if(t === 'shell'){
+      set('s-model', p.legacy_index.shell); set('s-units', cfg.units || 1);
+      set('s-snow', { standard:0, tier1:1, tier2:2 }[cfg.snow || 'standard']);
+      set('s-win', cfg.windows ? WIN_IDS.indexOf(cfg.windows) : -1);
+      set('s-win-override', adjText(cfg, 'windows')); set('s-miles', cfg.miles || 0);
+      set('s-ship-override', adjText(cfg, 'shipping')); set('s-disc', cfg.discountPct || 0);
+      set('s-design-override', adjText(cfg, 'design'));
+      chk('s-design-paid', cfg.designPaid); chk('s-eng-paid', cfg.engineeringPaid); chk('s-eng-modified', cfg.mirroredEngineering); chk('s-dryin', cfg.dryin);
+    } else if(t === 'modular'){
+      set('m-model', p.legacy_index.modular); w.buildModularControls();
+      set('m-units', cfg.units || 1); set('m-base-override', adjText(cfg, 'base'));
+      set('m-snow', { standard:0, tier1:1, tier2:2 }[cfg.snow || 'standard']);
+      var z = p.pricing[p.brands[0]];
+      var wi = -1; z.window_upgrades.forEach(function(u, i){ if(u.id === cfg.windows) wi = i; });
+      set('m-win', wi); set('m-win-override', adjText(cfg, 'windows'));
+      set('m-miles', cfg.miles || 0); set('m-ship-override', adjText(cfg, 'shipping')); set('m-disc', cfg.discountPct || 0);
+      z.addons.forEach(function(a, i){ chk('m-addon-' + i, (cfg.addons || []).indexOf(a.id) !== -1); });
+    } else if(t === 'garage'){
+      set('g-model', p.legacy_index.garage); set('g-units', cfg.units || 1);
+      set('g-design', cfg.garageUse === 'bundled' ? '562' : '1125'); set('g-design-override', adjText(cfg, 'design'));
+      set('g-miles', cfg.miles || 0); set('g-ship-override', adjText(cfg, 'shipping'));
+      chk('g-design-paid', cfg.designPaid); chk('g-dryin', cfg.dryin);
+    } else if(t === 'hangar'){
+      set('h-model', p.legacy_index.hangar); set('h-units', cfg.units || 1); set('h-base-override', adjText(cfg, 'base'));
+      set('h-miles', cfg.miles || 0); set('h-ship-override', adjText(cfg, 'shipping')); set('h-disc', cfg.discountPct || 0);
+      set('h-design-override', adjText(cfg, 'design')); chk('h-design-paid', cfg.designPaid); chk('h-dryin', cfg.dryin);
+    } else if(t === 'steel'){
+      set('st-name', cfg.projectName || ''); set('st-sqft', cfg.sqft || ''); set('st-build', cfg.buildCost || ''); set('st-eng', cfg.engineering || '');
+      set('st-miles', cfg.miles || 0); set('st-rate', cfg.shipRate == null ? 14 : cfg.shipRate); set('st-scope', cfg.scope || '');
+      set('st-design-override', adjText(cfg, 'design')); chk('st-design-paid', cfg.designPaid); chk('st-eng-paid', cfg.engineeringPaid);
+    } else if(t === 'custom'){
+      set('c-name', cfg.projectName || ''); set('c-sqft', cfg.sqft || ''); set('c-build', cfg.buildCost || '');
+      set('c-design-tier', cfg.designTier === 'standard' ? '2500' : '3500'); set('c-design-override', adjText(cfg, 'design'));
+      set('c-eng', cfg.engineering || ''); set('c-miles', cfg.miles || 0); set('c-rate', cfg.shipRate == null ? 18 : cfg.shipRate); set('c-scope', cfg.scope || '');
+      chk('c-design-paid', cfg.designPaid); chk('c-eng-paid', cfg.engineeringPaid);
+      d.getElementById('c-schedule').innerHTML = '';
+      (cfg.customSchedule || []).forEach(function(s){ w.addCustomScheduleStage(s.name, s.pct, s.desc); });
+    }
+    var asm = cfg.assembly === 'remove' ? '-no-assembly' : (cfg.assembly === 'add' ? '-add-assembly' : '-assembly-none');
+    chk(px + asm, true);
+    var box = d.getElementById(px + '-custom'); if(box) box.innerHTML = '';
+    (cfg.customLines || []).forEach(function(c){
+      w.addCustomItem(px);
+      var row = box.querySelector('.lineitem:last-child');
+      row.querySelector('[data-cust="desc"]').value = c.desc;
+      row.querySelector('[data-cust="amt"]').value = c.amount;
+    });
+    w[CALC[t]]();
+    return w.QUOTE;
+  }
+
+  // Old summary rows → [{label, sub, value}]. value: signed whole dollars, or text (PAID, $14/mi …).
+  function oldLines(w, t){
+    return [].map.call(w.document.querySelectorAll('#' + PREFIX[t] + '-lines tr'), function(tr){
+      var lab = tr.querySelector('td.label'), amt = tr.querySelector('td.amt');
+      var subEl = lab.querySelector('.sub'), sub = subEl ? subEl.textContent : '';
+      var label = lab.textContent.slice(0, lab.textContent.length - sub.length).trim();
+      var txt = amt.textContent.trim();
+      var m = txt.match(/^(−)?\$(-?[\d,]+)$/);
+      var value = m ? parseInt(m[2].replace(/,/g, ''), 10) * (m[1] ? -1 : 1) : txt;
+      // The old garage tool printed its assembly credit without a minus sign, though it always subtracted.
+      // It also repeated the amount at the start of the description ("−$1,452 · 10% of shell …");
+      // the new tool shows the minus sign on the amount instead. Same dollars either way.
+      if(m && !m[1] && label === 'Assembly credit (curb delivery)'){ value = -value; sub = sub.replace(/^−\$[\d,]+ · /, ''); }
+      return { label: label, sub: sub.trim(), value: value };
+    });
+  }
+  function newLines(r){
+    return r.lines.map(function(l){
+      var value = l.kind === 'note' ? l.text : Math.round(l.amount) * (l.kind === 'credit' ? -1 : 1);
+      return { label: l.label, sub: l.sub, value: value };
+    });
+  }
+  function r0(n){ return Math.round(n); }
+  function quoteFacts(q){
+    return { kind:q.kind, units:q.units, total:r0(q.total), contract:r0(q.contract), design:r0(q.design||0), engineering:r0(q.engineering||0),
+             designPaid:!!q.designPaid, engineeringPaid:!!q.engineeringPaid, company:q.company, assembly:q.assembly||null,
+             dryin:!!q.dryin, designCreditPromo:!!q.designCreditPromo, customSchedule:q.customSchedule||null,
+             sqft:q.sqft||0, customScope:q.customScope||null };
+  }
+  function stagesFacts(st){ return st.map(function(s){ return { key:s.key, name:s.name, desc:s.desc, amount:r0(s.amount) }; }); }
+  // The modular contract's 5/30/30/30/5, written out independently (ZipKit_Contract_Generator.html calcModular).
+  function contractModularStages(total){
+    var p1 = Math.round(total * 0.05), p2 = Math.round(total * 0.30), p3 = Math.round(total * 0.30), p4 = Math.round(total * 0.30);
+    var p5 = total - p1 - p2 - p3 - p4;
+    return [
+      { key:'pay1',  name:'Payment 1 — Design & Engineering (5%)',    desc:'At project start — drafting, coordination, and project setup.',                 amount:r0(p1) },
+      { key:'pay2',  name:'Payment 2 — Materials & Production (30%)', desc:'Once plans are approved — secures materials and the factory production slot.', amount:r0(p2) },
+      { key:'pay3',  name:'Payment 3 — Construction Begins (30%)',    desc:'Factory fabrication commences.',                                                amount:r0(p3) },
+      { key:'pay4',  name:'Payment 4 — Factory Completion (30%)',     desc:'Unit complete and ready for transport.',                                        amount:r0(p4) },
+      { key:'final', name:'Payment 5 — Set & Completion (5%)',        desc:'After delivery and set on the foundation.',                                     amount:r0(p5) }
+    ];
+  }
+
+  function diff(a, b){ return JSON.stringify(a) === JSON.stringify(b) ? null : { old: a, new: b }; }
+
+  function run(cat, w){
+    var cases = window.ZK_PRICING_CASES(cat);
+    var byType = {}, failures = [];
+    cases.forEach(function(c){
+      var t = c.cfg.type; byType[t] = byType[t] || { n:0, pass:0 }; byType[t].n++;
+      var problems = {};
+      try {
+        var oq = driveOld(w, cat, c.cfg);
+        var nr = window.ZKPricing.price(cat, c.cfg);
+        var nq = nr.quote;
+        // Model names: renamed models (Solitude → Kolob …) are expected to differ.
+        var p = c.cfg.productId ? product(cat, c.cfg.productId) : null;
+        var oldNames = p ? [p.name].concat(p.aliases || []) : [];
+        var oldModel = oq.model, newModel = nq.model;
+        if(p){ oldNames.forEach(function(n){ oldModel = oldModel.replace(n, '#'); newModel = newModel.replace(n, '#'); }); }
+        var dm = diff(oldModel, newModel); if(dm) problems.model = dm;
+        var df = diff(quoteFacts(oq), quoteFacts(nq)); if(df) problems.quote = df;
+        var ol = oldLines(w, t), nl = newLines(nr);
+        if(p && p.aliases) ol.forEach(function(l){ p.aliases.forEach(function(a){ l.sub = l.sub.replace(a, p.name); }); });
+        var dl = diff(ol, nl); if(dl) problems.lines = dl;
+        var newStages = stagesFacts(window.ZKPricing.schedule(cat, nr));
+        var expected = nq.kind === 'Modular' ? stagesFacts(contractModularStages(nq.contract)) : stagesFacts(w.invoiceStages(oq));
+        var ds = diff(expected, newStages); if(ds) problems.schedule = ds;
+        var sumNew = newStages.reduce(function(a, s){ return a + s.amount; }, 0);
+        var sumExp = expected.reduce(function(a, s){ return a + s.amount; }, 0);
+        if(sumNew !== sumExp) problems.scheduleTotal = { old: sumExp, new: sumNew };
+      } catch(e){ problems.error = String(e && e.stack || e); }
+      if(Object.keys(problems).length){ failures.push({ name:c.name, cfg:c.cfg, problems:problems }); }
+      else byType[t].pass++;
+    });
+    return { total: cases.length, pass: cases.length - failures.length, byType: byType, failures: failures };
+  }
+
+  function show(res){
+    var s = document.getElementById('status');
+    s.textContent = (res.failures.length ? 'FAIL: ' : 'PASS: ') + res.pass + ' of ' + res.total + ' sample quotes match the old tool.';
+    s.className = res.failures.length ? 'bad' : 'ok';
+    document.title = (res.failures.length ? 'FAIL ' : 'PASS ') + res.pass + '/' + res.total;
+    document.getElementById('summary').innerHTML = Object.keys(res.byType).map(function(t){
+      var b = res.byType[t]; return '<tr class="' + (b.pass === b.n ? '' : 'fail') + '"><td>' + t + '</td><td class="n">' + b.n + '</td><td class="n">' + b.pass + '</td><td class="n">' + (b.n - b.pass) + '</td></tr>';
+    }).join('');
+    document.getElementById('failures').innerHTML = res.failures.slice(0, 30).map(function(f){
+      return '<h3>' + f.name + '</h3><pre>' + JSON.stringify(f.problems, null, 1).replace(/</g, '&lt;') + '</pre>';
+    }).join('');
+  }
+
+  var frame = document.getElementById('old');
+  Promise.all([
+    fetch('../data/catalog.json', { cache:'no-store' }).then(function(r){ return r.json(); }),
+    new Promise(function(resolve){ frame.onload = function(){ setTimeout(resolve, 1200); }; frame.src = 'legacy/old-tool.html'; })
+  ]).then(function(v){
+    var w = frame.contentWindow;
+    w.alert = function(){};
+    var res = run(v[0], w);
+    window.ZK_PRICING_RESULT = res;
+    show(res);
+  }).catch(function(e){
+    var s = document.getElementById('status'); s.className = 'bad'; s.textContent = 'Could not run: ' + e;
+    document.title = 'ERROR';
+    window.ZK_PRICING_RESULT = { error: String(e) };
+  });
+})();
+</script>
+</body>
+</html>

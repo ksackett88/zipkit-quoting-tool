@@ -168,6 +168,7 @@
   "product_types": {
     "shell": {
       "label": "Panelized Kit",
+      "max_discount_pct": 15,
       "brand": "zipkit",
       "schedule": "zk_kit_standard",
       "design_fee": 2500,
@@ -199,6 +200,7 @@
     },
     "modular": {
       "label": "Modular",
+      "max_discount_pct": 15,
       "brand": "zipkit",
       "schedule": "zk_modular",
       "assembly_shell_fraction": 0.85,
@@ -227,6 +229,7 @@
     },
     "hangar": {
       "label": "Hangar",
+      "max_discount_pct": 15,
       "brand": "zksteel",
       "schedule": "zk_kit_standard",
       "design_fee": 2500,
