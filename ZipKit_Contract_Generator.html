@@ -3181,6 +3181,55 @@ async function zkSignOut(){ await zkAuth.signOut(); }
 // mode-specific fields so the rep isn't re-typing everything they already
 // entered upstream. Best-effort — anything we can't map is left blank.
 // ==========================================================================
+// Kit contracts cover one home and have no fields for a quote's number of homes,
+// multi-unit discount, adjusted shipping / window price, or curb-delivery credit.
+// Before 2026-10-13 the hand-off silently dropped those and the quote's add-on
+// lines, so a 3-home quote became a 1-home contract. This carries the add-on lines
+// across, turns on the promo if the quote had it, and adds one labeled line for
+// anything else so the kit amount matches the quote to the dollar. Contract
+// wording is unchanged; these are ordinary line items the rep can see and edit.
+function zkCarryShellQuoteDetails(q){
+  var cfg = q.config || {}, f = cfg.fields || {}, qd = q.quote_data || {};
+  function addLine(desc, amt){
+    addCustom();
+    var row = document.querySelector('#c-custom .lineitem:last-child');
+    if(!row) return;
+    row.querySelector('[data-cust="desc"]').value = desc;
+    row.querySelector('[data-cust="amt"]').value = Math.round(amt * 100) / 100;
+  }
+  // Loading a quote replaces the kit's lines (never adds to lines from another quote).
+  var box = document.getElementById('c-custom'); if(box) box.innerHTML = '';
+  (cfg.customs || []).forEach(function(c){
+    var amt = parseFloat(c.amt) || 0;
+    if((c.desc && String(c.desc).trim()) || amt) addLine(String(c.desc || 'Custom item').trim() || 'Custom item', amt);
+  });
+  var promoEl = document.getElementById('c-promo-design-credit');
+  if(promoEl && qd.designCreditPromo) promoEl.checked = true;
+  if(typeof calc === 'function') calc();
+  if(!window.CURRENT || qd.contract == null) return;
+  // The quote's kit amount (everything but design and engineering) vs. this form's.
+  var customsNow = getCustomItems().reduce(function(a, c){ return a + c.amt; }, 0);
+  var have = CURRENT.shell + CURRENT.snow + CURRENT.win + CURRENT.ship + customsNow;
+  var diff = Math.round((Number(qd.contract) - have) * 100) / 100;
+  if(Math.abs(diff) >= 1){
+    var parts = [];
+    var units = parseInt(f['s-units'], 10) || 1, disc = parseInt(f['s-disc'], 10) || 0;
+    if(units > 1) parts.push(units + ' homes');
+    if(disc > 0) parts.push(disc + '% multi-unit discount');
+    if(String(f['s-ship-override'] || '').trim() !== '') parts.push('adjusted shipping');
+    if(String(f['s-win-override'] || '').trim() !== '') parts.push('adjusted window price');
+    if(qd.assembly && qd.assembly.mode === 'removed') parts.push('curb-delivery credit');
+    addLine('Quote adjustments from ' + (q.quote_number || 'the quote') + (parts.length ? ': ' + parts.join(', ') : ''), diff);
+    calc();
+  }
+  // Extra engineering for mirrored homes belongs in the engineering payment,
+  // which this form can't change, so say so instead of moving it silently.
+  var extraEng = Math.round((Number(qd.engineering) || 0) - (CURRENT.eng || 0));
+  if(extraEng >= 1 && !qd.engineeringPaid && typeof zkContractToast === 'function'){
+    setTimeout(function(){ zkContractToast('This quote has ' + fmt(extraEng) + ' extra engineering for mirrored homes. Add it to the engineering payment by hand.', true); }, 3200);
+  }
+}
+
 async function zkAutoLoadFromQuote(quoteId){
   try {
     var q = await zkQuotes.get(quoteId);
@@ -3237,6 +3286,7 @@ async function zkAutoLoadFromQuote(quoteId){
       var withAsmEl = document.getElementById('c-with-assembly');
       if(withAsmEl) withAsmEl.checked = assemblyAdded;
       if(typeof calc === 'function') calc();
+      zkCarryShellQuoteDetails(q);
     } else if(mode === 'modular'){
       setVal('cm-model',      fields['m-model']);
       setVal('cm-units',      fields['m-units']);

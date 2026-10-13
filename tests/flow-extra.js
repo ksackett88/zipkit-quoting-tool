@@ -175,6 +175,50 @@ window.ZK_FLOW_EXTRA = async function(cat, W, h){
   await settle();
   rec('Saving a quote that has invoices makes a new copy (the invoiced one is untouched)', rows.length === countBefore + 1 && W.ZKFlow.state.saved.id !== withInv.id, { rows: rows.length, before: countBefore });
 
+  // 8. The four bugs from the plan, one test each.
+  // Bug 1: Steel add-ons weren't saved (old tool saved them from the Panelized Kit box).
+  await quoteFor({ type:'steel', projectName:'Shop', buildCost:150000, engineering:6000, miles:100, customLines:[{ desc:'Insulation', amount:8800 }, { desc:'Credit', amount:-2000 }] });
+  var b1 = W.ZKFlow.result();
+  var b1row = await W.zkQuotes.save(W.ZKStore.buildRow(C, W.ZKFlow.state, b1, b1.schedule));
+  W.ZKFlow.newQuote(); await W.ZKFlow.openSaved(b1row.id);
+  var b1lines = W.ZKFlow.state.cfg.customLines;
+  rec('Bug 1 fixed: Steel kit add-ons are saved and come back when reopened',
+    b1lines.length === 2 && b1lines[0].desc === 'Insulation' && String(b1lines[1].amount) === '-2000' && Math.round(W.ZKFlow.result().total) === Math.round(b1.total)
+      && b1row.config.customs.length === 2, { lines: b1lines });
+
+  // Bug 2: the Custom Home schedule wasn't reopened (old tool kept it only in quote_data).
+  var b2cfg = { type:'custom', projectName:'Della', buildCost:410000, engineering:16000, customSchedule:[{ name:'Deposit', pct:20, desc:'At signing' }, { name:'Materials', pct:35, desc:'' }, { name:'Pre-ship', pct:35, desc:'' }, { name:'Final', pct:10, desc:'On set' }] };
+  var b2row = window.ZK_OLD.oldRow(OW, cat, b2cfg, { name:'Old Buyer' });
+  rows.push(b2row);
+  W.ZKFlow.newQuote(); await W.ZKFlow.openSaved(b2row.id);
+  var b2 = W.ZKFlow.result();
+  var oldStages = OW.invoiceStages(b2row.quote_data).map(function(s){ return s.key + ':' + Math.round(s.amount); }).join(' ');
+  var newStages = b2.schedule.map(function(s){ return s.key + ':' + Math.round(s.amount); }).join(' ');
+  rec('Bug 2 fixed: a Custom Home payment schedule comes back when reopened (old and new quotes)',
+    W.ZKFlow.state.cfg.customSchedule.length === 4 && W.ZKFlow.state.cfg.customSchedule[0].name === 'Deposit' && oldStages === newStages, { old: oldStages, now: newStages });
+
+  // Bug 3: modular window upgrade and add-ons weren't reloaded.
+  var b3cfg = { type:'modular', productId:'yellowstone', units:2, windows:'andersen_100_series', addons:['rooftop_deck_w_spiral_staircase'], miles:250 };
+  var b3row = window.ZK_OLD.oldRow(OW, cat, b3cfg, { name:'Old Buyer' });
+  rows.push(b3row);
+  W.ZKFlow.newQuote(); await W.ZKFlow.openSaved(b3row.id);
+  var b3c = W.ZKFlow.state.cfg;
+  rec('Bug 3 fixed: a modular window upgrade and add-ons come back when reopened',
+    b3c.windows === 'andersen_100_series' && b3c.addons.length === 1 && b3c.addons[0] === 'rooftop_deck_w_spiral_staircase' && Math.round(W.ZKFlow.result().total) === Math.round(b3row.total),
+    { windows: b3c.windows, addons: b3c.addons, total: Math.round(W.ZKFlow.result().total), saved: Math.round(b3row.total) });
+
+  // Bug 4: the contract hand-off dropped kit details (homes, discount, shipping, add-ons).
+  var b4 = await handOff({ type:'shell', productId:'cedar', units:3, discountPct:10, miles:400, assembly:'remove', adjustments:{ shipping:{ amount:7000, reason:'t' } }, customLines:[{ desc:'Deck', amount:4200 }] });
+  var GC = b4.G.CURRENT, gItems = b4.G.getCustomItems();
+  var kitOnContract = GC.shell + GC.snow + GC.win + GC.ship + gItems.reduce(function(a, c){ return a + c.amt; }, 0);
+  var labels = gItems.map(function(c){ return c.desc; });
+  rec('Bug 4 fixed: hand-off keeps homes, discount, adjusted shipping, add-ons and curb credit (kit amount matches the quote)',
+    Math.round(kitOnContract) === Math.round(b4.r.contract) && labels.indexOf('Deck') !== -1 && labels.some(function(l){ return /Quote adjustments from Q-TEST-\d+: 3 homes, 10% multi-unit discount, adjusted shipping, curb-delivery credit/.test(l); }),
+    { kitOnContract: Math.round(kitOnContract), quoteContract: Math.round(b4.r.contract), labels: labels });
+  var b4b = await handOff({ type:'shell', productId:'alpine', miles:300 });
+  var b4bItems = b4b.G.getCustomItems();
+  rec('Bug 4: a simple one-home quote hands off with no extra adjustment line', b4bItems.length === 0, b4bItems);
+
   oldFrame.remove();
   W.open = realOpen;
   cg.remove(); cap.remove();
