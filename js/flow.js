@@ -6,7 +6,7 @@
   var fmt = function(n){ return P.fmt(n); };
 
   // Product types switched on in the new tool (added one at a time).
-  var ENABLED_TYPES = ['shell', 'steel', 'modular', 'garage', 'hangar'];
+  var ENABLED_TYPES = ['shell', 'steel', 'modular', 'garage', 'hangar', 'custom'];
 
   var STEPS = [
     { id:'customer', label:'Customer' },
@@ -361,7 +361,7 @@
     if(el.hasAttribute('data-sched')){
       var j = +el.getAttribute('data-sched'); state.cfg.customSchedule[j][el.getAttribute('data-part')] = el.value; refreshLive();
       var sum = $('[data-sched-sum]'); if(sum){ var info = P.customScheduleInfo(state.cfg.customSchedule);
-        sum.innerHTML = info.isValid ? 'Adds up to 100%. Engineering is still billed first.' : 'Adds up to <b>' + (Math.round(info.sum * 100) / 100) + '%</b>. It must add up to 100% or the standard schedule is used.'; }
+        sum.innerHTML = info.isValid ? 'Adds up to 100%. Engineering is still billed first.' : 'Adds up to <b>' + (Math.round(info.sum * 100) / 100) + '%</b>. Make it 100% to continue, or click "Back to standard".'; }
       return;
     }
     if(el.hasAttribute('data-adj')){

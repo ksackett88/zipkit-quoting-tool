@@ -103,7 +103,7 @@
         + '<button type="button" class="add-row" data-sched-add="1">+ Add a payment</button>'
         + (rows.length ? '<button type="button" class="add-row" data-sched-reset="1">Back to standard</button>' : '<button type="button" class="add-row" data-sched-start="1">Change the schedule</button>')
         + '</div>'
-        + (rows.length ? '<div class="help" data-sched-sum>' + (info.isValid ? 'Adds up to 100%. Engineering is still billed first.' : 'Adds up to <b>' + sumText + '</b>. It must add up to 100% or the standard schedule is used.') + '</div>' : '')
+        + (rows.length ? '<div class="help" data-sched-sum>' + (info.isValid ? 'Adds up to 100%. Engineering is still billed first.' : 'Adds up to <b>' + sumText + '</b>. Make it 100% to continue, or click "Back to standard".') + '</div>' : '')
         + '</div>';
     }
   };
