@@ -1024,10 +1024,16 @@ function _zkLoadRep(){
 // Renders a branded, print-ready invoice matching the quoting tool's layout —
 // header with Stage, sales rep row, contract payment schedule, kind-aware
 // footer. Brand-aware; pulls logo/address/wire from zkPaymentInfo + zkBrandInfo.
-function zkGenerateInvoicePdf(project, invoice){
+async function zkGenerateInvoicePdf(project, invoice){
+  // Open the window right away (pop-up blockers need it tied to the click),
+  // then fill it once the wire details are fetched from Supabase.
+  var w = window.open('', '_blank');
+  if(!w){ zkToast('Please allow pop-ups to generate the invoice PDF.', true); return; }
+  w.document.write(window.zkInvoiceLoadingHTML); w.document.close();
   var brand = project.brand || 'zipkit';
   var co = window.zkBrandInfo[brand] || window.zkBrandInfo.zipkit;
   var pay = window.zkPaymentInfo[brand] || window.zkPaymentInfo.zipkit;
+  var wire = await window.zkFetchWire(brand);
   var fmt = window.zkFmtMoney;
 
   var logoImg = 'images/' + co.logoFile;
@@ -1156,13 +1162,7 @@ function zkGenerateInvoicePdf(project, invoice){
     +'</div>'
     +'<div style="border:1px solid #e2e0d8; border-radius:6px; padding:10px 12px; font-size:11px; line-height:1.45;">'
     +'<div style="font-weight:600; font-size:12px; margin-bottom:6px;">Wire transfer</div>'
-    +'<table style="width:100%; font-size:11px; border-collapse:collapse;">'
-    +'<tr><td style="color:#888; padding:1px 6px 1px 0; vertical-align:top; white-space:nowrap;">Account name</td><td style="padding:1px 0; vertical-align:top;">'+_esc(pay.wire.accountName)+'</td></tr>'
-    +'<tr><td style="color:#888; padding:1px 6px 1px 0; vertical-align:top; white-space:nowrap;">Account #</td><td style="padding:1px 0; vertical-align:top;">'+_esc(pay.wire.accountNumber)+'</td></tr>'
-    +'<tr><td style="color:#888; padding:1px 6px 1px 0; vertical-align:top; white-space:nowrap;">Routing #</td><td style="padding:1px 0; vertical-align:top;">'+_esc(pay.wire.routingNumber)+'</td></tr>'
-    +'<tr><td style="color:#888; padding:1px 6px 1px 0; vertical-align:top; white-space:nowrap;">Bank</td><td style="padding:1px 0; vertical-align:top;">'+_esc(pay.wire.bank)+(pay.wire.bankBranch?'<br>'+_esc(pay.wire.bankBranch):'')+(pay.wire.bankAddress && pay.wire.bankAddress.length?'<br>'+pay.wire.bankAddress.map(_esc).join('<br>'):'')+'</td></tr>'
-    +(pay.wire.businessAddress?'<tr><td style="color:#888; padding:1px 6px 1px 0; vertical-align:top; white-space:nowrap;">Business addr</td><td style="padding:1px 0; vertical-align:top;">'+pay.wire.businessAddress.map(_esc).join('<br>')+'</td></tr>':'')
-    +'</table>'
+    +window.zkWireHTML(wire, co)
     +'</div></div>'
     +'<div style="font-size:10px; color:#5f5e5a; margin-top:6px;">QuickBooks online payment also available — reply to this invoice and we\'ll send a payment link.</div>'
     +'</div>'
@@ -1177,8 +1177,7 @@ function zkGenerateInvoicePdf(project, invoice){
     +'</div>'
     +'</div>';
 
-  var w = window.open('', '_blank');
-  if(!w){ zkToast('Please allow pop-ups to generate the invoice PDF.', true); return; }
+  w.document.open();
   w.document.write('<!DOCTYPE html><html><head><meta charset="utf-8"><title>Invoice '+_esc(num)+' — '+_esc(stageName)+'</title></head><body style="margin:0; background:#fff;">'+html
     +'<div style="text-align:center; padding:20px;" class="noprint"><button onclick="window.print()" style="padding:10px 24px; font-size:14px; background:#d85a30; color:#fff; border:none; border-radius:8px; cursor:pointer;">Print / Save as PDF</button></div>'
     +'<style>@page{size:letter;margin:0.35in;}@media print{.noprint{display:none;}.invoice-page{padding:0!important;}body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}}</style></body></html>');

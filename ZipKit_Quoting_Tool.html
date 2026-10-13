@@ -963,53 +963,13 @@ function renderInvoiceStages(){
   if(typeof updateProposalSummary==='function') updateProposalSummary();
 }
 
-// Edit this constant to update mailing / wire details across all generated invoices.
-var PAYMENT_INFO = {
-  zipkit: {
-    payable: 'Zip Kit Homes, LLC',
-    mailing: ['3665 W 2700 S', 'Cedar City, UT 84720'],
-    wire: {
-      accountName: 'ZipKit USA LLC',
-      accountNumber: '501019237956',
-      routingNumber: '324079555',
-      bank: 'Mountain America Credit Union',
-      bankBranch: 'Royal Hunte Drive UT Branch',
-      bankAddress: ['1701 Royal Hunte Dr.', 'Cedar City, UT 84720'],
-      businessAddress: ['3665 W 2700 S', 'Cedar City, UT 84720']
-    }
-  },
-  mvp: {
-    payable: 'Mountain Valley Prefab',
-    mailing: ['3665 W 2700 S', 'Cedar City, UT 84720'],
-    wire: {
-      accountName: 'Mountain Valley Prefab',
-      accountNumber: '501012652914',
-      routingNumber: '324079555',
-      bank: 'Mountain America Credit Union',
-      bankBranch: null,
-      bankAddress: [],
-      businessAddress: ['3791 East 49th North', 'Idaho Falls, ID 83401']
-    }
-  },
-  // ZipKit Steel is the same legal entity as ZipKit Homes, so wire + mailing
-  // are identical. Only the displayed brand on the doc differs.
-  zksteel: {
-    payable: 'Zip Kit Homes, LLC',
-    mailing: ['3665 W 2700 S', 'Cedar City, UT 84720'],
-    wire: {
-      accountName: 'ZipKit USA LLC',
-      accountNumber: '501019237956',
-      routingNumber: '324079555',
-      bank: 'Mountain America Credit Union',
-      bankBranch: 'Royal Hunte Drive UT Branch',
-      bankAddress: ['1701 Royal Hunte Dr.', 'Cedar City, UT 84720'],
-      businessAddress: ['3665 W 2700 S', 'Cedar City, UT 84720']
-    }
-  }
-};
-
-function generateInvoice(){
+async function generateInvoice(){
   if(!QUOTE){ alert('Configure a quote first.'); return; }
+  // Open the window right away (while the click still counts as a user action,
+  // so pop-up blockers allow it), then fill it once wire details are fetched.
+  var w = window.open('', '_blank');
+  if(!w){ alert('Please allow pop-ups to generate the invoice.'); return; }
+  w.document.write(window.zkInvoiceLoadingHTML); w.document.close();
   var stages = invoiceStages(QUOTE);
   var key = document.getElementById('inv-stage-sel').value;
   var stage = stages.filter(function(s){return s.key===key;})[0] || stages[0];
@@ -1031,7 +991,8 @@ function generateInvoice(){
       ? {name:'Zip Kit Steel', addr:'3665 West 2700 South, Cedar City UT 84720', tel:'(435) 340·1171', email:'sales@zipkitsteel.com', logo:zkImageUrl('zksteel-logo.png')}
       : {name:'Zip Kit Homes', addr:'3665 West 2700 South, Cedar City UT 84720', tel:'(435) 340·1171', email:'sales@zipkithomes.com', logo:ZIPKIT_LOGO};
 
-  var pay = PAYMENT_INFO[QUOTE.company] || PAYMENT_INFO.zipkit;
+  var pay = window.zkPaymentInfo[QUOTE.company] || window.zkPaymentInfo.zipkit;
+  var wire = await window.zkFetchWire(QUOTE.company);
 
   // Design retainer is a standalone document — separate from the contract.
   // For contract invoices, the displayed schedule excludes design.
@@ -1116,15 +1077,7 @@ function generateInvoice(){
     // WIRE
     +'<div style="border:1px solid #e2e0d8; border-radius:6px; padding:10px 12px; font-size:11px; line-height:1.45;">'
     +'<div style="font-weight:600; font-size:12px; margin-bottom:6px;">Wire transfer</div>'
-    +(pay.wire
-      ? '<table style="width:100%; font-size:11px; border-collapse:collapse;">'
-        +'<tr><td style="color:#888; padding:1px 6px 1px 0; vertical-align:top; white-space:nowrap;">Account name</td><td style="padding:1px 0; vertical-align:top;">'+pay.wire.accountName+'</td></tr>'
-        +'<tr><td style="color:#888; padding:1px 6px 1px 0; vertical-align:top; white-space:nowrap;">Account #</td><td style="padding:1px 0; vertical-align:top;">'+pay.wire.accountNumber+'</td></tr>'
-        +'<tr><td style="color:#888; padding:1px 6px 1px 0; vertical-align:top; white-space:nowrap;">Routing #</td><td style="padding:1px 0; vertical-align:top;">'+pay.wire.routingNumber+'</td></tr>'
-        +'<tr><td style="color:#888; padding:1px 6px 1px 0; vertical-align:top; white-space:nowrap;">Bank</td><td style="padding:1px 0; vertical-align:top;">'+pay.wire.bank+(pay.wire.bankBranch?'<br>'+pay.wire.bankBranch:'')+(pay.wire.bankAddress && pay.wire.bankAddress.length?'<br>'+pay.wire.bankAddress.join('<br>'):'')+'</td></tr>'
-        +(pay.wire.businessAddress?'<tr><td style="color:#888; padding:1px 6px 1px 0; vertical-align:top; white-space:nowrap;">Business addr</td><td style="padding:1px 0; vertical-align:top;">'+pay.wire.businessAddress.join('<br>')+'</td></tr>':'')
-        +'</table>'
-      : '<div style="color:#5f5e5a;">Contact '+co.email+' for wire details.</div>')
+    +window.zkWireHTML(wire, co)
     +'</div>'
     +'</div>'
     +'<div style="font-size:10px; color:#5f5e5a; margin-top:6px;">QuickBooks online payment also available — reply to this invoice and we\'ll send a payment link.</div>'
@@ -1138,8 +1091,7 @@ function generateInvoice(){
     +'</div>'
     +'</div>';
 
-  var w = window.open('', '_blank');
-  if(!w){ alert('Please allow pop-ups to generate the invoice.'); return; }
+  w.document.open();
   w.document.write('<!DOCTYPE html><html><head><meta charset="utf-8"><title>Invoice '+num+' — '+stage.name+'</title></head><body style="margin:0; background:#fff;">'+html
     +'<div style="text-align:center; padding:20px;" class="noprint"><button onclick="window.print()" style="padding:10px 24px; font-size:14px; background:#d85a30; color:#fff; border:none; border-radius:8px; cursor:pointer;">Print / Save as PDF</button></div>'
     +'<style>@page{size:letter;margin:0.35in;}@media print{.noprint{display:none;}.invoice-page{padding:0!important;}body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}}</style></body></html>');
@@ -1183,9 +1135,13 @@ function updateGenericTotal(){
   var el = document.getElementById('gen-total'); if(el) el.textContent = fmt(total);
 }
 
-function generateGenericInvoice(){
+async function generateGenericInvoice(){
   var items = getGenericLines();
   if(!items.length){ alert('Add at least one line item before generating.'); return; }
+  // Open the window right away so pop-up blockers allow it; fill it after the wire fetch.
+  var w = window.open('', '_blank');
+  if(!w){ alert('Please allow pop-ups to generate the invoice.'); return; }
+  w.document.write(window.zkInvoiceLoadingHTML); w.document.close();
   var g = function(id){ return (document.getElementById(id).value || '').trim(); };
   var company = document.getElementById('gen-brand').value || 'zipkit';
   var num     = g('gen-num') || '—';
@@ -1206,7 +1162,8 @@ function generateGenericInvoice(){
     : (company==='zksteel')
       ? {name:'Zip Kit Steel', addr:'3665 West 2700 South, Cedar City UT 84720', tel:'(435) 340·1171', email:'sales@zipkitsteel.com', logo:zkImageUrl('zksteel-logo.png')}
       : {name:'Zip Kit Homes', addr:'3665 West 2700 South, Cedar City UT 84720', tel:'(435) 340·1171', email:'sales@zipkithomes.com', logo:ZIPKIT_LOGO};
-  var pay = PAYMENT_INFO[company] || PAYMENT_INFO.zipkit;
+  var pay = window.zkPaymentInfo[company] || window.zkPaymentInfo.zipkit;
+  var wire = await window.zkFetchWire(company);
   var logoH = (company === 'mvp') ? 76 : 54;
   var brandHead = '<img src="'+co.logo+'" alt="'+co.name+'" style="height:'+logoH+'px;">';
 
@@ -1253,15 +1210,7 @@ function generateGenericInvoice(){
     +'</div>'
     +'<div style="border:1px solid #e2e0d8; border-radius:6px; padding:10px 12px; font-size:11px; line-height:1.45;">'
     +'<div style="font-weight:600; font-size:12px; margin-bottom:6px;">Wire transfer</div>'
-    +(pay.wire
-      ? '<table style="width:100%; font-size:11px; border-collapse:collapse;">'
-        +'<tr><td style="color:#888; padding:1px 6px 1px 0; vertical-align:top; white-space:nowrap;">Account name</td><td style="padding:1px 0; vertical-align:top;">'+pay.wire.accountName+'</td></tr>'
-        +'<tr><td style="color:#888; padding:1px 6px 1px 0; vertical-align:top; white-space:nowrap;">Account #</td><td style="padding:1px 0; vertical-align:top;">'+pay.wire.accountNumber+'</td></tr>'
-        +'<tr><td style="color:#888; padding:1px 6px 1px 0; vertical-align:top; white-space:nowrap;">Routing #</td><td style="padding:1px 0; vertical-align:top;">'+pay.wire.routingNumber+'</td></tr>'
-        +'<tr><td style="color:#888; padding:1px 6px 1px 0; vertical-align:top; white-space:nowrap;">Bank</td><td style="padding:1px 0; vertical-align:top;">'+pay.wire.bank+(pay.wire.bankBranch?'<br>'+pay.wire.bankBranch:'')+(pay.wire.bankAddress && pay.wire.bankAddress.length?'<br>'+pay.wire.bankAddress.join('<br>'):'')+'</td></tr>'
-        +(pay.wire.businessAddress?'<tr><td style="color:#888; padding:1px 6px 1px 0; vertical-align:top; white-space:nowrap;">Business addr</td><td style="padding:1px 0; vertical-align:top;">'+pay.wire.businessAddress.join('<br>')+'</td></tr>':'')
-        +'</table>'
-      : '<div style="color:#5f5e5a;">Contact '+co.email+' for wire details.</div>')
+    +window.zkWireHTML(wire, co)
     +'</div>'
     +'</div>'
     +'<div style="font-size:10px; color:#5f5e5a; margin-top:6px;">QuickBooks online payment also available — reply to this invoice and we\'ll send a payment link.</div>'
@@ -1271,8 +1220,7 @@ function generateGenericInvoice(){
     +'</div>'
     +'</div>';
 
-  var w = window.open('', '_blank');
-  if(!w){ alert('Please allow pop-ups to generate the invoice.'); return; }
+  w.document.open();
   w.document.write('<!DOCTYPE html><html><head><meta charset="utf-8"><title>Special Invoice '+num+' — '+cust+'</title></head><body style="margin:0; background:#fff;">'+html
     +'<div style="text-align:center; padding:20px;" class="noprint"><button onclick="window.print()" style="padding:10px 24px; font-size:14px; background:#d85a30; color:#fff; border:none; border-radius:8px; cursor:pointer;">Print / Save as PDF</button></div>'
     +'<style>@page{size:letter;margin:0.35in;}@media print{.noprint{display:none;}.invoice-page{padding:0!important;}body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}}</style></body></html>');
