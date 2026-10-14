@@ -19,7 +19,7 @@ Tested on WordPress 7.1.2 and PHP 8.3, with the Kadence theme. It needs WordPres
    ```
    The output is `wp-plugin/dist/zipkit-sales-tools-<version>.zip`.
 2. Upload it in **WP Admin → Plugins → Add New → Upload Plugin**, then activate it.
-   - The zip is about 25 MB, mostly model photos.
+   - The zip is about 16 MB, mostly model photos (web-size copies, not the originals).
    - If the host's upload limit is lower, upload the unzipped `wp-plugin/dist/zipkit-sales-tools/` folder to `wp-content/plugins/` by SFTP instead.
 3. Activating it does three things:
    - Adds the role **Zip Kit Sales Rep**: can read, plus the `zipkit_quote` capability.
@@ -67,7 +67,7 @@ The settings page shows the product count and the catalog's `updated` date, so y
 | What | Where | Who can read it |
 |---|---|---|
 | Tool code (JS/CSS) | `app/js`, `app/lib`, `app/css` (copied from the repo by the build) | Public files, like any theme script |
-| Logos and model photos | `app/images`, `app/photos` (`photos/cards/` = small card copies) | Public |
+| Logos and model photos | `app/images`, `app/photos/web/` (proposal size, 1400px) and `app/photos/cards/` (card size). Both are resized copies; the originals stay in the repo. | Public |
 | **Full price list** | `private/catalog.json.php` | **Reps only**, through `GET /wp-json/zipkit/v1/catalog` (needs `zipkit_quote` + REST nonce) |
 | Saved projects, invoices, payments, rep names/phones, wire details | Supabase (`quotes`, `profiles`, `payment_accounts`) | Each rep their own rows (Supabase RLS) |
 | Plugin settings | `wp_options` → `zkst_settings` | Admins |

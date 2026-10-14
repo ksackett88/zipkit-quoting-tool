@@ -238,6 +238,27 @@ window.ZK_FLOW_EXTRA = async function(cat, W, h){
   rec('In-area modular (ID) and a kit in CO still offer the Proposal, with no warning',
     ia.proposal && !ia.warn && kc.proposal && !kc.warn, { ia: ia, kc: kc });
 
+  // Out-of-area modular: "Make the contract" is blocked too (Kelsey, 2026-10-13).
+  async function contractButton(cfg, st){
+    await h.fill(W, cfg); W.ZK.Flow.state.customer.state = st; W.ZK.Flow.go('review'); await h.sleep(0);
+    var b = W.document.querySelector('[data-contract]'); return { disabled: b.disabled, title: b.title };
+  }
+  var cOut = await contractButton({ type:'modular', productId:'yellowstone', miles:250 }, 'CO');
+  var cIn = await contractButton({ type:'modular', productId:'yellowstone', miles:250 }, 'ID');
+  rec('Out-of-area modular: "Make the contract" is blocked; in-area it works',
+    cOut.disabled && /only ships to UT, ID, MT and WY/.test(cOut.title) && !cIn.disabled, { cOut: cOut, cIn: cIn });
+
+  // Assembly outside the 7 assembly states: a warning, never a block.
+  async function asmWarn(st){
+    await h.fill(W, { type:'shell', productId:'alpine', miles:300, assembly:'add' }); W.ZK.Flow.state.customer.state = st;
+    W.ZK.Flow.go('review'); await h.sleep(0);
+    var el = W.document.getElementById('zk-assembly-warning');
+    return { text: el ? el.textContent : null, proposal: (W.document.querySelector('[data-doc]') || {}).disabled === false };
+  }
+  var aTX = await asmWarn('TX'), aUT = await asmWarn('UT');
+  rec('Assembly for a Texas buyer warns (not blocked); Utah has no warning',
+    /assembly crew works in UT, ID, WY, MT, CO, AZ and NV/.test(aTX.text) && aTX.proposal && aUT.text === '', { aTX: aTX, aUT: aUT });
+
   oldFrame.remove();
   W.open = realOpen;
   cg.remove(); cap.remove();

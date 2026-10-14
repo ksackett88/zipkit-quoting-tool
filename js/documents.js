@@ -6,7 +6,8 @@
   'use strict';
   var fmt = function(n){ return root.ZK.Pricing.fmt(n); };
   function esc(s){ return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;'); }
-  function absUrl(path){ return new URL(root.ZK.url ? root.ZK.url(path) : path, root.location.href).href; }
+  // Photos use the document-size copy where one is configured (ZK.photo).
+  function absUrl(path){ return new URL(root.ZK.photo ? root.ZK.photo(path, 'doc') : path, root.location.href).href; }
 
   var SCOPE = {
     'Shell Kit': {

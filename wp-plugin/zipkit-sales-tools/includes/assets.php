@@ -71,6 +71,7 @@ function zkst_enqueue_quote() {
 	$s      = zkst_settings();
 	$config = array(
 		'base'           => ZKST_URL . 'app/',
+		'docPhotos'      => 'web', // the plugin ships photos/web/ copies, not the originals
 		'catalogUrl'     => rest_url( 'zipkit/v1/catalog' ),
 		'catalogHeaders' => array( 'X-WP-Nonce' => wp_create_nonce( 'wp_rest' ) ),
 		'portalUrl'      => zkst_link( 'portal_url' ),

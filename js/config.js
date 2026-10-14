@@ -21,6 +21,7 @@
     supabaseKey: '',
     requireAuth: true,                                         // Supabase sign-in inside the rep tool
     legacyGlobals: false,                                      // old window.zk* names (portal and contract generator need them)
+    docPhotos: '',                                             // '' = original photos on documents; 'web' = photos/web/ copies
     leadUrl: '',                                               // where the public quoter posts leads ('' = not connected)
     mount: '[data-zk-app]'
   };
@@ -32,6 +33,17 @@
     if(!p) return p;
     if(/^([a-z][a-z0-9+.-]*:|\/)/i.test(p)) return p;
     return C.base + p;
+  };
+
+  // Model photos come in three sizes, made by resizing only: the original,
+  // photos/web/ (proposals when docPhotos is 'web', as in WordPress) and
+  // photos/cards/ (product cards). size: 'card' or 'doc'.
+  ZK.photo = function(p, size){
+    if(!p) return p;
+    var m = /^photos\/([^\/]+)\.[a-z]+$/i.exec(p);
+    if(m && size === 'card') return ZK.url('photos/cards/' + m[1] + '.jpg');
+    if(m && size === 'doc' && C.docPhotos === 'web') return ZK.url('photos/web/' + m[1] + '.jpg');
+    return ZK.url(p);
   };
 
   try { delete root.ZK_CONFIG; } catch(e){ root.ZK_CONFIG = undefined; }

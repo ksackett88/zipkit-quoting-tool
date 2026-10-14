@@ -19,7 +19,8 @@
       "assembly": {
         "offered": true,
         "by": "Zip Kit Assembly LLC",
-        "rate": 0.1
+        "rate": 0.1,
+        "states": ["UT", "ID", "WY", "MT", "CO", "AZ", "NV"]
       },
       "payment_account": "zipkit"
     },
@@ -40,7 +41,8 @@
       "assembly": {
         "offered": true,
         "by": "Zip Kit Assembly LLC",
-        "rate": 0.1
+        "rate": 0.1,
+        "states": ["UT", "ID", "WY", "MT", "CO", "AZ", "NV"]
       },
       "payment_account": "zipkit"
     },

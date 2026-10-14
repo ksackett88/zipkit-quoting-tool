@@ -196,7 +196,7 @@
       var start = cat.startingPrice(p);
       var lead = state.type === 'modular' ? 'Complete from ' : (state.type === 'hangar' ? 'Starting at ' : 'Kit from ');
       return '<button type="button" class="pcard' + (p.id === sel ? ' on' : '') + '" data-product="' + p.id + '">'
-        + '<div class="ph">' + (p.photo ? '<img src="' + esc(ZK.url(cardPhoto(p.photo))) + '" data-full="' + esc(ZK.url(p.photo)) + '" alt="" loading="lazy" onerror="if(this.dataset.full){this.src=this.dataset.full;this.removeAttribute(\x27data-full\x27);}">' : '') + '</div>'
+        + '<div class="ph">' + (p.photo ? '<img src="' + esc(ZK.photo(p.photo, 'card')) + '" data-full="' + esc(ZK.photo(p.photo, 'doc')) + '" alt="" loading="lazy" onerror="if(this.dataset.full){this.src=this.dataset.full;this.removeAttribute(\x27data-full\x27);}">' : '') + '</div>'
         + '<div class="pc-body"><div class="pc-name">' + esc(p.name) + (p.barndominium ? '<span class="tag">Barndominium</span>' : '') + '</div>'
         + '<div class="pc-meta">' + esc(meta) + '</div>'
         + (start != null ? '<div class="pc-price">' + lead + fmt(start) + '</div>' : '')
@@ -204,9 +204,6 @@
     }).join('');
   }
 
-  // Small copies for the photo cards (photos/cards/, made by resizing only).
-  // Documents still use the full-size originals.
-  function cardPhoto(src){ return src.replace(/^photos\/([^\/]+)\.[a-z]+$/i, 'photos/cards/$1.jpg'); }
 
   function optionCtx(){
     var p = product();
@@ -229,12 +226,25 @@
     return '<div class="notice warn" id="zk-area-warning"><b>' + esc(serviceAreaText()) + '</b></div>';
   }
 
+  // Our assembly crew works in the brand's assembly states only. Outside them
+  // the rep is warned but not blocked (Kelsey, 2026-10-13).
+  function assemblyStates(){
+    var b = state.cfg ? cat.brandFor(state.cfg.type) : null;
+    return b && b.assembly && b.assembly.states || null;
+  }
+  function assemblyWarningHTML(){
+    var list = assemblyStates(), st = state.customer.state;
+    if(!state.cfg || state.cfg.assembly !== 'add' || !list || !st || list.indexOf(st) !== -1) return '';
+    return '<div class="notice warn"><b>Our assembly crew works in ' + list.join(', ').replace(/, (\w+)$/, ' and $1') + '.</b> This buyer is in ' + esc(st) + '. Check with the office before you promise assembly.</div>';
+  }
+  function assemblyWarning(){ return '<div id="zk-assembly-warning">' + assemblyWarningHTML() + '</div>'; }
+
   function renderOptions(){
     var p = product(), ctx = optionCtx();
     var title = ctx.result ? ctx.result.quote.model : (p ? p.name : cat.typeLabel(state.cfg.type));
     return '<h1 class="step-title">' + esc(title) + '</h1>'
       + '<p class="step-lead">The defaults make a complete quote. Change only what the buyer asked for.</p>'
-      + loadNotice() + serviceAreaWarning()
+      + loadNotice() + serviceAreaWarning() + assemblyWarning()
       + '<div class="two-col"><div class="card" id="zk-options-form">' + O.renderOptions(ctx) + '</div>'
       + '<aside class="card summary sticky" id="zk-summary" aria-live="polite">' + summaryHTML(ctx.result) + '</aside></div>'
       + '<div class="actions options-bar"><button type="button" class="btn quiet" data-goto="product">Back</button><div class="right"><span class="bar-total" id="zk-bar-total" aria-hidden="true">' + (ctx.result ? 'Total <b>' + fmt(ctx.result.total) + '</b>' : '') + '</span><button type="button" class="btn primary" data-next="review">Next: review</button></div></div>';
@@ -299,7 +309,7 @@
     var r = currentResult(), c = state.customer;
     var where = [c.city, c.state].filter(Boolean).join(', ');
     var h = '<h1 class="step-title">Review and send</h1><p class="step-lead">Check it over, then create the document for the buyer.</p>'
-      + loadNotice() + serviceAreaWarning() + adjustmentsList()
+      + loadNotice() + serviceAreaWarning() + assemblyWarning() + adjustmentsList()
       + '<div class="two-col"><div class="stack">'
       + '<div class="card"><div class="subtle-head first">Buyer</div>'
       + '<div class="buyer-name">' + esc(c.name) + '</div>'
@@ -312,7 +322,9 @@
       + '<div class="actions options-bar review-bar"><button type="button" class="btn quiet" data-goto="options">Back</button>'
       + '<div class="right" id="zk-review-actions"><span id="zk-saved-line">' + savedLine() + '</span>'
       + '<button type="button" class="btn" data-save="1">Save project</button>'
-      + '<button type="button" class="btn" data-contract="1">Make the contract</button>'
+      + (outOfArea()
+        ? '<button type="button" class="btn" data-contract="1" disabled title="' + esc(serviceAreaText()) + '">Make the contract</button>'
+        : '<button type="button" class="btn" data-contract="1">Make the contract</button>')
       + '<button type="button" class="btn primary" data-doc="1">Create document</button>'
       + '</div></div>'
       + '<div class="actions no-print"><button type="button" class="btn quiet" data-new-quote="1">Start a new quote</button></div>';
@@ -324,7 +336,7 @@
     var t = document.createElement('div'); t.className = 'toast' + (bad ? ' bad' : ''); t.setAttribute('role', 'status'); t.textContent = msg;
     app.appendChild(t); setTimeout(function(){ t.remove(); }, bad ? 6000 : 3500);
   }
-  function busy(on){ $$('#zk-review-actions .btn').forEach(function(b){ b.disabled = !!on; }); }
+  function busy(on){ $$('#zk-review-actions .btn').forEach(function(b){ b.disabled = !!on || (b.hasAttribute('data-contract') && outOfArea()); }); }
 
   // Save (or update) the quote. Resolves to the saved row, or null if it failed.
   function saveNow(){
@@ -367,6 +379,7 @@
   }
 
   function openContract(){
+    if(outOfArea()){ toast(serviceAreaText(), true); return; }
     var w = window.open('', '_blank');
     if(!w){ toast('Your browser blocked the new window. Allow pop-ups for this site, then try again.', true); return; }
     w.document.write('<!DOCTYPE html><title>Preparing…</title><body style="font-family:sans-serif;color:#6a6459;padding:40px;text-align:center">Saving the quote and opening the contract…</body>'); w.document.close();
@@ -412,6 +425,7 @@
     var r = currentResult();
     var s = $('#zk-summary'); if(s) s.innerHTML = summaryHTML(r);
     var bt = $('#zk-bar-total'); if(bt) bt.innerHTML = r ? 'Total <b>' + fmt(r.total) + '</b>' : '';
+    var aw = $('#zk-assembly-warning'); if(aw) aw.innerHTML = assemblyWarningHTML();
     var f = $('#zk-options-form'); if(f && state.cfg) O.patchOptions(optionCtx(), f);
     showErrors(state.step);
   }

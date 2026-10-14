@@ -57,7 +57,10 @@ Copy-Into (Join-Path $repo 'js')     (Join-Path $app 'js')     @('*.js')
 Copy-Into (Join-Path $repo 'lib')    (Join-Path $app 'lib')    @('supabase.js')
 Copy-Into (Join-Path $repo 'css')    (Join-Path $app 'css')    @('tool.css')
 Copy-Into (Join-Path $repo 'images') (Join-Path $app 'images') @('*.png', '*.jpg', '*.svg')
-Copy-Into (Join-Path $repo 'photos') (Join-Path $app 'photos') @('*.jpg', '*.jpeg', '*.webp', '*.png')
+# Photos: web-size copies for documents (photos/web) and card copies. The
+# full-size originals stay in the repo only (Kelsey 2026-10-13: web-sized
+# copies for the plugin, originals untouched).
+Copy-Into (Join-Path (Join-Path $repo 'photos') 'web') (Join-Path (Join-Path $app 'photos') 'web') @('*.jpg')
 Copy-Into (Join-Path (Join-Path $repo 'photos') 'cards') (Join-Path (Join-Path $app 'photos') 'cards') @('*.jpg')
 
 # 3. The full price list, behind a PHP guard line.
