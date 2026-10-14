@@ -97,7 +97,7 @@ foreach ($bp in $pub.brands.PSObject.Properties) {
         id = $m.id; type = $(if ($src) { $src.type } else { $pb.types[0] }); name = $(if ($m.name) { $m.name } else { $src.name })
         sqft = $(if ($src) { $src.sqft } else { $null }); sqft_label = $(if ($m.size) { $null } elseif ($src) { $src.sqft_label } else { $null })
         dimensions = $(if ($m.size) { $m.size } elseif ($src) { $src.dimensions } else { $null }); photo = $(if ($src) { $src.photo } else { $null })
-        barndominium = $false; multifamily = [bool]$m.multifamily_only; brands = $(if ($src) { $src.brands } else { @() }); pricing = $(if ($src) { $src.pricing } else { $null })
+        barndominium = $false; multifamily = [bool]$m.multifamily_only; building_units = $m.building_units; brands = $(if ($src) { $src.brands } else { @() }); pricing = $(if ($src) { $src.pricing } else { $null })
       }
     })
   } else {
@@ -120,6 +120,9 @@ foreach ($bp in $pub.brands.PSObject.Properties) {
     }
     $photo = $null
     if ($p.photo) { $photo = 'photos/cards/' + [IO.Path]::GetFileNameWithoutExtension($p.photo) + '.jpg' }
+    # (Set outside the table so a one-item list stays a list in the JSON.)
+    $bu = $null
+    if ($p.building_units) { $bu = [object[]]@($p.building_units | ForEach-Object { [int]$_ }) }
     $label = $null
     if ($pb.photo_labels -and $pb.photo_labels.($p.id)) { $label = $pb.photo_labels.($p.id) }
     [void]$products.Add([ordered]@{
@@ -132,8 +135,9 @@ foreach ($bp in $pub.brands.PSObject.Properties) {
       tag         = $(if ($p.multifamily) { 'Multifamily only' } elseif ($p.barndominium) { 'Barndominium' } else { $null })
       photo       = $photo
       photo_label = $label
-      # Multifamily-only models are priced and quoted from 2 units up.
-      min_units   = $(if ($p.multifamily) { 2 } else { 1 })
+      # Multifamily buildings: the units per building the customer picks from
+      # (Dakota 2 or 3, Westley 5). The tool asks how many buildings.
+      building_units = $bu
       start_price = $start
     })
   }

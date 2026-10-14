@@ -292,11 +292,11 @@
         "types": ["modular"],
         "models": [
           { "id": "ridgeline", "from_product": "ridgeline" },
-          { "id": "dakota", "from_product": "dakota", "multifamily_only": true },
+          { "id": "dakota", "from_product": "dakota", "multifamily_only": true, "building_units": [2, 3], "source": "2-unit or 3-unit buildings (Kelsey 2026-10-14)." },
           { "id": "gallatin-i", "from_product": "gallatin", "name": "Gallatin I" },
           { "id": "gallatin-ii", "from_product": "gallatin-ii" },
           { "id": "mckinley", "name": "McKinley", "size": "971 sq ft per live/work unit", "source": "MVP site facts (Kelsey D103): 538 sq ft home over 433 sq ft commercial per unit." },
-          { "id": "westley", "name": "Westley", "multifamily_only": true, "source": "Size and photo not on file yet." },
+          { "id": "westley", "name": "Westley", "multifamily_only": true, "size": "5-unit, 2-story building", "building_units": [5], "source": "5-unit, 2-story building (Kelsey 2026-10-14). Square footage and photo not on file yet." },
           { "id": "sierra", "from_product": "sierra" }
         ],
         "prices": "needs_price",
@@ -304,7 +304,7 @@
         "photo_labels": { "sierra": "Rendering" },
         "factory_zip": "83401",
         "confirm": true,
-        "confirm_note": "MVP pilot (Kelsey 2026-10-14): lineup Ridgeline, Dakota, Gallatin I, Gallatin II, McKinley, Westley, Sierra; UT, ID, MT, WY only; Dakota and Westley multifamily only; ships from Idaho Falls 83401. Every price, shipping rate and the Westley size and photo still come from Sven: until then MVP shows no prices."
+        "confirm_note": "MVP pilot (Kelsey 2026-10-14): lineup Ridgeline, Dakota, Gallatin I, Gallatin II, McKinley, Westley, Sierra; UT, ID, MT, WY only; Dakota and Westley multifamily only (Dakota 2-unit or 3-unit buildings, Westley 5-unit 2-story buildings; customers pick buildings, the tool counts units); ships from Idaho Falls 83401. Every price, shipping rate and the Westley size and photo still come from Sven: until then MVP shows no prices."
       }
     },
     "location": {

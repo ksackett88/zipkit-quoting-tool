@@ -39,6 +39,12 @@ function zkst_est_money( $n ) {
 	return '$' . number_format( (float) $n );
 }
 
+/** "2 buildings × 3 units = 6 units" (the public quoter shows the same). */
+function zkst_est_buildings( $buildings, $per ) {
+	$n = $buildings * $per;
+	return $buildings . ' building' . ( 1 === $buildings ? '' : 's' ) . ' × ' . $per . ' unit' . ( 1 === $per ? '' : 's' ) . ' = ' . $n . ' unit' . ( 1 === $n ? '' : 's' );
+}
+
 /** The price zone for a state ("rest" catches every state not listed elsewhere). */
 function zkst_est_zone( $cat, $state ) {
 	$zones = (array) zkst_est_ref( $cat, 'public.location.zones' );
@@ -122,7 +128,7 @@ function zkst_est_ship_per( $cat, $product, $miles ) {
 }
 
 /**
- * The estimate. $in: product_id, homes, snow, assembly, state, zip.
+ * The estimate. $in: product_id, homes (or buildings and building_units), snow, assembly, state, zip.
  * $city: optional ['label' => string, 'amount' => number] from the city-cost hook.
  * Returns ['ok' => false, 'error' => ...] or the estimate.
  */
@@ -159,10 +165,23 @@ function zkst_estimate( $cat, $public, $brand, $in, $zipdata = null, $city = nul
 	}
 	$state  = isset( $in['state'] ) ? $in['state'] : '';
 	$zip    = isset( $in['zip'] ) ? substr( preg_replace( '/\D/', '', (string) $in['zip'] ), 0, 5 ) : '';
-	$min    = isset( $pub['min_units'] ) ? max( 1, (int) $pub['min_units'] ) : 1;
-	$units  = ( $type && $type['ask_homes'] ) ? max( $min, min( (int) $public['max_homes'], (int) ( isset( $in['homes'] ) ? $in['homes'] : $min ) ) ) : 1;
+	// Multifamily models are asked by the building: units per building (one
+	// of the model's sizes) times how many buildings.
+	$sizes     = ( $type && $type['ask_homes'] && ! empty( $pub['building_units'] ) ) ? array_map( 'intval', (array) $pub['building_units'] ) : array();
+	$per_bldg  = null;
+	$buildings = null;
+	if ( $sizes ) {
+		$per_bldg = 1 === count( $sizes ) ? $sizes[0] : ( isset( $in['building_units'] ) ? (int) $in['building_units'] : 0 );
+		if ( ! in_array( $per_bldg, $sizes, true ) ) {
+			return array( 'ok' => false, 'error' => 'building_units' );
+		}
+		$buildings = max( 1, min( (int) $public['max_homes'], (int) ( isset( $in['buildings'] ) ? $in['buildings'] : 1 ) ) );
+		$units     = $buildings * $per_bldg;
+	} else {
+		$units = ( $type && $type['ask_homes'] ) ? max( 1, min( (int) $public['max_homes'], (int) ( isset( $in['homes'] ) ? $in['homes'] : 1 ) ) ) : 1;
+	}
 	$word   = array( 'home' => 'home', 'garage' => 'garage', 'hangar' => 'hangar' );
-	$unit   = $min > 1 ? 'unit' : ( isset( $word[ $type['per'] ] ) ? $word[ $type['per'] ] : 'home' );
+	$unit   = $sizes ? 'unit' : ( isset( $word[ $type['per'] ] ) ? $word[ $type['per'] ] : 'home' );
 	$units_word = $units . ' ' . $unit . ( 1 === $units ? '' : 's' );
 
 	$res = array(
@@ -170,6 +189,8 @@ function zkst_estimate( $cat, $public, $brand, $in, $zipdata = null, $city = nul
 		'needs_price' => ! empty( $public['needs_price'] ) || null === $pub['start_price'],
 		'product'     => $pub['name'],
 		'units'       => $units,
+		'buildings'   => $buildings,
+		'building_units' => $per_bldg,
 		'each'        => null,
 		'zone'        => null,
 		'shipping'    => null,
@@ -192,6 +213,9 @@ function zkst_estimate( $cat, $public, $brand, $in, $zipdata = null, $city = nul
 		}
 		$res['each']    = $each;
 		$res['lines'][] = array( $name, $units > 1 ? $units_word . ' × ' . zkst_est_money( $each ) : zkst_est_money( $each ) );
+	}
+	if ( $sizes ) {
+		$res['lines'][] = array( 'Buildings', zkst_est_buildings( $buildings, $per_bldg ) );
 	}
 
 	if ( $type && $type['ask_snow'] ) {

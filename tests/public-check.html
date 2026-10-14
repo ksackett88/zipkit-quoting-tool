@@ -52,14 +52,14 @@
     var list = pb.models ? pb.models.map(function(m){
         var s = m.from_product ? Cat.product(m.from_product) : null;
         return { id: m.id, type: s ? s.type : pb.types[0], name: m.name || s.name, sqft: s ? s.sqft : null, sqft_label: m.size ? null : (s ? s.sqft_label : null),
-          dimensions: m.size || (s ? s.dimensions : null), photo: s ? s.photo : null, multifamily: !!m.multifamily_only, src: s };
+          dimensions: m.size || (s ? s.dimensions : null), photo: s ? s.photo : null, multifamily: !!m.multifamily_only, building_units: m.building_units || null, src: s };
       })
       : full.products.filter(function(p){ return p.status === 'active' && p.brands.some(function(x){ return pb.catalog_brands.indexOf(x) !== -1; }); });
     var products = list.filter(function(p){ return priced.indexOf(p.type) !== -1; }).map(function(p){
       var size = p.sqft_label ? (/ \/ /.test(p.sqft_label) ? p.sqft_label.replace(/^(.+?) \/ (\w+)$/, '$1 sq ft per $2') : p.sqft_label + ' sq ft') : String(p.dimensions || '');
       return { id: p.id, type: p.type, name: p.name, sqft: p.sqft || null, size: size.replace(/\s*[–—]\s*/g, ' to '), tag: p.multifamily ? 'Multifamily only' : (p.barndominium ? 'Barndominium' : null),
         photo: p.photo ? 'photos/cards/' + p.photo.replace(/^.*\//, '').replace(/\.[^.]+$/, '') + '.jpg' : null,
-        photo_label: pb.photo_labels && pb.photo_labels[p.id] || null, min_units: p.multifamily ? 2 : 1, start_price: needs ? null : Cat.startingPrice(p.src || p) };
+        photo_label: pb.photo_labels && pb.photo_labels[p.id] || null, building_units: p.building_units || null, start_price: needs ? null : Cat.startingPrice(p.src || p) };
     });
     var expect = { catalog_updated: full.updated, brand: { key: key, name: b.name, phone: b.phone.replace(/·/g, '-'), email: b.email, logo: b.logo, colors: { main: b.colors.main, dark: b.colors.dark } },
       needs_price: needs, availability: avail, types: types, snow_choices: P.snow_choices.map(function(s){ return { id: s.id, label: s.label, help: s.help }; }), timelines: P.timelines, max_homes: P.max_homes, products: products };
@@ -68,7 +68,7 @@
 
     // 2. Only public fields; no internal amounts.
     var TOP = ['generated', 'catalog_updated', 'brand', 'needs_price', 'availability', 'types', 'snow_choices', 'timelines', 'max_homes', 'products'];
-    var PK = ['id', 'type', 'name', 'sqft', 'size', 'tag', 'photo', 'photo_label', 'min_units', 'start_price'];
+    var PK = ['id', 'type', 'name', 'sqft', 'size', 'tag', 'photo', 'photo_label', 'building_units', 'start_price'];
     var s = JSON.stringify(pubs[key]);
     var extra = Object.keys(pubs[key]).filter(function(k){ return TOP.indexOf(k) === -1; }).concat([].concat.apply([], pubs[key].products.map(function(p){ return Object.keys(p).filter(function(k){ return PK.indexOf(k) === -1; }); })));
     var bad = s.match(/"(pricing|rate|rates|override\w*|discount\w*|note|notes|confirm\w*|source|engineering|windows?|ship\w*|legacy_index|brands|status|addons|zones?|adjust|road_factor|factory_zip|location|state_overrides|legal_name|address|payment\w*)":/g);
@@ -167,8 +167,23 @@
     qa('.zp-model').map(function(b){ return b.getAttribute('data-product'); }).join(',') === 'ridgeline,dakota,gallatin-i,gallatin-ii,mckinley,westley,sierra' && qa('.zp-mprice').every(function(e){ return e.textContent === 'Price coming soon'; }) && /Rendering/.test(q('[data-product="sierra"]').innerText) && !q('.zp-note'), q('.zp-main').innerText);
   rec('Dakota and Westley are tagged "Multifamily only"', /Multifamily only/.test(q('[data-product="dakota"]').innerText) && /Multifamily only/.test(q('[data-product="westley"]').innerText) && !/Multifamily/.test(q('[data-product="sierra"]').innerText), 'tags');
   q('[data-product="dakota"]').click();
-  var units = qa('#zp-homes option').map(function(o){ return o.value; });
-  rec('Multifamily Dakota asks "How many units?", starting at 2', /How many units\?/.test(q('.zp-main').innerText) && units[0] === '' && units[1] === '2' && units.indexOf('1') === -1, units);
+  var sizesOpt = qa('#zp-bunits option').map(function(o){ return o.value + ':' + o.textContent; }), bOpt = qa('#zp-buildings option').map(function(o){ return o.value; });
+  rec('Dakota asks "2-unit or 3-unit building?" then "How many buildings?" (placeholders, nothing preselected, no "How many homes?")',
+    /2-unit or 3-unit building\?/.test(q('.zp-main').innerText) && /How many buildings\?/.test(q('.zp-main').innerText) && !q('#zp-homes')
+    && sizesOpt.join(',') === ':Select building size,2:2-unit building,3:3-unit building' && bOpt[0] === '' && bOpt[1] === '1' && q('#zp-bunits').value === '' && q('#zp-buildings').value === '', { sizes: sizesOpt, buildings: bOpt });
+  calls = []; setVal(q('#zp-bunits'), '3'); setVal(q('#zp-buildings'), '2'); setVal(q('#zp-snow'), 'standard'); await settle(); grab();
+  var dc = calls.filter(function(c){ return /estimate/.test(c.url); })[0];
+  rec('Dakota shows "2 buildings × 3 units = 6 units." and sends 6 units (2 buildings of 3) to the server',
+    q('#zp-bsum').textContent === '2 buildings × 3 units = 6 units.' && dc && dc.body.homes === 6 && dc.body.buildings === 2 && dc.body.building_units === 3, { sum: q('#zp-bsum').textContent, call: dc });
+  setVal(q('#zp-buildings'), '1'); await settle();
+  rec('One building reads "1 building × 3 units = 3 units."', q('#zp-bsum').textContent === '1 building × 3 units = 3 units.', q('#zp-bsum').textContent);
+  q('[data-go="pick"]').click();
+  rec('Westley card reads "5-unit, 2-story building"', /5-unit, 2-story building/.test(q('[data-product="westley"]').innerText), q('[data-product="westley"]').innerText);
+  q('[data-product="westley"]').click();
+  rec('Westley asks only "How many buildings?" (5 units each)', !q('#zp-bunits') && !q('#zp-homes') && !!q('#zp-buildings') && /5 units per building/.test(q('.zp-main').innerText), q('.zp-main').innerText);
+  calls = []; setVal(q('#zp-buildings'), '3'); setVal(q('#zp-snow'), 'standard'); await settle(); grab();
+  var wc = calls.filter(function(c){ return /estimate/.test(c.url); })[0];
+  rec('Westley shows "3 buildings × 5 units = 15 units." and sends 15 units', q('#zp-bsum').textContent === '3 buildings × 5 units = 15 units.' && wc && wc.body.homes === 15 && wc.body.buildings === 3 && wc.body.building_units === 5, { sum: q('#zp-bsum').textContent, call: wc });
   q('[data-go="pick"]').click();
   q('[data-product="sierra"]').click(); setVal(q('#zp-homes'), '1'); setVal(q('#zp-snow'), 'standard'); await settle(); grab();
   rec('MVP estimate: "We\'ll send your price", no dollar amounts', /We'll send your price/.test(q('#zp-est').innerText) && !/\$\d/.test(q('#zp-est').innerText), q('#zp-est').innerText);

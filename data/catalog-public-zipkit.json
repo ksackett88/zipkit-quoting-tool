@@ -136,7 +136,7 @@
                          "tag":  null,
                          "photo":  "photos/cards/bigsky.jpg",
                          "photo_label":  null,
-                         "min_units":  1,
+                         "building_units":  null,
                          "start_price":  51875
                      },
                      {
@@ -148,7 +148,7 @@
                          "tag":  null,
                          "photo":  "photos/cards/bridger.jpg",
                          "photo_label":  null,
-                         "min_units":  1,
+                         "building_units":  null,
                          "start_price":  71288
                      },
                      {
@@ -160,7 +160,7 @@
                          "tag":  null,
                          "photo":  "photos/cards/tahoe.jpg",
                          "photo_label":  null,
-                         "min_units":  1,
+                         "building_units":  null,
                          "start_price":  67145
                      },
                      {
@@ -172,7 +172,7 @@
                          "tag":  null,
                          "photo":  "photos/cards/sequoia.jpg",
                          "photo_label":  null,
-                         "min_units":  1,
+                         "building_units":  null,
                          "start_price":  87100
                      },
                      {
@@ -184,7 +184,7 @@
                          "tag":  null,
                          "photo":  "photos/cards/frontier.jpg",
                          "photo_label":  null,
-                         "min_units":  1,
+                         "building_units":  null,
                          "start_price":  74225
                      },
                      {
@@ -196,7 +196,7 @@
                          "tag":  null,
                          "photo":  "photos/cards/clyde1.jpg",
                          "photo_label":  null,
-                         "min_units":  1,
+                         "building_units":  null,
                          "start_price":  82260
                      },
                      {
@@ -208,7 +208,7 @@
                          "tag":  null,
                          "photo":  "photos/cards/birch1.jpg",
                          "photo_label":  null,
-                         "min_units":  1,
+                         "building_units":  null,
                          "start_price":  102595
                      },
                      {
@@ -220,7 +220,7 @@
                          "tag":  null,
                          "photo":  "photos/cards/willow3.jpg",
                          "photo_label":  null,
-                         "min_units":  1,
+                         "building_units":  null,
                          "start_price":  72850
                      },
                      {
@@ -232,7 +232,7 @@
                          "tag":  null,
                          "photo":  "photos/cards/bozeman1.jpg",
                          "photo_label":  null,
-                         "min_units":  1,
+                         "building_units":  null,
                          "start_price":  103600
                      },
                      {
@@ -244,7 +244,7 @@
                          "tag":  null,
                          "photo":  "photos/cards/sunstone1.jpg",
                          "photo_label":  null,
-                         "min_units":  1,
+                         "building_units":  null,
                          "start_price":  89550
                      },
                      {
@@ -256,7 +256,7 @@
                          "tag":  null,
                          "photo":  "photos/cards/bluebell2.jpg",
                          "photo_label":  null,
-                         "min_units":  1,
+                         "building_units":  null,
                          "start_price":  134120
                      },
                      {
@@ -268,7 +268,7 @@
                          "tag":  null,
                          "photo":  "photos/cards/shasta.jpg",
                          "photo_label":  null,
-                         "min_units":  1,
+                         "building_units":  null,
                          "start_price":  96225
                      },
                      {
@@ -280,7 +280,7 @@
                          "tag":  null,
                          "photo":  "photos/cards/summit.jpg",
                          "photo_label":  null,
-                         "min_units":  1,
+                         "building_units":  null,
                          "start_price":  102900
                      },
                      {
@@ -292,7 +292,7 @@
                          "tag":  null,
                          "photo":  "photos/cards/jasper.jpg",
                          "photo_label":  null,
-                         "min_units":  1,
+                         "building_units":  null,
                          "start_price":  124765
                      },
                      {
@@ -304,7 +304,7 @@
                          "tag":  null,
                          "photo":  "photos/cards/mesa.jpg",
                          "photo_label":  null,
-                         "min_units":  1,
+                         "building_units":  null,
                          "start_price":  127435
                      },
                      {
@@ -316,7 +316,7 @@
                          "tag":  null,
                          "photo":  "photos/cards/koda.jpg",
                          "photo_label":  null,
-                         "min_units":  1,
+                         "building_units":  null,
                          "start_price":  131475
                      },
                      {
@@ -328,7 +328,7 @@
                          "tag":  null,
                          "photo":  "photos/cards/hayden.jpg",
                          "photo_label":  null,
-                         "min_units":  1,
+                         "building_units":  null,
                          "start_price":  127435
                      },
                      {
@@ -340,7 +340,7 @@
                          "tag":  null,
                          "photo":  "photos/cards/cedar1.jpg",
                          "photo_label":  null,
-                         "min_units":  1,
+                         "building_units":  null,
                          "start_price":  152157
                      },
                      {
@@ -352,7 +352,7 @@
                          "tag":  null,
                          "photo":  "photos/cards/timberline1.jpg",
                          "photo_label":  null,
-                         "min_units":  1,
+                         "building_units":  null,
                          "start_price":  134120
                      },
                      {
@@ -364,7 +364,7 @@
                          "tag":  "Barndominium",
                          "photo":  "photos/cards/apache4.jpg",
                          "photo_label":  null,
-                         "min_units":  1,
+                         "building_units":  null,
                          "start_price":  108475
                      },
                      {
@@ -376,7 +376,7 @@
                          "tag":  "Barndominium",
                          "photo":  "photos/cards/juniper.jpg",
                          "photo_label":  null,
-                         "min_units":  1,
+                         "building_units":  null,
                          "start_price":  235850
                      },
                      {
@@ -388,7 +388,7 @@
                          "tag":  null,
                          "photo":  "photos/cards/zion.jpg",
                          "photo_label":  null,
-                         "min_units":  1,
+                         "building_units":  null,
                          "start_price":  115225
                      },
                      {
@@ -400,7 +400,7 @@
                          "tag":  null,
                          "photo":  "photos/cards/columbia.jpg",
                          "photo_label":  null,
-                         "min_units":  1,
+                         "building_units":  null,
                          "start_price":  163540
                      },
                      {
@@ -412,7 +412,7 @@
                          "tag":  null,
                          "photo":  "photos/cards/alpine.jpg",
                          "photo_label":  null,
-                         "min_units":  1,
+                         "building_units":  null,
                          "start_price":  199380
                      },
                      {
@@ -424,7 +424,7 @@
                          "tag":  null,
                          "photo":  "photos/cards/moab1.jpg",
                          "photo_label":  null,
-                         "min_units":  1,
+                         "building_units":  null,
                          "start_price":  166280
                      },
                      {
@@ -436,7 +436,7 @@
                          "tag":  null,
                          "photo":  "photos/cards/meadow.1.jpg",
                          "photo_label":  null,
-                         "min_units":  1,
+                         "building_units":  null,
                          "start_price":  185580
                      },
                      {
@@ -448,7 +448,7 @@
                          "tag":  null,
                          "photo":  "photos/cards/solitude.jpg",
                          "photo_label":  null,
-                         "min_units":  1,
+                         "building_units":  null,
                          "start_price":  179550
                      },
                      {
@@ -460,7 +460,7 @@
                          "tag":  null,
                          "photo":  "photos/cards/olympic.jpg",
                          "photo_label":  null,
-                         "min_units":  1,
+                         "building_units":  null,
                          "start_price":  209850
                      },
                      {
@@ -472,7 +472,7 @@
                          "tag":  null,
                          "photo":  "photos/cards/teton.jpg",
                          "photo_label":  null,
-                         "min_units":  1,
+                         "building_units":  null,
                          "start_price":  119600
                      },
                      {
@@ -484,7 +484,7 @@
                          "tag":  null,
                          "photo":  "photos/cards/xl470.jpg",
                          "photo_label":  null,
-                         "min_units":  1,
+                         "building_units":  null,
                          "start_price":  126500
                      },
                      {
@@ -496,7 +496,7 @@
                          "tag":  null,
                          "photo":  "photos/cards/yellowstone.jpg",
                          "photo_label":  null,
-                         "min_units":  1,
+                         "building_units":  null,
                          "start_price":  176900
                      },
                      {
@@ -508,7 +508,7 @@
                          "tag":  null,
                          "photo":  "photos/cards/gallatin.jpg",
                          "photo_label":  null,
-                         "min_units":  1,
+                         "building_units":  null,
                          "start_price":  123790
                      },
                      {
@@ -520,7 +520,7 @@
                          "tag":  null,
                          "photo":  "photos/cards/gallatin-ii.jpg",
                          "photo_label":  null,
-                         "min_units":  1,
+                         "building_units":  null,
                          "start_price":  153740
                      },
                      {
@@ -532,7 +532,7 @@
                          "tag":  null,
                          "photo":  "photos/cards/1car-garage.jpg",
                          "photo_label":  null,
-                         "min_units":  1,
+                         "building_units":  null,
                          "start_price":  14520
                      },
                      {
@@ -544,7 +544,7 @@
                          "tag":  null,
                          "photo":  "photos/cards/2car-garage.jpg",
                          "photo_label":  null,
-                         "min_units":  1,
+                         "building_units":  null,
                          "start_price":  19640
                      },
                      {
@@ -556,7 +556,7 @@
                          "tag":  null,
                          "photo":  "photos/cards/3car-garage.jpg",
                          "photo_label":  null,
-                         "min_units":  1,
+                         "building_units":  null,
                          "start_price":  23720
                      },
                      {
@@ -568,7 +568,7 @@
                          "tag":  null,
                          "photo":  "photos/cards/4car-garage.jpg",
                          "photo_label":  null,
-                         "min_units":  1,
+                         "building_units":  null,
                          "start_price":  27440
                      },
                      {
@@ -580,7 +580,7 @@
                          "tag":  null,
                          "photo":  "photos/cards/6450hangar.jpg",
                          "photo_label":  null,
-                         "min_units":  1,
+                         "building_units":  null,
                          "start_price":  158700
                      },
                      {
@@ -592,7 +592,7 @@
                          "tag":  null,
                          "photo":  "photos/cards/8060hangar.jpg",
                          "photo_label":  null,
-                         "min_units":  1,
+                         "building_units":  null,
                          "start_price":  179400
                      }
                  ]

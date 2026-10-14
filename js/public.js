@@ -27,7 +27,7 @@
   var state = freshState();
   function freshState(){
     return { step: 'account', user: null, mode: 'new', sentTo: '', st: '', zip: '', type: '', productId: '',
-      homes: '', snow: '', assembly: '', timeline: '', est: null, estFor: '', estErr: '', busy: false, errors: {}, result: null };
+      homes: '', bunits: '', buildings: '', snow: '', assembly: '', timeline: '', est: null, estFor: '', estErr: '', busy: false, errors: {}, result: null };
   }
 
   function $(sel){ return app.querySelector(sel); }
@@ -106,8 +106,13 @@
   function product(){ return cat.products.filter(function(p){ return p.id === state.productId; })[0] || null; }
   function assemblyHere(){ var t = type(); return !!(t && t.ask_assembly && sold('assembly', state.st)); }
   function hasAssemblyTypes(){ return cat.types.some(function(t){ return t.ask_assembly; }); }
+  // Multifamily models are asked by the building (Dakota 2 or 3 units, Westley 5).
+  function sizes(){ var p = product(), t = type(); return t && t.ask_homes && p && p.building_units && p.building_units.length ? p.building_units : null; }
+  function perBuilding(){ var s = sizes(); return !s ? 0 : (s.length === 1 ? s[0] : +state.bunits || 0); }
+  function plural(n, w){ return n + ' ' + w + (n === 1 ? '' : 's'); }
+  function buildingSum(){ var b = +state.buildings, u = perBuilding(); return b && u ? plural(b, 'building') + ' × ' + plural(u, 'unit') + ' = ' + plural(b * u, 'unit') + '.' : ''; }
   function unitWord(t, n){
-    var p = product(), w = p && p.min_units > 1 ? 'unit' : ({ home: 'home', garage: 'garage', hangar: 'hangar' }[t.per] || 'home');
+    var w = sizes() ? 'unit' : ({ home: 'home', garage: 'garage', hangar: 'hangar' }[t.per] || 'home');
     return n === 1 ? w : w + 's';
   }
 
@@ -115,13 +120,15 @@
   function questions(){
     var t = type(), q = [];
     if(!t) return q;
-    if(t.ask_homes) q.push('homes');
+    var s = sizes();
+    if(s){ if(s.length > 1) q.push('bunits'); q.push('buildings'); }
+    else if(t.ask_homes) q.push('homes');
     if(t.ask_snow) q.push('snow');
     if(assemblyHere()) q.push('assembly');
     return q;
   }
   function answered(){ return questions().every(function(k){ return !!state[k]; }); }
-  function choiceKey(){ return [state.productId, state.homes, state.snow, state.assembly, state.st, state.zip].join('|'); }
+  function choiceKey(){ return [state.productId, state.homes, state.bunits, state.buildings, state.snow, state.assembly, state.st, state.zip].join('|'); }
 
   // ---------- rendering ----------
   function header(){
@@ -227,13 +234,14 @@
       + ' <button type="button" class="zp-link" data-go="pick">Pick a different model</button></p>'
       + '<div class="zp-split"><div class="zp-card zp-form">'
       + (p && p.photo ? '<div class="zp-herowrap"><img class="zp-hero" src="' + esc(ZK.url(p.photo)) + '" alt="' + esc(p.name) + '">' + (p.photo_label ? '<span class="zp-plabel">' + esc(p.photo_label) + '</span>' : '') + '</div>' : '');
-    // Multifamily-only models start at 2 units.
-    var homes = [], min = p && p.min_units > 1 ? p.min_units : 1;
-    for(var i = min; i <= cat.max_homes; i++) homes.push([i, i + ' ' + unitWord(t, i)]);
+    var homes = [], blds = [], s = sizes();
+    for(var i = 1; i <= cat.max_homes; i++){ homes.push([i, plural(i, unitWord(t, 1))]); blds.push([i, plural(i, 'building')]); }
     questions().forEach(function(k){
-      if(k === 'homes') h += min > 1
-        ? select('homes', 'How many units?', 'Select number of units', homes, state.homes) + '<p class="zp-help">The ' + esc(p.name) + ' is built as multifamily only.</p>'
-        : select('homes', 'How many homes?', 'Select number of homes', homes, state.homes);
+      if(k === 'homes') h += select('homes', 'How many homes?', 'Select number of homes', homes, state.homes);
+      if(k === 'bunits') h += select('bunits', s.map(function(n){ return n + '-unit'; }).join(' or ') + ' building?', 'Select building size', s.map(function(n){ return [n, n + '-unit building']; }), state.bunits);
+      if(k === 'buildings') h += select('buildings', 'How many buildings?', 'Select number of buildings', blds, state.buildings)
+        + '<p class="zp-help zp-bsum" id="zp-bsum">' + esc(buildingSum()) + '</p>'
+        + '<p class="zp-help">The ' + esc(p.name) + ' is multifamily only' + (s.length === 1 ? ': ' + plural(s[0], 'unit') + ' per building.' : '.') + '</p>';
       if(k === 'snow') h += select('snow', 'How much snow do you get?', 'Select a snow load', cat.snow_choices.map(function(s){ return [s.id, s.label]; }), state.snow)
         + '<ul class="zp-help zp-snowlist">' + cat.snow_choices.map(function(s){ return '<li><b>' + esc(s.label) + ':</b> ' + esc(s.help) + '</li>'; }).join('') + '</ul>'
         + '<p class="zp-help">Not sure? Your local building department can tell you the snow load where you\'re building.</p>';
@@ -320,7 +328,9 @@
       .then(function(r){ return r.json().catch(function(){ return {}; }).then(function(j){ if(!r.ok) throw new Error(j.message || ('status ' + r.status)); return j; }); });
   }
   function choices(){
-    return { product_type: state.type, product_id: state.productId, homes: state.homes ? +state.homes : 1, snow: state.snow || null,
+    var s = sizes();
+    return { product_type: state.type, product_id: state.productId, homes: s ? +state.buildings * perBuilding() : (state.homes ? +state.homes : 1),
+      buildings: s ? +state.buildings : null, building_units: s ? perBuilding() : null, snow: state.snow || null,
       assembly: state.assembly || null, state: state.st, zip: state.zip };
   }
   function fetchEstimate(){
@@ -435,7 +445,7 @@
     if(t.hasAttribute('data-type')){ state.type = t.getAttribute('data-type'); state.productId = ''; render(); return; }
     if(t.hasAttribute('data-product') || t.hasAttribute('data-lead-only')){
       state.productId = t.getAttribute('data-product') || '';
-      state.homes = ''; state.snow = ''; state.assembly = ''; state.est = null; state.estErr = '';
+      state.homes = ''; state.bunits = ''; state.buildings = ''; state.snow = ''; state.assembly = ''; state.est = null; state.estErr = '';
       return go('choose');
     }
     if(t.hasAttribute('data-pdf')) return pdf();
@@ -448,7 +458,11 @@
     if(!s) return;
     if(s === 'st'){ state.st = el.value; return; }
     if(s === 'timeline'){ state.timeline = el.value; return; }
-    if(ev.type === 'change' && (s === 'homes' || s === 'snow' || s === 'assembly')){ state[s] = el.value; state.errors = {}; fetchEstimate(); }
+    if(ev.type === 'change' && /^(homes|bunits|buildings|snow|assembly)$/.test(s)){
+      state[s] = el.value; state.errors = {};
+      var sum = $('#zp-bsum'); if(sum) sum.textContent = buildingSum();
+      fetchEstimate();
+    }
   }
   function onSubmit(ev){
     ev.preventDefault();

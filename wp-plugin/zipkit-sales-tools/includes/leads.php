@@ -53,6 +53,8 @@ function zkst_public_input( $d ) {
 		'product_type' => $s( 'product_type', 20 ),
 		'product_id'   => $s( 'product_id', 60 ),
 		'homes'        => isset( $d['homes'] ) ? (int) $d['homes'] : 1,
+		'buildings'    => isset( $d['buildings'] ) ? (int) $d['buildings'] : null,
+		'building_units' => isset( $d['building_units'] ) ? (int) $d['building_units'] : null,
 		'snow'         => in_array( $s( 'snow', 20 ), array( 'standard', 'tier1', 'tier2' ), true ) ? $s( 'snow', 20 ) : null,
 		'assembly'     => in_array( $s( 'assembly', 20 ), array( 'crew', 'diy' ), true ) ? $s( 'assembly', 20 ) : null,
 		'state'        => strtoupper( $s( 'state', 2 ) ),

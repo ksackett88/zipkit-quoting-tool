@@ -56,8 +56,15 @@ rec( 'MVP Sierra: needs_price, no number anywhere, "Price coming soon", shipping
 $priced = $mvp; $priced['needs_price'] = false; foreach ( $priced['products'] as &$pp ) { $pp['start_price'] = 100000; } unset( $pp );
 $g = zkst_estimate( $cat, $priced, 'mvp', array( 'product_id' => 'gallatin-ii', 'homes' => 1, 'snow' => 'standard', 'state' => 'ID', 'zip' => '84101' ), $zips );
 rec( 'MVP Gallatin II never borrows Zip Kit\'s shipping rate (even once MVP has prices)', null === $g['shipping'], $g );
-$d = zkst_estimate( $cat, $mvp, 'mvp', array( 'product_id' => 'dakota', 'homes' => 1, 'state' => 'UT', 'zip' => '84101' ), $zips );
-rec( 'Multifamily-only Dakota is quoted from 2 units', 2 === $d['units'], $d['units'] );
+$d = zkst_estimate( $cat, $mvp, 'mvp', array( 'product_id' => 'dakota', 'buildings' => 2, 'building_units' => 3, 'state' => 'UT', 'zip' => '84101' ), $zips );
+rec( 'Dakota: 2 buildings of 3 units = 6 units, with a "Buildings" line',
+	6 === $d['units'] && 2 === $d['buildings'] && 3 === $d['building_units'] && in_array( array( 'Buildings', '2 buildings × 3 units = 6 units' ), $d['lines'], true ), $d );
+$bad = zkst_estimate( $cat, $mvp, 'mvp', array( 'product_id' => 'dakota', 'buildings' => 2, 'building_units' => 4, 'state' => 'UT', 'zip' => '84101' ), $zips );
+rec( 'Dakota refuses a building size it does not come in (4 units)', empty( $bad['ok'] ) && 'building_units' === $bad['error'], $bad );
+$w = zkst_estimate( $cat, $mvp, 'mvp', array( 'product_id' => 'westley', 'buildings' => 3, 'homes' => 1, 'state' => 'ID', 'zip' => '83401' ), $zips );
+rec( 'Westley: always 5 units per building; 3 buildings = 15 units ("homes" ignored)', 15 === $w['units'] && in_array( array( 'Buildings', '3 buildings × 5 units = 15 units' ), $w['lines'], true ), $w );
+$d1 = zkst_estimate( $cat, $priced, 'mvp', array( 'product_id' => 'dakota', 'buildings' => 1, 'building_units' => 2, 'state' => 'UT', 'zip' => '84101' ), $zips );
+rec( 'Priced (test value $100,000): 1 Dakota building of 2 units = 2 × each', 2 === $d1['units'] && 200000 + (int) $d1['shipping'] === $d1['start'] && 'Buildings' === $d1['lines'][1][0], $d1 );
 
 // 4. With zones, road factor and zip points filled in (TEST VALUES ONLY).
 $t = $cat;
