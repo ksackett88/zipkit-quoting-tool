@@ -5,7 +5,7 @@ The Zip Kit quote tool for sales reps, as a WordPress shortcode. It is the same 
 | Shortcode | Who sees it | Status |
 |---|---|---|
 | `[zipkit_quote]` | Signed-in reps (role **Zip Kit Sales Rep**, or administrators) | Ready |
-| `[zipkit_quote_public]` | Customers ("Quote your own project") | Built and tested locally. **Not live anywhere until Kelsey approves.** See section 8. |
+| `[zipkit_quote_public]` | Customers ("Quote your own project") | Built and tested locally. **Not live anywhere.** Pilots on the MVP site first, once Sven sends MVP numbers. See section 8. |
 
 Tested on WordPress 7.1.2 and PHP 8.3, with the Kadence theme. It needs WordPress 6.0+ and PHP 7.4+.
 
@@ -123,27 +123,44 @@ zipkit-sales-tools/
   - quotes for four product types total the same in WordPress as on GitHub Pages;
   - the settings page refuses a secret key and drops a `javascript:` link.
 
-## 8. Customer quoter: `[zipkit_quote_public]` (not live until Kelsey approves)
+## 8. Customer quoter: `[zipkit_quote_public]` (not live; MVP site pilot first)
 
-"Quote your own project". The customer:
-1. picks their state;
-2. sees only what we sell there;
-3. picks a model and answers 2 or 3 questions (homes, snow, assembly where offered);
-4. sees a **"Starting at"** estimate;
-5. gives name, email, phone and timeline to see the full breakdown and a PDF.
+"Quote your own project". **Brand-agnostic.** WP Admin > Zip Kit Tools > **Runs as brand** picks Mountain Valley Prefab (the pilot) or Zip Kit Homes. The brand's models, logo, colors, phone and email all come from data.
 
-No payments of any kind.
+**What the customer does:**
+1. **Makes an account:** name, email, phone and ZIP.
+   - They get an email link. Clicking it signs them in, so every email is verified.
+   - Returning customers just ask for a new link.
+2. **Where are you building?** State and build-site ZIP (filled in from the account).
+3. Sees only what the brand sells in that state, then picks a model.
+4. Answers 1 to 3 dropdowns: homes, snow, and assembly where offered. Each has a placeholder and nothing preselected.
+5. Sees an estimate from the server: **"Starting at"**, or **"We'll send your price"** while a brand has no prices (MVP today).
+6. Picks a timeline and sends.
+   - The brand's sales inbox and the customer each get an email.
+   - The quote is saved to the customer's account.
+   - The page shows the breakdown and a PDF.
 
-- **Data.**
-  - It loads only `app/data/catalog-public.json`: names, sizes, photos, starting prices and availability. It never touches the full price list.
-  - The build regenerates that file from `data/catalog.json` every time (`data/build-public-catalog.ps1`).
-- **Leads: `POST /wp-json/zipkit/v1/lead`.**
-  - **Spam.** A hidden spam-trap field and a 3-second minimum to fill in the form both get a quiet "ok" with nothing sent.
-  - **Limits.** 5 leads an hour per visitor IP and 60 an hour site-wide. If the site sits behind a proxy or CDN that hides visitor IPs, the per-IP limit acts like a site-wide one.
-  - **Checks.** Every field is checked, and the model and estimate are recomputed on the server from the public catalog.
-  - **Email.** The lead is emailed to **Send leads to** (default `sales@zipkithomes.com`) with Reply-To set to the customer.
-  - **Supabase.** With **Save leads to Supabase** on, the lead is also saved to Supabase through `submit_public_lead()`. Run `sql/2026-10_public_leads.sql` first; it needs `admin_migration.sql` step 1. That function is the only way in with the publishable key. It caps leads at 60 an hour, and only admins can read the table.
-  - Nothing is stored in WordPress.
-- **Email delivery.** It uses `wp_mail`. Use the site's normal SMTP plugin so lead emails don't land in spam.
-- **Page.** Use a full-width template. The quoter is built phone-first, and a boxed theme layout wastes width on phones.
-- **Later.** Leads may go straight into Pipedrive. Hook into `zkst_lead_submit()` after the email.
+There are no payments of any kind.
+
+**How it's set up:**
+- **A separate Supabase project for customers.** It holds customer accounts, `customer_profiles` and `customer_quotes`, and is never the sales project.
+  - Run `sql/customer-project/2026-10_customer_accounts.sql` there. The file's header has the dashboard steps: confirm email, redirect URLs, the sign-in email.
+  - Put that project's URL and publishable key in **Customer Supabase URL / key**. With these blank, the quoter says "Pricing online is coming soon" and shows the phone number.
+- **Public data.** The page loads only `app/data/catalog-public-<brand>.json`: models, sizes, photos, starting prices and availability. The build makes these from `data/catalog.json` (`data/build-public-catalog.ps1`).
+- **`POST /wp-json/zipkit/v1/estimate`.** It needs the customer's Supabase sign-in token. The plugin checks it with Supabase, caches it for 10 minutes, and requires a confirmed email. The math is in `includes/estimate-engine.php`:
+  - **Starting price:** the public card price × homes.
+  - **Price zone:** catalog.json `public.location.zones`, per brand, as `{"pct": n}` or `{"flat": n}` per home. A state can override its zone.
+  - **Shipping:** road miles from the brand's factory ZIP to the customer's ZIP, × the rep tool's per-mile rate (the same formulas as the rep tool) × homes. It needs ZIP data in `data/zips.json` (copied to `private/zips.json` by the build), a factory ZIP and a road factor. Until all three exist it says "Quoted separately".
+  - **City cost (e.g. RSMeans), later:** add a filter `zkst_city_cost` returning `['label' => '…', 'amount' => 1234]`. Nothing is built behind it.
+  - Anything marked `needs_price` / `needs_data` is left out, never guessed.
+- **`POST /wp-json/zipkit/v1/lead`.** Also needs the customer's token.
+  - It recalculates the estimate and emails the sales inbox: **Send leads to**, or blank for the brand's email.
+  - It emails the customer a copy.
+  - With **Save quotes to Supabase** on, it saves the quote to `customer_quotes` as that customer.
+  - It saves UTM source, medium and campaign, plus the first landing page and the page sent from. These come from a first-party cookie kept 90 days.
+  - Limits: 5 sends an hour per customer, 60 an hour site-wide, plus a hidden spam-trap field.
+- **Tests.**
+  - `tests/estimate-test.php` (`php tests/estimate-test.php`) runs the server math. It includes 70 shipping cases computed by the rep tool itself (`tests/make-shipping-cases.html`).
+  - `tests/public-check.html` walks the page for both brands, using a local sign-in stand-in.
+- **Email delivery.** It uses `wp_mail`. Use the site's SMTP plugin so lead and customer emails don't land in spam.
+- **Later.** Leads may go straight into Pipedrive. Hook in after the emails in `zkst_lead_endpoint()`.

@@ -1,0 +1,120 @@
+{
+    "generated":  "Made by data/build-public-catalog.ps1 from data/catalog.json. Do not edit by hand.",
+    "catalog_updated":  "2026-10-13",
+    "brand":  {
+                  "key":  "mvp",
+                  "name":  "Mountain Valley Prefab",
+                  "phone":  "208-970-6904",
+                  "email":  "sales@mountainvalleyprefab.com",
+                  "logo":  "images/mvp-logo.png",
+                  "colors":  {
+                                 "main":  "#2f5d4a",
+                                 "dark":  "#1f3f32"
+                             }
+              },
+    "needs_price":  true,
+    "availability":  {
+                         "wood_kits":  [
+                                           "UT",
+                                           "ID",
+                                           "MT",
+                                           "WY",
+                                           "CO",
+                                           "AZ",
+                                           "NV",
+                                           "NM",
+                                           "CA",
+                                           "OR",
+                                           "WA"
+                                       ],
+                         "steel_kits":  "all",
+                         "complete_modular":  [
+                                                  "UT",
+                                                  "ID",
+                                                  "MT",
+                                                  "WY"
+                                              ],
+                         "assembly":  [
+                                          "UT",
+                                          "ID",
+                                          "WY",
+                                          "MT",
+                                          "CO",
+                                          "AZ",
+                                          "NV"
+                                      ]
+                     },
+    "types":  [
+                  {
+                      "id":  "modular",
+                      "label":  "Complete modular homes",
+                      "line":  "complete_modular",
+                      "per":  "home",
+                      "lead_only":  false,
+                      "ask_homes":  true,
+                      "ask_snow":  true,
+                      "ask_assembly":  false,
+                      "design_line":  null
+                  }
+              ],
+    "snow_choices":  [
+                         {
+                             "id":  "standard",
+                             "label":  "Normal snow",
+                             "help":  "Up to 35 pounds per square foot. Included in the price."
+                         },
+                         {
+                             "id":  "tier1",
+                             "label":  "Heavy snow",
+                             "help":  "35 to 100 pounds per square foot. Adds to the price."
+                         },
+                         {
+                             "id":  "tier2",
+                             "label":  "Very heavy snow",
+                             "help":  "Up to 250 pounds per square foot. Adds to the price."
+                         }
+                     ],
+    "timelines":  [
+                      "As soon as I can",
+                      "In the next 6 months",
+                      "6 to 12 months from now",
+                      "More than a year out",
+                      "Just looking for now"
+                  ],
+    "max_homes":  10,
+    "products":  [
+                     {
+                         "id":  "sierra",
+                         "type":  "modular",
+                         "name":  "Sierra",
+                         "sqft":  806,
+                         "size":  "806 sq ft",
+                         "tag":  null,
+                         "photo":  "photos/cards/sierra.jpg",
+                         "photo_label":  "Rendering",
+                         "start_price":  null
+                     },
+                     {
+                         "id":  "ridgeline",
+                         "type":  "modular",
+                         "name":  "Ridgeline",
+                         "sqft":  840,
+                         "size":  "840 sq ft",
+                         "tag":  null,
+                         "photo":  "photos/cards/ridgeline.jpg",
+                         "photo_label":  null,
+                         "start_price":  null
+                     },
+                     {
+                         "id":  "dakota",
+                         "type":  "modular",
+                         "name":  "Dakota",
+                         "sqft":  840,
+                         "size":  "840 sq ft per module",
+                         "tag":  null,
+                         "photo":  "photos/cards/dakota1.jpg",
+                         "photo_label":  null,
+                         "start_price":  null
+                     }
+                 ]
+}

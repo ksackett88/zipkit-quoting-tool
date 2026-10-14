@@ -60,7 +60,7 @@ Copy-Into (Join-Path $repo 'js')     (Join-Path $app 'js')     @('*.js')
 Copy-Into (Join-Path $repo 'lib')    (Join-Path $app 'lib')    @('supabase.js')
 Copy-Into (Join-Path $repo 'css')    (Join-Path $app 'css')    @('tool.css', 'public.css')
 # Public catalog only. The full one goes to private/ below.
-Copy-Into (Join-Path $repo 'data')   (Join-Path $app 'data')   @('catalog-public.json')
+Copy-Into (Join-Path $repo 'data')   (Join-Path $app 'data')   @('catalog-public-*.json')
 Copy-Into (Join-Path $repo 'images') (Join-Path $app 'images') @('*.png', '*.jpg', '*.svg')
 # Photos: web-size copies for documents (photos/web) and card copies. The
 # full-size originals stay in the repo only (Kelsey 2026-10-13: web-sized
@@ -72,6 +72,10 @@ Copy-Into (Join-Path (Join-Path $repo 'photos') 'cards') (Join-Path (Join-Path $
 $private = Join-Path $stage 'private'
 New-Item -ItemType Directory -Force $private | Out-Null
 [IO.File]::WriteAllText((Join-Path $private 'catalog.json.php'), "<?php defined( 'ABSPATH' ) || exit; ?>`n" + $catalogText, $utf8)
+# Zip code centers for shipping math, once Kelsey approves a data source
+# (data/zips.json: {"84101": [lat, lon], ...}). Not added yet.
+$zips = Join-Path (Join-Path $repo 'data') 'zips.json'
+if (Test-Path $zips) { Copy-Item $zips (Join-Path $private 'zips.json') }
 
 # 4. No directory listings.
 Get-ChildItem $stage -Recurse -Directory | ForEach-Object {

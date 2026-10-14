@@ -116,3 +116,13 @@
 .zk-tool.zk-tool .zp-bar .zp-btn { flex: 0 0 auto; min-width: 120px; }
 @media (min-width: 640px) { .zk-tool.zk-tool .zp-bar { margin: 16px -24px 0; padding-left: 24px; padding-right: 24px; } }
 @media (min-width: 900px) { .zk-tool.zk-tool .zp-bar { display: none; } }
+
+/* Photo labels (for example "Rendering"), sign-out link, "price coming soon". */
+.zk-tool.zk-tool .zp-ph, .zk-tool.zk-tool .zp-herowrap { position: relative; }
+.zk-tool.zk-tool .zp-plabel { position: absolute; left: 8px; bottom: 8px; font-size: 12px; font-weight: 600; color: #fff; background: rgba(23,21,15,.65); border-radius: var(--radius-pill); padding: 2px 10px; }
+.zk-tool.zk-tool .zp-herowrap .zp-plabel { bottom: 16px; }
+.zk-tool.zk-tool .zp-link.small { font-size: 13px; margin-left: 8px; }
+.zk-tool.zk-tool .zp-est-v.small { font-size: 22px; }
+.zk-tool.zk-tool #zp-send-form { margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--line-soft); }
+.zk-tool.zk-tool .zp-snowlist { margin: -6px 0 0; padding: 0 0 0 16px; list-style: disc; }
+.zk-tool.zk-tool .zp-snowlist li { margin: 2px 0; }

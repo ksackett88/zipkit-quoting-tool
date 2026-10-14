@@ -1,0 +1,495 @@
+{
+ "made_by": "tests/make-shipping-cases.html from js/pricing.js",
+ "cases": [
+  {
+   "product_id": "big-sky",
+   "type": "shell",
+   "miles": 1,
+   "units": 1,
+   "shipping": 14
+  },
+  {
+   "product_id": "big-sky",
+   "type": "shell",
+   "miles": 1,
+   "units": 3,
+   "shipping": 42
+  },
+  {
+   "product_id": "big-sky",
+   "type": "shell",
+   "miles": 250,
+   "units": 1,
+   "shipping": 3500
+  },
+  {
+   "product_id": "big-sky",
+   "type": "shell",
+   "miles": 250,
+   "units": 3,
+   "shipping": 10500
+  },
+  {
+   "product_id": "big-sky",
+   "type": "shell",
+   "miles": 600,
+   "units": 1,
+   "shipping": 8400
+  },
+  {
+   "product_id": "big-sky",
+   "type": "shell",
+   "miles": 600,
+   "units": 3,
+   "shipping": 25200
+  },
+  {
+   "product_id": "big-sky",
+   "type": "shell",
+   "miles": 601,
+   "units": 1,
+   "shipping": 8414
+  },
+  {
+   "product_id": "big-sky",
+   "type": "shell",
+   "miles": 601,
+   "units": 3,
+   "shipping": 25242
+  },
+  {
+   "product_id": "big-sky",
+   "type": "shell",
+   "miles": 1480,
+   "units": 1,
+   "shipping": 20720
+  },
+  {
+   "product_id": "big-sky",
+   "type": "shell",
+   "miles": 1480,
+   "units": 3,
+   "shipping": 62160
+  },
+  {
+   "product_id": "alpine",
+   "type": "shell",
+   "miles": 1,
+   "units": 1,
+   "shipping": 21
+  },
+  {
+   "product_id": "alpine",
+   "type": "shell",
+   "miles": 1,
+   "units": 3,
+   "shipping": 63
+  },
+  {
+   "product_id": "alpine",
+   "type": "shell",
+   "miles": 250,
+   "units": 1,
+   "shipping": 5250
+  },
+  {
+   "product_id": "alpine",
+   "type": "shell",
+   "miles": 250,
+   "units": 3,
+   "shipping": 15750
+  },
+  {
+   "product_id": "alpine",
+   "type": "shell",
+   "miles": 600,
+   "units": 1,
+   "shipping": 12600
+  },
+  {
+   "product_id": "alpine",
+   "type": "shell",
+   "miles": 600,
+   "units": 3,
+   "shipping": 37800
+  },
+  {
+   "product_id": "alpine",
+   "type": "shell",
+   "miles": 601,
+   "units": 1,
+   "shipping": 12621
+  },
+  {
+   "product_id": "alpine",
+   "type": "shell",
+   "miles": 601,
+   "units": 3,
+   "shipping": 37863
+  },
+  {
+   "product_id": "alpine",
+   "type": "shell",
+   "miles": 1480,
+   "units": 1,
+   "shipping": 31080
+  },
+  {
+   "product_id": "alpine",
+   "type": "shell",
+   "miles": 1480,
+   "units": 3,
+   "shipping": 93240
+  },
+  {
+   "product_id": "kolob",
+   "type": "shell",
+   "miles": 1,
+   "units": 1,
+   "shipping": 20
+  },
+  {
+   "product_id": "kolob",
+   "type": "shell",
+   "miles": 1,
+   "units": 3,
+   "shipping": 60
+  },
+  {
+   "product_id": "kolob",
+   "type": "shell",
+   "miles": 250,
+   "units": 1,
+   "shipping": 5000
+  },
+  {
+   "product_id": "kolob",
+   "type": "shell",
+   "miles": 250,
+   "units": 3,
+   "shipping": 15000
+  },
+  {
+   "product_id": "kolob",
+   "type": "shell",
+   "miles": 600,
+   "units": 1,
+   "shipping": 12000
+  },
+  {
+   "product_id": "kolob",
+   "type": "shell",
+   "miles": 600,
+   "units": 3,
+   "shipping": 36000
+  },
+  {
+   "product_id": "kolob",
+   "type": "shell",
+   "miles": 601,
+   "units": 1,
+   "shipping": 12020
+  },
+  {
+   "product_id": "kolob",
+   "type": "shell",
+   "miles": 601,
+   "units": 3,
+   "shipping": 36060
+  },
+  {
+   "product_id": "kolob",
+   "type": "shell",
+   "miles": 1480,
+   "units": 1,
+   "shipping": 29600
+  },
+  {
+   "product_id": "kolob",
+   "type": "shell",
+   "miles": 1480,
+   "units": 3,
+   "shipping": 88800
+  },
+  {
+   "product_id": "teton",
+   "type": "modular",
+   "miles": 1,
+   "units": 1,
+   "shipping": 22
+  },
+  {
+   "product_id": "teton",
+   "type": "modular",
+   "miles": 1,
+   "units": 3,
+   "shipping": 66
+  },
+  {
+   "product_id": "teton",
+   "type": "modular",
+   "miles": 250,
+   "units": 1,
+   "shipping": 5500
+  },
+  {
+   "product_id": "teton",
+   "type": "modular",
+   "miles": 250,
+   "units": 3,
+   "shipping": 16500
+  },
+  {
+   "product_id": "teton",
+   "type": "modular",
+   "miles": 600,
+   "units": 1,
+   "shipping": 13200
+  },
+  {
+   "product_id": "teton",
+   "type": "modular",
+   "miles": 600,
+   "units": 3,
+   "shipping": 39600
+  },
+  {
+   "product_id": "teton",
+   "type": "modular",
+   "miles": 601,
+   "units": 1,
+   "shipping": 13222
+  },
+  {
+   "product_id": "teton",
+   "type": "modular",
+   "miles": 601,
+   "units": 3,
+   "shipping": 39666
+  },
+  {
+   "product_id": "teton",
+   "type": "modular",
+   "miles": 1480,
+   "units": 1,
+   "shipping": 32560
+  },
+  {
+   "product_id": "teton",
+   "type": "modular",
+   "miles": 1480,
+   "units": 3,
+   "shipping": 97680
+  },
+  {
+   "product_id": "yellowstone",
+   "type": "modular",
+   "miles": 1,
+   "units": 1,
+   "shipping": 22
+  },
+  {
+   "product_id": "yellowstone",
+   "type": "modular",
+   "miles": 1,
+   "units": 3,
+   "shipping": 66
+  },
+  {
+   "product_id": "yellowstone",
+   "type": "modular",
+   "miles": 250,
+   "units": 1,
+   "shipping": 5500
+  },
+  {
+   "product_id": "yellowstone",
+   "type": "modular",
+   "miles": 250,
+   "units": 3,
+   "shipping": 16500
+  },
+  {
+   "product_id": "yellowstone",
+   "type": "modular",
+   "miles": 600,
+   "units": 1,
+   "shipping": 13200
+  },
+  {
+   "product_id": "yellowstone",
+   "type": "modular",
+   "miles": 600,
+   "units": 3,
+   "shipping": 39600
+  },
+  {
+   "product_id": "yellowstone",
+   "type": "modular",
+   "miles": 601,
+   "units": 1,
+   "shipping": 13222
+  },
+  {
+   "product_id": "yellowstone",
+   "type": "modular",
+   "miles": 601,
+   "units": 3,
+   "shipping": 39666
+  },
+  {
+   "product_id": "yellowstone",
+   "type": "modular",
+   "miles": 1480,
+   "units": 1,
+   "shipping": 32560
+  },
+  {
+   "product_id": "yellowstone",
+   "type": "modular",
+   "miles": 1480,
+   "units": 3,
+   "shipping": 97680
+  },
+  {
+   "product_id": "garage-1-car",
+   "type": "garage",
+   "miles": 1,
+   "units": 1,
+   "shipping": 14
+  },
+  {
+   "product_id": "garage-1-car",
+   "type": "garage",
+   "miles": 250,
+   "units": 1,
+   "shipping": 3500
+  },
+  {
+   "product_id": "garage-1-car",
+   "type": "garage",
+   "miles": 600,
+   "units": 1,
+   "shipping": 8400
+  },
+  {
+   "product_id": "garage-1-car",
+   "type": "garage",
+   "miles": 601,
+   "units": 1,
+   "shipping": 9616
+  },
+  {
+   "product_id": "garage-1-car",
+   "type": "garage",
+   "miles": 1480,
+   "units": 1,
+   "shipping": 23680
+  },
+  {
+   "product_id": "garage-3-car",
+   "type": "garage",
+   "miles": 1,
+   "units": 1,
+   "shipping": 14
+  },
+  {
+   "product_id": "garage-3-car",
+   "type": "garage",
+   "miles": 250,
+   "units": 1,
+   "shipping": 3500
+  },
+  {
+   "product_id": "garage-3-car",
+   "type": "garage",
+   "miles": 600,
+   "units": 1,
+   "shipping": 8400
+  },
+  {
+   "product_id": "garage-3-car",
+   "type": "garage",
+   "miles": 601,
+   "units": 1,
+   "shipping": 9616
+  },
+  {
+   "product_id": "garage-3-car",
+   "type": "garage",
+   "miles": 1480,
+   "units": 1,
+   "shipping": 23680
+  },
+  {
+   "product_id": "hangar-64-x-50",
+   "type": "hangar",
+   "miles": 1,
+   "units": 1,
+   "shipping": 12
+  },
+  {
+   "product_id": "hangar-64-x-50",
+   "type": "hangar",
+   "miles": 250,
+   "units": 1,
+   "shipping": 3000
+  },
+  {
+   "product_id": "hangar-64-x-50",
+   "type": "hangar",
+   "miles": 600,
+   "units": 1,
+   "shipping": 7200
+  },
+  {
+   "product_id": "hangar-64-x-50",
+   "type": "hangar",
+   "miles": 601,
+   "units": 1,
+   "shipping": 7212
+  },
+  {
+   "product_id": "hangar-64-x-50",
+   "type": "hangar",
+   "miles": 1480,
+   "units": 1,
+   "shipping": 17760
+  },
+  {
+   "product_id": "hangar-80-x-60",
+   "type": "hangar",
+   "miles": 1,
+   "units": 1,
+   "shipping": 12
+  },
+  {
+   "product_id": "hangar-80-x-60",
+   "type": "hangar",
+   "miles": 250,
+   "units": 1,
+   "shipping": 3000
+  },
+  {
+   "product_id": "hangar-80-x-60",
+   "type": "hangar",
+   "miles": 600,
+   "units": 1,
+   "shipping": 7200
+  },
+  {
+   "product_id": "hangar-80-x-60",
+   "type": "hangar",
+   "miles": 601,
+   "units": 1,
+   "shipping": 7212
+  },
+  {
+   "product_id": "hangar-80-x-60",
+   "type": "hangar",
+   "miles": 1480,
+   "units": 1,
+   "shipping": 17760
+  }
+ ]
+}

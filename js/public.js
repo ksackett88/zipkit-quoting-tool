@@ -1,75 +1,198 @@
-/* "Quote your own project": the customer quoter.
-   Loads ONLY data/catalog-public.json (model names, sizes, photos, starting
-   prices, where things are sold). It never sees the full price list, never
-   takes payments, and shows a starting price, never a contract number.
-   Steps: state → model → a few choices (estimate) → contact details (lead) → breakdown. */
+/* "Quote your own project": the customer quoter. Brand-agnostic: the brand,
+   its models and its look come from data/catalog-public-<brand>.json.
+
+   Steps: account (name, email, phone, zip; email link) → where (state + build
+   zip) → model → choices (estimate from the server) → send → breakdown.
+
+   The page never sees the full price list or any rate: estimates come from
+   the server (ZK_CONFIG.estimateUrl), which needs the customer's verified
+   account. No payments of any kind. Choice questions are dropdowns with a
+   placeholder and no preselected answer (Kelsey's form rules). */
 (function(root){
   'use strict';
   var ZK = root.ZK = root.ZK || {};
   var C = ZK.config || {};
 
   var STATES = [['AL','Alabama'],['AK','Alaska'],['AZ','Arizona'],['AR','Arkansas'],['CA','California'],['CO','Colorado'],['CT','Connecticut'],['DE','Delaware'],['DC','District of Columbia'],['FL','Florida'],['GA','Georgia'],['HI','Hawaii'],['ID','Idaho'],['IL','Illinois'],['IN','Indiana'],['IA','Iowa'],['KS','Kansas'],['KY','Kentucky'],['LA','Louisiana'],['ME','Maine'],['MD','Maryland'],['MA','Massachusetts'],['MI','Michigan'],['MN','Minnesota'],['MS','Mississippi'],['MO','Missouri'],['MT','Montana'],['NE','Nebraska'],['NV','Nevada'],['NH','New Hampshire'],['NJ','New Jersey'],['NM','New Mexico'],['NY','New York'],['NC','North Carolina'],['ND','North Dakota'],['OH','Ohio'],['OK','Oklahoma'],['OR','Oregon'],['PA','Pennsylvania'],['RI','Rhode Island'],['SC','South Carolina'],['SD','South Dakota'],['TN','Tennessee'],['TX','Texas'],['UT','Utah'],['VT','Vermont'],['VA','Virginia'],['WA','Washington'],['WV','West Virginia'],['WI','Wisconsin'],['WY','Wyoming']];
-  var TIMELINES = ['As soon as I can', 'In the next 6 months', '6 to 12 months from now', 'More than a year out', 'Just looking for now'];
-  var STEPS = ['where', 'pick', 'choose', 'contact', 'done'];
+  var STEPS = ['account', 'where', 'pick', 'choose'];
+  var SCOPE = {
+    modular: 'A complete modular home arrives finished inside. Site prep, foundation, setting it on site and utility hookups are not included.',
+    kit: 'Kits are the shell only. Foundation, siding and roofing, insulation, plumbing, electrical and interior finishes are not included.'
+  };
+  var FINE = ['This is an estimate, not a quote. Final pricing is set after design.',
+    'Pricing is based on your build site address. Sales tax is not included.',
+    'Permits, zoning and what you can build on your land: your local building department can tell you.'];
 
-  var cat = null, app = null;
-  var state = { step: 'where', st: '', type: '', productId: '', homes: 1, snow: 'standard', assembly: 'diy',
-    contact: { name: '', email: '', phone: '', timeline: '' }, sent: false, shownAt: 0, errors: {} };
+  var cat = null, app = null, accounts = null;
+  var state = freshState();
+  function freshState(){
+    return { step: 'account', user: null, mode: 'new', sentTo: '', st: '', zip: '', type: '', productId: '',
+      homes: '', snow: '', assembly: '', timeline: '', est: null, estFor: '', estErr: '', busy: false, errors: {}, result: null };
+  }
 
   function $(sel){ return app.querySelector(sel); }
   function esc(s){ return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;'); }
   function money(n){ return '$' + Math.round(n).toLocaleString('en-US'); }
   function stateName(code){ for(var i = 0; i < STATES.length; i++) if(STATES[i][0] === code) return STATES[i][1]; return code; }
-  function store(k, v){ try { if(v === undefined) return root.localStorage.getItem(k); root.localStorage.setItem(k, v); } catch(e){ return null; } }
+  function isLocal(){ return /^(localhost|127\.0\.0\.1)$/.test(root.location.hostname); }
+
+  // ---------- UTM and landing page (first-party cookie, 90 days) ----------
+  function cookie(name, value){
+    if(value === undefined){ var m = document.cookie.match(new RegExp('(?:^|; )' + name + '=([^;]*)')); return m ? decodeURIComponent(m[1]) : ''; }
+    document.cookie = name + '=' + encodeURIComponent(value) + '; max-age=' + (90 * 86400) + '; path=/; SameSite=Lax';
+  }
+  function captureUtm(){
+    var q = new URLSearchParams(root.location.search), u = {};
+    ['utm_source', 'utm_medium', 'utm_campaign'].forEach(function(k){ if(q.get(k)) u[k] = q.get(k).slice(0, 100); });
+    if(Object.keys(u).length) cookie('zk_utm', JSON.stringify(u));
+    if(!cookie('zk_landing')) cookie('zk_landing', root.location.href.split('#')[0].slice(0, 300));
+  }
+  function utm(){ var u = {}; try { u = JSON.parse(cookie('zk_utm') || '{}'); } catch(e){} u.landing_page = cookie('zk_landing'); u.page = root.location.href.split('#')[0]; return u; }
+
+  // ---------- accounts ----------
+  // Supabase (the customer project, never the sales one): sign-in by email
+  // link, so every account has a verified email. A stub exists for local tests.
+  function supabaseAccounts(){
+    var client = root.supabase.createClient(C.customerSupabaseUrl, C.customerSupabaseKey, {
+      auth: { storageKey: 'zk-customer-auth', persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
+    });
+    function toUser(s){
+      var u = s && s.user;
+      if(!u || !u.email_confirmed_at) return null;
+      var m = u.user_metadata || {};
+      return { id: u.id, email: u.email, name: m.name || '', phone: m.phone || '', zip: m.zip || '', token: s.access_token };
+    }
+    return {
+      session: function(){ return client.auth.getSession().then(function(r){ return toUser(r.data && r.data.session); }); },
+      start: function(p){
+        return client.auth.signInWithOtp({ email: p.email, options: { emailRedirectTo: root.location.href.split('#')[0], shouldCreateUser: p.mode === 'new',
+          data: p.mode === 'new' ? { name: p.name, phone: p.phone, zip: p.zip, brand: C.brand || '' } : undefined } })
+          .then(function(r){ if(r.error) throw r.error; });
+      },
+      onChange: function(cb){ client.auth.onAuthStateChange(function(ev, s){ cb(toUser(s)); }); },
+      signOut: function(){ return client.auth.signOut(); },
+      saveProfile: function(u){
+        return client.from('customer_profiles').upsert({ id: u.id, name: u.name, phone: u.phone, zip: u.zip, brand: C.brand || null, utm_source: utm().utm_source || null,
+          utm_medium: utm().utm_medium || null, utm_campaign: utm().utm_campaign || null, landing_page: utm().landing_page || null }).then(function(){}, function(){});
+      }
+    };
+  }
+  function stubAccounts(){
+    var key = 'zk-stub-customer', pending = null, listener = null;
+    function get(){ try { return JSON.parse(root.sessionStorage.getItem(key) || 'null'); } catch(e){ return null; } }
+    return {
+      session: function(){ return Promise.resolve(get()); },
+      start: function(p){ pending = p; return Promise.resolve(); },
+      onChange: function(cb){ listener = cb; },
+      signOut: function(){ root.sessionStorage.removeItem(key); return Promise.resolve(); },
+      saveProfile: function(){ return Promise.resolve(); },
+      // Test only: act as if the customer clicked the link in their email.
+      _verify: function(){
+        var u = { id: 'stub-' + (pending.email || 'x'), email: pending.email, name: pending.name || 'Returning Customer', phone: pending.phone || '', zip: pending.zip || '', token: 'stub-token' };
+        root.sessionStorage.setItem(key, JSON.stringify(u)); if(listener) listener(u);
+      }
+    };
+  }
+  function makeAccounts(){
+    if(C.accounts === 'stub' && isLocal()) return stubAccounts();
+    if(C.accounts === 'supabase' && C.customerSupabaseUrl && C.customerSupabaseKey && root.supabase && root.supabase.createClient) return supabaseAccounts();
+    return null;
+  }
 
   // ---------- what's sold where ----------
-  function sold(line, st){
-    var a = cat.availability[line];
-    return a === 'all' || (Array.isArray(a) && a.indexOf(st) !== -1);
-  }
+  function sold(line, st){ var a = cat.availability[line]; return a === 'all' || (Array.isArray(a) && a.indexOf(st) !== -1); }
   function typesFor(st){ return cat.types.filter(function(t){ return sold(t.line, st); }); }
   function type(){ return cat.types.filter(function(t){ return t.id === state.type; })[0] || null; }
   function product(){ return cat.products.filter(function(p){ return p.id === state.productId; })[0] || null; }
   function assemblyHere(){ var t = type(); return !!(t && t.ask_assembly && sold('assembly', state.st)); }
+  function hasAssemblyTypes(){ return cat.types.some(function(t){ return t.ask_assembly; }); }
+  function unitWord(t, n){ var w = { home: 'home', garage: 'garage', hangar: 'hangar' }[t.per] || 'home'; return n === 1 ? w : w + 's'; }
 
-  function estimate(){
-    var p = product(), t = type();
-    if(!p || !t) return null;
-    var count = t.ask_homes ? state.homes : 1;
-    return { each: p.start_price, count: count, start: p.start_price * count };
+  // Which questions this model asks, and whether they're all answered.
+  function questions(){
+    var t = type(), q = [];
+    if(!t) return q;
+    if(t.ask_homes) q.push('homes');
+    if(t.ask_snow) q.push('snow');
+    if(assemblyHere()) q.push('assembly');
+    return q;
   }
-  function unitWord(t, n){
-    var w = { home: 'home', garage: 'garage', hangar: 'hangar' }[t.per] || 'home';
-    return n === 1 ? w : w + 's';
-  }
+  function answered(){ return questions().every(function(k){ return !!state[k]; }); }
+  function choiceKey(){ return [state.productId, state.homes, state.snow, state.assembly, state.st, state.zip].join('|'); }
 
   // ---------- rendering ----------
   function header(){
-    var i = STEPS.indexOf(state.step), n = 4;
-    var shown = Math.min(i + 1, n);
-    return '<div class="zp-top"><img class="zp-logo" src="' + esc(ZK.url('images/zk-logo.png')) + '" alt="Zip Kit Homes">'
-      + (state.step !== 'done' ? '<span class="zp-progress" aria-label="Step ' + shown + ' of ' + n + '">Step ' + shown + ' of ' + n + '</span>' : '') + '</div>';
+    var i = STEPS.indexOf(state.step), b = cat.brand;
+    return '<div class="zp-top"><img class="zp-logo" src="' + esc(ZK.url(b.logo)) + '" alt="' + esc(b.name) + '">'
+      + '<span class="zp-progress">' + (i >= 0 ? 'Step ' + (i + 1) + ' of ' + STEPS.length : '')
+      + (state.user ? ' <button type="button" class="zp-link small" data-signout="1">Sign out</button>' : '') + '</span></div>';
+  }
+
+  function field(key, label, typeAttr, value, extra){
+    return '<div class="zp-field' + (state.errors[key] ? ' invalid' : '') + '"><label for="zp-' + key + '">' + label + '</label>'
+      + '<input type="' + typeAttr + '" id="zp-' + key + '" data-zf="' + key + '" value="' + esc(value) + '"' + (extra || '') + '>'
+      + '<div class="zp-err">' + esc(state.errors[key] || '') + '</div></div>';
+  }
+  // A required dropdown with a placeholder and nothing preselected.
+  function select(key, label, placeholder, options, value){
+    return '<div class="zp-field' + (state.errors[key] ? ' invalid' : '') + '"><label for="zp-' + key + '">' + label + '</label>'
+      + '<select id="zp-' + key + '" data-zs="' + key + '"><option value="">' + esc(placeholder) + '</option>'
+      + options.map(function(o){ return '<option value="' + esc(o[0]) + '"' + (String(value) === String(o[0]) ? ' selected' : '') + '>' + esc(o[1]) + '</option>'; }).join('')
+      + '</select><div class="zp-err">' + esc(state.errors[key] || '') + '</div></div>';
+  }
+
+  function renderClosed(){
+    return '<h1 class="zp-title" tabindex="-1">Pricing online is coming soon</h1>'
+      + '<p class="zp-lead">In the meantime, give us a call at ' + esc(cat.brand.phone) + ' or email ' + esc(cat.brand.email) + '. We\'re happy to help.</p>';
+  }
+
+  function renderAccount(){
+    if(!accounts) return renderClosed();
+    if(state.mode === 'check'){
+      return '<h1 class="zp-title" tabindex="-1">Check your email</h1>'
+        + '<p class="zp-lead">We sent a link to <b>' + esc(state.sentTo) + '</b>. Open it on this device to keep going. It can take a minute to arrive.</p>'
+        + '<div class="zp-actions"><button type="button" class="zp-btn" data-resend="1">Send it again</button><button type="button" class="zp-link" data-mode="new">Use a different email</button></div>';
+    }
+    var returning = state.mode === 'returning';
+    return '<h1 class="zp-title" tabindex="-1">' + (returning ? 'Welcome back' : 'First, make your free account') + '</h1>'
+      + '<p class="zp-lead">' + (returning ? 'Enter your email and we\'ll send you a link to sign in.'
+        : 'We\'ll email you a link to confirm it\'s you. Then you can price your project and keep your estimates.') + '</p>'
+      + '<form class="zp-card zp-form" id="zp-account" novalidate>'
+      + (returning ? '' : field('name', 'Your name', 'text', '', ' autocomplete="name"'))
+      + field('email', 'Email', 'email', '', ' autocomplete="email"')
+      + (returning ? '' : field('phone', 'Phone', 'tel', '', ' autocomplete="tel"') + field('zip', 'ZIP code', 'text', '', ' inputmode="numeric" autocomplete="postal-code" maxlength="10"'))
+      + '<div class="zp-hp" aria-hidden="true"><label for="zp-website">Website</label><input type="text" id="zp-website" tabindex="-1" autocomplete="off"></div>'
+      + '<div class="zp-err zp-form-err">' + esc(state.errors.form || '') + '</div>'
+      + '<button type="submit" class="zp-btn primary wide" id="zp-send-link"' + (state.busy ? ' disabled' : '') + '>' + (state.busy ? 'Sending…' : 'Email me my link') + '</button>'
+      + '<p class="zp-help">We only use this to help with your project.</p></form>'
+      + '<div class="zp-actions"><button type="button" class="zp-link" data-mode="' + (returning ? 'new' : 'returning') + '">'
+      + (returning ? 'New here? Make an account' : 'Already have an account? Sign in') + '</button></div>';
   }
 
   function renderWhere(){
-    var opts = STATES.map(function(s){ return '<option value="' + s[0] + '"' + (state.st === s[0] ? ' selected' : '') + '>' + esc(s[1]) + '</option>'; }).join('');
     return '<h1 class="zp-title" tabindex="-1">Where are you building?</h1>'
-      + '<p class="zp-lead">Pick your state and we\'ll show you what we can build there.</p>'
-      + '<div class="zp-field' + (state.errors.st ? ' invalid' : '') + '"><label for="zp-state">State</label>'
-      + '<select id="zp-state" data-zp="st"><option value="">Choose your state</option>' + opts + '</select>'
-      + '<div class="zp-err">' + esc(state.errors.st || '') + '</div></div>'
-      + '<div class="zp-actions"><button type="button" class="zp-btn primary" data-go="pick">Show me what I can build</button></div>';
+      + '<p class="zp-lead">We\'ll show you what we can build there and price it for your area.</p>'
+      + '<div class="zp-card zp-form">'
+      + select('st', 'State', 'Select a state', STATES, state.st)
+      + field('zip', 'ZIP code of your build site', 'text', state.zip, ' inputmode="numeric" autocomplete="postal-code" maxlength="10"')
+      + '<button type="button" class="zp-btn primary wide" data-go="pick">Show me what I can build</button></div>';
   }
 
   function renderPick(){
-    var types = typesFor(state.st);
+    var types = typesFor(state.st), name = stateName(state.st);
     if(!state.type || !types.some(function(t){ return t.id === state.type; })) state.type = types.length ? types[0].id : '';
-    var t = type(), name = stateName(state.st);
+    var t = type();
     var h = '<h1 class="zp-title" tabindex="-1">What would you like to build?</h1>'
-      + '<p class="zp-lead">Here\'s what we offer in ' + esc(name) + '. <button type="button" class="zp-link" data-go="where">Change state</button></p>';
-    h += '<p class="zp-note">' + (sold('assembly', state.st)
-      ? 'In ' + esc(name) + ', our crew can put your home kit together, or you can build it yourself.'
-      : 'In ' + esc(name) + ', you or your own crew put it together. We send the plans and instructions.') + '</p>';
+      + '<p class="zp-lead">Here\'s what we offer in ' + esc(name) + '. <button type="button" class="zp-link" data-go="where">Change location</button></p>';
+    if(!types.length){
+      return h.replace('Here\'s what we offer in ' + esc(name) + '.', 'We don\'t offer homes in ' + esc(name) + ' yet.')
+        + '<p class="zp-note">Give us a call at ' + esc(cat.brand.phone) + ' and we\'ll tell you what\'s coming.</p>';
+    }
+    if(hasAssemblyTypes()){
+      h += '<p class="zp-note">' + (sold('assembly', state.st)
+        ? 'In ' + esc(name) + ', our crew can put your kit together, or you can build it yourself.'
+        : 'In ' + esc(name) + ', you or your own crew put it together. We send the plans and instructions.') + '</p>';
+    }
     if(types.length > 1){
       h += '<div class="zp-tabs" role="tablist">' + types.map(function(x){
         return '<button type="button" role="tab" class="zp-tab' + (x.id === state.type ? ' on' : '') + '" aria-selected="' + (x.id === state.type) + '" data-type="' + x.id + '">' + esc(x.label) + '</button>';
@@ -77,154 +200,101 @@
     }
     if(t && t.lead_only){
       h += '<div class="zp-card zp-steel"><h2>' + esc(t.label) + '</h2>'
-        + '<p>Every steel kit is priced for its project. Tell us what you have in mind and we\'ll put your price together.</p>'
-        + '<button type="button" class="zp-btn primary" data-go="contact">Tell us about your project</button></div>';
+        + '<p>Every steel kit is priced for its project. Tell us when you\'re hoping to build and we\'ll put your price together.</p>'
+        + '<button type="button" class="zp-btn primary" data-lead-only="1">Tell us about your project</button></div>';
     } else if(t){
       var list = cat.products.filter(function(p){ return p.type === t.id; });
       if(t.id === 'shell') list = list.slice().sort(function(a, b){ return (a.sqft || 0) - (b.sqft || 0); });
       h += '<div class="zp-grid">' + list.map(function(p){
-        return '<button type="button" class="zp-model' + (p.id === state.productId ? ' on' : '') + '" data-product="' + esc(p.id) + '">'
-          + '<span class="zp-ph">' + (p.photo ? '<img src="' + esc(ZK.url(p.photo)) + '" alt="" loading="lazy">' : '') + '</span>'
+        return '<button type="button" class="zp-model" data-product="' + esc(p.id) + '">'
+          + '<span class="zp-ph">' + (p.photo ? '<img src="' + esc(ZK.url(p.photo)) + '" alt="" loading="lazy">' : '') + (p.photo_label ? '<span class="zp-plabel">' + esc(p.photo_label) + '</span>' : '') + '</span>'
           + '<span class="zp-mb"><span class="zp-mname">' + esc(p.name) + (p.tag ? ' <span class="zp-tag">' + esc(p.tag) + '</span>' : '') + '</span>'
           + '<span class="zp-msize">' + esc(p.size || '') + '</span>'
-          + '<span class="zp-mprice">Starting at ' + money(p.start_price) + '</span></span></button>';
+          + '<span class="zp-mprice">' + (p.start_price != null ? 'Starting at ' + money(p.start_price) : 'Price coming soon') + '</span></span></button>';
       }).join('') + '</div>';
     }
     return h;
   }
 
-  function tiles(name, items, current){
-    return '<div class="zp-tiles" role="radiogroup">' + items.map(function(it){
-      return '<label class="zp-tile' + (it.id === current ? ' on' : '') + '"><input type="radio" name="zp-' + name + '" value="' + esc(it.id) + '" data-zp="' + name + '"' + (it.id === current ? ' checked' : '') + '>'
-        + '<span class="zp-tt">' + esc(it.label) + '</span>' + (it.help ? '<span class="zp-th">' + esc(it.help) + '</span>' : '') + '</label>';
-    }).join('') + '</div>';
-  }
-
-  function estimateLines(t, e){
-    var lines = [];
-    if(t.design_from) lines.push('Design starts at ' + money(t.design_from) + '.');
-    if(t.ask_snow && state.snow !== 'standard') lines.push('Your snow load adds to the price. We\'ll include it in your quote.');
-    if(assemblyHere() && state.assembly === 'crew') lines.push('Assembly by our crew is quoted separately.');
-    lines.push('Shipping is quoted to your build site.');
-    lines.push('Final pricing is set after design.');
-    return lines;
-  }
-
   function renderChoose(){
     var p = product(), t = type();
-    if(!p || !t){ state.step = 'pick'; return renderPick(); }
-    var e = estimate();
-    var h = '<h1 class="zp-title" tabindex="-1">' + esc(p.name) + '</h1>'
-      + '<p class="zp-lead">' + esc(p.size || '') + ' · ' + esc(t.label) + ' · ' + esc(stateName(state.st)) + ' <button type="button" class="zp-link" data-go="pick">Pick a different model</button></p>'
-      + '<div class="zp-split"><div class="zp-card">'
-      + (p.photo ? '<img class="zp-hero" src="' + esc(ZK.url(p.photo)) + '" alt="' + esc(p.name) + '">' : '');
-    var asked = 0;
-    if(t.ask_homes){
-      asked++;
-      h += '<div class="zp-q"><div class="zp-ql" id="zp-homes-l">How many homes?</div>'
-        + '<div class="zp-stepper" role="group" aria-labelledby="zp-homes-l"><button type="button" data-homes="-1" aria-label="One fewer">−</button>'
-        + '<input type="number" id="zp-homes" data-zp="homes" min="1" max="' + cat.max_homes + '" value="' + state.homes + '" aria-labelledby="zp-homes-l">'
-        + '<button type="button" data-homes="1" aria-label="One more">+</button></div></div>';
-    }
-    if(t.ask_snow){
-      asked++;
-      h += '<div class="zp-q"><div class="zp-ql">How much snow do you get?</div>' + tiles('snow', cat.snow_choices, state.snow)
-        + '<p class="zp-help">Not sure? Your local building department can tell you the snow load where you\'re building.</p></div>';
-    }
-    if(assemblyHere()){
-      asked++;
-      h += '<div class="zp-q"><div class="zp-ql">Who will put it together?</div>'
-        + tiles('assembly', [{ id: 'crew', label: 'Our crew', help: 'Quoted separately.' }, { id: 'diy', label: 'Me or my own crew', help: 'We send the plans and instructions.' }], state.assembly) + '</div>';
-    }
-    if(!asked) h += '<p class="zp-help">No choices to make for this one. Your estimate is on the right.</p>';
-    h += '</div><aside class="zp-card zp-est" id="zp-est" aria-live="polite">' + estimateHTML(t, e) + '</aside></div>';
-    // Phones: the number and the next step stay on screen while choosing.
-    h += '<div class="zp-bar">' + barHTML(e) + '</div>';
+    if(!t || (!p && !t.lead_only)){ state.step = 'pick'; return renderPick(); }
+    var h = '<h1 class="zp-title" tabindex="-1">' + esc(p ? p.name : t.label) + '</h1>'
+      + '<p class="zp-lead">' + (p && p.size ? esc(p.size) + ' · ' : '') + esc(t.label) + ' · ' + esc(stateName(state.st)) + (state.zip ? ' ' + esc(state.zip) : '')
+      + ' <button type="button" class="zp-link" data-go="pick">Pick a different model</button></p>'
+      + '<div class="zp-split"><div class="zp-card zp-form">'
+      + (p && p.photo ? '<div class="zp-herowrap"><img class="zp-hero" src="' + esc(ZK.url(p.photo)) + '" alt="' + esc(p.name) + '">' + (p.photo_label ? '<span class="zp-plabel">' + esc(p.photo_label) + '</span>' : '') + '</div>' : '');
+    var homes = [];
+    for(var i = 1; i <= cat.max_homes; i++) homes.push([i, i + ' ' + unitWord(t, i)]);
+    questions().forEach(function(k){
+      if(k === 'homes') h += select('homes', 'How many homes?', 'Select number of homes', homes, state.homes);
+      if(k === 'snow') h += select('snow', 'How much snow do you get?', 'Select a snow load', cat.snow_choices.map(function(s){ return [s.id, s.label]; }), state.snow)
+        + '<ul class="zp-help zp-snowlist">' + cat.snow_choices.map(function(s){ return '<li><b>' + esc(s.label) + ':</b> ' + esc(s.help) + '</li>'; }).join('') + '</ul>'
+        + '<p class="zp-help">Not sure? Your local building department can tell you the snow load where you\'re building.</p>';
+      if(k === 'assembly') h += select('assembly', 'Who will put it together?', 'Select one', [['crew', 'Our crew (quoted separately)'], ['diy', 'Me or my own crew']], state.assembly);
+    });
+    if(!questions().length && !t.lead_only) h += '<p class="zp-help">No choices to make for this one.</p>';
+    h += '</div><aside class="zp-card zp-est" id="zp-est" aria-live="polite">' + estimateHTML() + '</aside></div>';
+    // Phones: the number stays on screen while choosing; the button jumps to the estimate.
+    h += '<div class="zp-bar" id="zp-bar">' + barHTML() + '</div>';
     return h;
   }
 
-  function estimateHTML(t, e){
-    return '<div class="zp-est-k">Your estimate</div>'
-      + '<div class="zp-est-v">Starting at ' + money(e.start) + '</div>'
-      + '<div class="zp-est-s">' + (e.count > 1 ? e.count + ' ' + unitWord(t, e.count) + ' at ' + money(e.each) + ' each' : 'for one ' + unitWord(t, 1)) + '</div>'
-      + '<ul class="zp-est-l">' + estimateLines(t, e).map(function(l){ return '<li>' + esc(l) + '</li>'; }).join('') + '</ul>'
-      + '<button type="button" class="zp-btn primary wide" data-go="contact">See the full breakdown</button>'
-      + '<p class="zp-help">We\'ll ask how to reach you, then show the breakdown and a PDF you can keep.</p>';
+  function estimateHTML(){
+    var t = type(), e = state.est;
+    var send = sendHTML();
+    if(t.lead_only) return '<div class="zp-est-k">Your price</div><div class="zp-est-s">Priced for your project. We\'ll put it together for you.</div>' + send;
+    if(!answered()) return '<div class="zp-est-k">Your estimate</div><div class="zp-est-s">Answer the questions to see your estimate.</div>';
+    if(state.estErr) return '<div class="zp-est-k">Your estimate</div><div class="zp-err">' + esc(state.estErr) + '</div>';
+    if(!e || state.estFor !== choiceKey()) return '<div class="zp-est-k">Your estimate</div><div class="zp-est-s">Figuring your price…</div>';
+    var top = e.needs_price
+      ? '<div class="zp-est-v small">We\'ll send your price</div><div class="zp-est-s">Pricing for this model is coming soon. Send this to our team and we\'ll get back to you.</div>'
+      : '<div class="zp-est-v">Starting at ' + money(e.start) + '</div><div class="zp-est-s">' + (e.units > 1 ? e.units + ' ' + unitWord(t, e.units) + ' at ' + money(e.each) + ' each' : 'for one ' + unitWord(t, 1)) + (e.shipping != null ? ', with shipping' : '') + '</div>';
+    return '<div class="zp-est-k">Your estimate</div>' + top
+      + '<ul class="zp-est-l">' + e.lines.slice(1).map(function(l){ return '<li>' + esc(l[0]) + ': ' + esc(l[1]) + '</li>'; }).join('')
+      + e.notes.map(function(n){ return '<li>' + esc(n) + '</li>'; }).join('') + '</ul>' + send;
   }
 
-  function barHTML(e){
-    return '<span class="zp-bar-v">Starting at <b>' + money(e.start) + '</b></span><button type="button" class="zp-btn primary" data-go="contact">Next</button>';
+  function barHTML(){
+    var e = state.est, t = type();
+    var v = t.lead_only ? 'Priced for your project' : (!answered() ? 'Answer the questions' : (!e || state.estFor !== choiceKey() ? 'Figuring your price…' : (e.needs_price ? 'Price coming soon' : 'Starting at <b>' + money(e.start) + '</b>')));
+    return '<span class="zp-bar-v">' + v + '</span><button type="button" class="zp-btn primary" data-to-est="1">' + (t.lead_only ? 'Send' : 'See estimate') + '</button>';
   }
 
-  function field(key, label, typeAttr, ac){
-    return '<div class="zp-field' + (state.errors[key] ? ' invalid' : '') + '"><label for="zp-' + key + '">' + label + '</label>'
-      + '<input type="' + typeAttr + '" id="zp-' + key + '" data-zc="' + key + '" value="' + esc(state.contact[key]) + '" autocomplete="' + ac + '">'
-      + '<div class="zp-err">' + esc(state.errors[key] || '') + '</div></div>';
+  function sendHTML(){
+    return '<form id="zp-send-form" novalidate>'
+      + select('timeline', 'When are you hoping to build?', 'Select a timeline', cat.timelines.map(function(x){ return [x, x]; }), state.timeline)
+      + '<div class="zp-hp" aria-hidden="true"><label for="zp-website2">Website</label><input type="text" id="zp-website2" tabindex="-1" autocomplete="off"></div>'
+      + '<div class="zp-err zp-form-err">' + esc(state.errors.send || '') + '</div>'
+      + '<button type="submit" class="zp-btn primary wide" id="zp-send"' + (state.busy ? ' disabled' : '') + '>' + (state.busy ? 'Sending…' : 'Send me the full breakdown') + '</button>'
+      + '<p class="zp-help">We\'ll email you a copy, and someone from our team will reach out.</p></form>';
   }
-
-  function renderContact(){
-    var t = type(), steelOnly = t && t.lead_only;
-    state.shownAt = state.shownAt || Date.now();
-    var h = '<h1 class="zp-title" tabindex="-1">' + (steelOnly ? 'Tell us how to reach you' : 'Where should we send it?') + '</h1>'
-      + '<p class="zp-lead">' + (steelOnly
-        ? 'A real person from our team will get back to you with pricing for your steel kit.'
-        : 'Tell us how to reach you and we\'ll show your full breakdown right away. A real person from our team will follow up.') + '</p>'
-      + '<form class="zp-card zp-form" id="zp-form" novalidate>'
-      + field('name', 'Your name', 'text', 'name')
-      + field('email', 'Email', 'email', 'email')
-      + field('phone', 'Phone', 'tel', 'tel')
-      + '<div class="zp-field' + (state.errors.timeline ? ' invalid' : '') + '"><label for="zp-timeline">When are you hoping to build?</label><select id="zp-timeline" data-zc="timeline"><option value="">Choose one</option>'
-      + TIMELINES.map(function(x){ return '<option' + (state.contact.timeline === x ? ' selected' : '') + '>' + esc(x) + '</option>'; }).join('') + '</select><div class="zp-err">' + esc(state.errors.timeline || '') + '</div></div>'
-      // Spam trap: people never see this field; bots fill it in.
-      + '<div class="zp-hp" aria-hidden="true"><label for="zp-website">Website</label><input type="text" id="zp-website" name="website" tabindex="-1" autocomplete="off"></div>'
-      + '<div class="zp-err zp-form-err" id="zp-form-err">' + esc(state.errors.form || '') + '</div>'
-      + '<button type="submit" class="zp-btn primary wide" id="zp-send">' + (steelOnly ? 'Send' : 'Show my breakdown') + '</button>'
-      + '<p class="zp-help">We only use this to help with your project.</p>'
-      + '</form>'
-      + '<div class="zp-actions"><button type="button" class="zp-link" data-go="' + (steelOnly ? 'pick' : 'choose') + '">Back</button></div>';
-    return h;
-  }
-
-  function breakdownRows(){
-    var p = product(), t = type(), e = estimate(), rows = [];
-    rows.push([p.name + ' (' + (p.size || t.label) + ')', e.count > 1 ? e.count + ' ' + unitWord(t, e.count) + ' × ' + money(e.each) : money(e.each)]);
-    if(t.ask_snow){
-      var s = cat.snow_choices.filter(function(x){ return x.id === state.snow; })[0];
-      rows.push(['Snow load: ' + s.label.toLowerCase(), state.snow === 'standard' ? 'Included' : 'Priced in your quote']);
-    }
-    if(assemblyHere()) rows.push([state.assembly === 'crew' ? 'Assembly by our crew' : 'You or your own crew build it', state.assembly === 'crew' ? 'Quoted separately' : 'Plans and instructions included']);
-    if(t.design_from) rows.push(['Design', 'Starts at ' + money(t.design_from)]);
-    rows.push(['Shipping to your build site', 'Quoted separately']);
-    return rows;
-  }
-  function scopeNote(){
-    return state.type === 'modular'
-      ? 'A complete modular home arrives finished inside. Site prep, foundation, setting it on site and utility hookups are not included.'
-      : 'Kits are the shell only. Foundation, siding and roofing, insulation, plumbing, electrical and interior finishes are not included.';
-  }
-  var FINE = ['This is an estimate, not a quote. Final pricing is set after design.',
-    'Pricing is based on your build site address. Sales tax is not included.',
-    'Permits, zoning and what you can build on your land: your local building department can tell you.'];
 
   function renderDone(){
-    var t = type();
-    if(t && t.lead_only){
-      return '<h1 class="zp-title" tabindex="-1">Thanks, ' + esc(state.contact.name.split(' ')[0]) + '!</h1>'
-        + '<p class="zp-lead">We got your details. Someone from our team will reach out about your steel kit.</p>'
-        + '<div class="zp-actions"><button type="button" class="zp-btn" data-restart="1">Start over</button></div>';
+    var t = type(), r = state.result || {}, e = r.estimate;
+    var first = (state.user && state.user.name || '').split(' ')[0];
+    if(!e){
+      return '<h1 class="zp-title" tabindex="-1">Thanks' + (first ? ', ' + esc(first) : '') + '!</h1>'
+        + '<p class="zp-lead">We got your details' + (r.emailed_you ? ' and emailed you a copy' : '') + '. Someone from our team will reach out about your ' + esc(t ? t.label.toLowerCase() : 'project') + '.</p>'
+        + '<div class="zp-actions"><button type="button" class="zp-btn" data-restart="1">Price something else</button></div>';
     }
-    var e = estimate();
     return '<h1 class="zp-title" tabindex="-1">Here\'s your breakdown</h1>'
-      + '<p class="zp-lead">Thanks, ' + esc(state.contact.name.split(' ')[0]) + '. Someone from our team will reach out to talk it through.</p>'
-      + '<div class="zp-card"><table class="zp-table"><tbody>' + breakdownRows().map(function(r){ return '<tr><td>' + esc(r[0]) + '</td><td>' + esc(r[1]) + '</td></tr>'; }).join('')
-      + '<tr class="zp-total"><td>Starting at</td><td>' + money(e.start) + '</td></tr></tbody></table>'
+      + '<p class="zp-lead">Thanks' + (first ? ', ' + esc(first) : '') + '. ' + (r.emailed_you ? 'We emailed you a copy. ' : '') + 'Someone from our team will reach out to talk it through.</p>'
+      + '<div class="zp-card">' + breakdownTable(e)
       + '<p class="zp-help">' + esc(scopeNote()) + '</p>'
       + '<ul class="zp-fine">' + FINE.map(function(f){ return '<li>' + esc(f) + '</li>'; }).join('') + '</ul></div>'
-      + '<div class="zp-actions"><button type="button" class="zp-btn primary" data-pdf="1">Save as PDF</button><button type="button" class="zp-btn" data-restart="1">Start over</button></div>';
+      + '<div class="zp-actions"><button type="button" class="zp-btn primary" data-pdf="1">Save as PDF</button><button type="button" class="zp-btn" data-restart="1">Price something else</button></div>';
   }
+  function breakdownTable(e){
+    return '<table class="zp-table"><tbody>' + e.lines.map(function(l){ return '<tr><td>' + esc(l[0]) + '</td><td>' + esc(l[1]) + '</td></tr>'; }).join('')
+      + '<tr class="zp-total"><td>Starting at</td><td>' + (e.start != null ? money(e.start) : 'Coming soon') + '</td></tr></tbody></table>'
+      + '<ul class="zp-fine">' + e.notes.map(function(n){ return '<li>' + esc(n) + '</li>'; }).join('') + '</ul>';
+  }
+  function scopeNote(){ return state.type === 'modular' ? SCOPE.modular : SCOPE.kit; }
 
   function render(focus){
-    var body = { where: renderWhere, pick: renderPick, choose: renderChoose, contact: renderContact, done: renderDone }[state.step]();
+    if(!cat) return;
+    var body = { account: renderAccount, where: renderWhere, pick: renderPick, choose: renderChoose, done: renderDone }[state.step]();
     app.innerHTML = '<div class="zp-wrap">' + header() + '<main class="zp-main">' + body + '</main></div>';
     if(focus){
       var h = $('.zp-title'); if(h) h.focus({ preventScroll: true });
@@ -233,119 +303,152 @@
     }
   }
   function refreshEstimate(){
-    var a = $('.zp-est'); if(a) a.innerHTML = estimateHTML(type(), estimate());
-    var b = $('.zp-bar'); if(b) b.innerHTML = barHTML(estimate());
-    Array.prototype.forEach.call(app.querySelectorAll('.zp-tile'), function(l){ l.classList.toggle('on', l.querySelector('input').checked); });
+    var a = $('#zp-est'); if(a) a.innerHTML = estimateHTML();
+    var b = $('#zp-bar'); if(b) b.innerHTML = barHTML();
+  }
+
+  // ---------- server calls ----------
+  function post(url, body){
+    return fetch(url, { method: 'POST', credentials: 'omit', body: JSON.stringify(body),
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (state.user ? state.user.token : '') } })
+      .then(function(r){ return r.json().catch(function(){ return {}; }).then(function(j){ if(!r.ok) throw new Error(j.message || ('status ' + r.status)); return j; }); });
+  }
+  function choices(){
+    return { product_type: state.type, product_id: state.productId, homes: state.homes ? +state.homes : 1, snow: state.snow || null,
+      assembly: state.assembly || null, state: state.st, zip: state.zip };
+  }
+  function fetchEstimate(){
+    if(!answered() || type().lead_only) return refreshEstimate();
+    var key = choiceKey();
+    if(state.est && state.estFor === key) return refreshEstimate();
+    state.estErr = ''; refreshEstimate();
+    if(!C.estimateUrl){ state.estErr = 'Pricing isn\'t connected on this page yet. Call us at ' + cat.brand.phone + '.'; return refreshEstimate(); }
+    post(C.estimateUrl, choices()).then(function(e){
+      if(key !== choiceKey()) return;
+      state.est = e; state.estFor = key; refreshEstimate();
+    }).catch(function(err){
+      if(/sign in|confirm your email/i.test(err.message)) return signedOut();
+      state.estErr = 'We couldn\'t figure your price just now. Try again, or call us at ' + cat.brand.phone + '.'; refreshEstimate();
+    });
   }
 
   // ---------- moving between steps ----------
   function go(step){
     state.errors = {};
-    if(step === 'pick' && !state.st){ state.errors.st = 'Pick the state you\'re building in.'; render(); var s = $('#zp-state'); if(s) s.focus(); return; }
-    if(step === 'pick') store('zkPublicState', state.st);
-    if(step === 'contact' && !state.shownAt) state.shownAt = Date.now();
+    if(step === 'pick'){
+      var z = (state.zip || '').replace(/\D/g, '');
+      if(!state.st) state.errors.st = 'Select the state you\'re building in.';
+      if(z.length !== 5) state.errors.zip = 'Add the 5-digit ZIP code of your build site.';
+      if(Object.keys(state.errors).length){ render(); var f = app.querySelector('.invalid select, .invalid input'); if(f) f.focus(); return; }
+      state.zip = z;
+    }
     state.step = step;
     render(true);
+    if(step === 'choose') fetchEstimate();
   }
 
-  function validate(){
-    var c = state.contact, e = {};
-    if(!c.name.trim()) e.name = 'Add your name.';
-    if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(c.email.trim())) e.email = 'Add an email we can reach you at.';
-    if(c.phone.replace(/\D/g, '').length < 10) e.phone = 'Add your phone number with area code.';
-    if(!c.timeline) e.timeline = 'Pick one. "Just looking for now" is fine.';
-    return e;
-  }
-
-  // At most 3 sends per hour from one browser (the server has its own limit).
-  function tooMany(){
-    var now = Date.now(), list = [];
-    try { list = JSON.parse(store('zkPublicSends') || '[]').filter(function(t){ return now - t < 3600e3; }); } catch(x){}
-    return list.length >= 3 ? true : (store('zkPublicSends', JSON.stringify(list.concat(now))), false);
-  }
-
-  function leadPayload(){
-    var p = product(), t = type(), e = estimate();
-    return {
-      name: state.contact.name.trim(), email: state.contact.email.trim(), phone: state.contact.phone.trim(), timeline: state.contact.timeline,
-      state: state.st, product_type: t ? t.id : '', product_id: p ? p.id : '', product_name: p ? p.name : (t ? t.label : ''),
-      homes: e ? e.count : null, snow: t && t.ask_snow ? state.snow : null, assembly: assemblyHere() ? state.assembly : null,
-      estimate_start: e ? e.start : null, page: root.location.href.split('#')[0],
-      website: ($('#zp-website') || {}).value || '', elapsed_ms: Date.now() - (state.shownAt || Date.now())
-    };
-  }
-
-  function send(){
-    var errs = validate();
-    if(Object.keys(errs).length){ state.errors = errs; render(); var f = app.querySelector('.invalid input, .invalid select'); if(f) f.focus(); return; }
-    var data = leadPayload(), btn = $('#zp-send');
-    // Spam trap or a form filled in under 3 seconds: act as if it worked, send nothing.
-    if(data.website || data.elapsed_ms < 3000){ state.step = 'done'; render(true); return; }
-    if(tooMany()){ state.errors = { form: 'You\'ve sent a few already. Give us a call at ' + cat.brand.phone + ' instead.' }; render(); return; }
-    if(!C.leadUrl){ state.errors = { form: 'This form isn\'t connected yet. Please call us at ' + cat.brand.phone + '.' }; render(); return; }
-    btn.disabled = true; btn.textContent = 'Sending…';
-    fetch(C.leadUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data), credentials: 'omit' })
-      .then(function(r){ if(!r.ok) throw new Error('status ' + r.status); return r.json().catch(function(){ return {}; }); })
-      .then(function(){ state.sent = true; state.step = 'done'; render(true); })
-      .catch(function(){
-        state.errors = { form: 'That didn\'t go through. Please try again, or call us at ' + cat.brand.phone + '.' };
-        render();
+  function startAccount(form){
+    var v = function(k){ var el = form.querySelector('[data-zf="' + k + '"]'); return el ? el.value.trim() : ''; };
+    if(form.querySelector('#zp-website').value) { state.mode = 'check'; state.sentTo = v('email'); return render(true); }   // spam trap: act normal
+    var p = { mode: state.mode, name: v('name'), email: v('email'), phone: v('phone'), zip: v('zip').replace(/\D/g, '') }, e = {};
+    if(state.mode === 'new'){
+      if(!p.name) e.name = 'Add your name.';
+      if(p.phone.replace(/\D/g, '').length < 10) e.phone = 'Add your phone number with area code.';
+      if(p.zip.length !== 5) e.zip = 'Add your 5-digit ZIP code.';
+    }
+    if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(p.email)) e.email = 'Add an email we can reach you at.';
+    if(Object.keys(e).length){ state.errors = e; render(); keepValues(form, p); var f = app.querySelector('.invalid input'); if(f) f.focus(); return; }
+    state.busy = true; state.errors = {}; render(); keepValues(app.querySelector('#zp-account'), p);
+    state.pending = p;
+    accounts.start(p).then(function(){ state.busy = false; state.mode = 'check'; state.sentTo = p.email; render(true); })
+      .catch(function(err){
+        state.busy = false;
+        state.errors = { form: /not found|signups not allowed/i.test(err && err.message || '') ? 'We couldn\'t find an account for that email. Make a new one below.' : 'That didn\'t go through. Please try again, or call us at ' + cat.brand.phone + '.' };
+        render(); keepValues(app.querySelector('#zp-account'), p);
       });
   }
+  function keepValues(form, p){ if(!form) return; Object.keys(p).forEach(function(k){ var el = form.querySelector('[data-zf="' + k + '"]'); if(el) el.value = p[k]; }); }
+
+  function send(form){
+    var t = type();
+    if(form.querySelector('#zp-website2').value){ state.result = { ok: true }; state.step = 'done'; return render(true); }   // spam trap
+    if(!state.timeline){ state.errors = { timeline: 'Select one. "Just looking for now" is fine.' }; return refreshEstimate(); }
+    if(!t.lead_only && !answered()) return refreshEstimate();
+    if(!C.leadUrl){ state.errors = { send: 'This form isn\'t connected yet. Please call us at ' + cat.brand.phone + '.' }; return refreshEstimate(); }
+    state.busy = true; state.errors = {}; refreshEstimate();
+    var u = utm(), body = choices();
+    body.timeline = state.timeline; body.website = '';
+    ['utm_source', 'utm_medium', 'utm_campaign', 'landing_page', 'page'].forEach(function(k){ body[k] = u[k] || ''; });
+    post(C.leadUrl, body).then(function(r){ state.busy = false; state.result = r; state.step = 'done'; render(true); })
+      .catch(function(err){
+        state.busy = false;
+        if(/sign in|confirm your email/i.test(err.message)) return signedOut();
+        state.errors = { send: 'That didn\'t go through. Please try again, or call us at ' + cat.brand.phone + '.' }; refreshEstimate();
+      });
+  }
+
+  function signedIn(u){
+    if(!u) return;
+    var first = !state.user;
+    state.user = u;
+    if(first){ accounts.saveProfile(u); if(!state.zip) state.zip = u.zip || ''; }
+    if(state.step === 'account'){ state.step = 'where'; render(true); }
+  }
+  function signedOut(){ var keep = { st: state.st, zip: state.zip }; state = freshState(); state.st = keep.st; state.zip = keep.zip; render(true); }
 
   // A printable page the customer can save as a PDF.
   function pdf(){
     var w = root.open('', '_blank');
-    if(!w){ alertBox('Your browser blocked the new window. Allow pop-ups for this site, then try again.'); return; }
-    var p = product(), e = estimate();
-    var rows = breakdownRows().map(function(r){ return '<tr><td>' + esc(r[0]) + '</td><td style="text-align:right">' + esc(r[1]) + '</td></tr>'; }).join('');
-    var html = '<!DOCTYPE html><html><head><meta charset="utf-8"><title>' + esc(p.name) + ' estimate · Zip Kit Homes</title>'
+    if(!w){ state.errors = { send: 'Your browser blocked the new window. Allow pop-ups for this site, then try again.' }; return; }
+    var p = product(), e = state.result.estimate, b = cat.brand, abs = function(u){ return new URL(ZK.url(u), root.location.href).href; };
+    var rows = e.lines.map(function(l){ return '<tr><td>' + esc(l[0]) + '</td><td style="text-align:right">' + esc(l[1]) + '</td></tr>'; }).join('');
+    var html = '<!DOCTYPE html><html><head><meta charset="utf-8"><title>' + esc(p.name) + ' estimate · ' + esc(b.name) + '</title>'
       + '<style>body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;color:#2d2a22;max-width:720px;margin:32px auto;padding:0 20px;line-height:1.5}'
       + 'h1{font-size:26px;margin:18px 0 4px}table{width:100%;border-collapse:collapse;margin:18px 0}td{padding:10px 0;border-bottom:1px solid #e6e2d6;vertical-align:top}'
       + '.t td{font-weight:700;font-size:20px;border-bottom:2px solid #17150f}.s{color:#6a6459;font-size:13px}img.h{width:100%;border-radius:10px;margin-top:12px}'
-      + '.p{text-align:center;margin:24px 0}.p button{padding:10px 28px;font-size:15px;background:#d85a30;color:#fff;border:0;border-radius:8px;cursor:pointer}@media print{.p{display:none}}</style></head><body>'
-      + '<img src="' + esc(new URL(ZK.url('images/zk-logo.png'), root.location.href).href) + '" alt="Zip Kit Homes" style="height:40px">'
-      + '<h1>Your ' + esc(p.name) + ' estimate</h1><div class="s">For ' + esc(state.contact.name) + ' · Building in ' + esc(stateName(state.st)) + ' · ' + esc(new Date().toLocaleDateString('en-US')) + '</div>'
-      + (p.photo ? '<img class="h" src="' + esc(new URL(ZK.url(p.photo), root.location.href).href) + '" alt="">' : '')
-      + '<table>' + rows + '<tr class="t"><td>Starting at</td><td style="text-align:right">' + money(e.start) + '</td></tr></table>'
+      + '.p{text-align:center;margin:24px 0}.p button{padding:10px 28px;font-size:15px;background:' + esc(b.colors.main) + ';color:#fff;border:0;border-radius:8px;cursor:pointer}@media print{.p{display:none}}</style></head><body>'
+      + '<img src="' + esc(abs(b.logo)) + '" alt="' + esc(b.name) + '" style="height:40px">'
+      + '<h1>Your ' + esc(p.name) + ' estimate</h1><div class="s">For ' + esc(state.user.name || state.user.email) + ' · Building in ' + esc(stateName(state.st)) + (state.zip ? ' ' + esc(state.zip) : '') + ' · ' + esc(new Date().toLocaleDateString('en-US')) + '</div>'
+      + (p.photo ? '<img class="h" src="' + esc(abs(p.photo)) + '" alt="">' + (p.photo_label ? '<div class="s">' + esc(p.photo_label) + '</div>' : '') : '')
+      + '<table>' + rows + '<tr class="t"><td>Starting at</td><td style="text-align:right">' + (e.start != null ? money(e.start) : 'Coming soon') + '</td></tr></table>'
+      + '<ul class="s">' + e.notes.map(function(n){ return '<li>' + esc(n) + '</li>'; }).join('') + '</ul>'
       + '<p class="s">' + esc(scopeNote()) + '</p><ul class="s">' + FINE.map(function(f){ return '<li>' + esc(f) + '</li>'; }).join('') + '</ul>'
-      + '<p class="s">Questions? ' + esc(cat.brand.phone) + ' · ' + esc(cat.brand.email) + '</p>'
+      + '<p class="s">Questions? ' + esc(b.phone) + ' · ' + esc(b.email) + '</p>'
       + '<div class="p"><button onclick="window.print()">Save as PDF</button></div></body></html>';
     w.document.open(); w.document.write(html); w.document.close();
   }
-  function alertBox(msg){ state.errors = { form: msg }; var el = $('#zp-form-err'); if(el) el.textContent = msg; }
 
   // ---------- events ----------
   function onClick(ev){
     var t = ev.target.closest('button');
     if(!t || !app.contains(t)) return;
     if(t.hasAttribute('data-go')) return go(t.getAttribute('data-go'));
+    if(t.hasAttribute('data-mode')){ state.mode = t.getAttribute('data-mode'); state.errors = {}; return render(true); }
+    if(t.hasAttribute('data-resend')){ if(state.pending) accounts.start(state.pending); t.textContent = 'Sent again'; t.disabled = true; return; }
+    if(t.hasAttribute('data-signout')){ accounts.signOut().then(signedOut); return; }
     if(t.hasAttribute('data-type')){ state.type = t.getAttribute('data-type'); state.productId = ''; render(); return; }
-    if(t.hasAttribute('data-product')){
-      state.productId = t.getAttribute('data-product');
-      state.homes = 1; state.snow = 'standard'; state.assembly = assemblyHere() ? 'crew' : 'diy';
+    if(t.hasAttribute('data-product') || t.hasAttribute('data-lead-only')){
+      state.productId = t.getAttribute('data-product') || '';
+      state.homes = ''; state.snow = ''; state.assembly = ''; state.est = null; state.estErr = '';
       return go('choose');
     }
-    if(t.hasAttribute('data-homes')){
-      state.homes = Math.max(1, Math.min(cat.max_homes, state.homes + (+t.getAttribute('data-homes'))));
-      var i = $('#zp-homes'); if(i) i.value = state.homes;
-      return refreshEstimate();
-    }
     if(t.hasAttribute('data-pdf')) return pdf();
-    if(t.hasAttribute('data-restart')){
-      var st = state.st;
-      state = { step: 'pick', st: st, type: '', productId: '', homes: 1, snow: 'standard', assembly: 'diy', contact: state.contact, sent: false, shownAt: 0, errors: {} };
-      return render(true);
-    }
+    if(t.hasAttribute('data-to-est')){ var est = $('#zp-est'); if(est) est.scrollIntoView({ behavior: 'smooth', block: 'start' }); return; }
+    if(t.hasAttribute('data-restart')){ state.step = 'pick'; state.productId = ''; state.est = null; state.result = null; return render(true); }
   }
   function onInput(ev){
-    var el = ev.target, k = el.getAttribute('data-zp'), c = el.getAttribute('data-zc');
-    if(c){ state.contact[c] = el.value; return; }
-    if(k === 'st'){ state.st = el.value; return; }
-    if(k === 'homes'){ var n = parseInt(el.value, 10); if(n >= 1){ state.homes = Math.min(cat.max_homes, n); refreshEstimate(); } return; }
-    if((k === 'snow' || k === 'assembly') && el.checked){ state[k] = el.value; refreshEstimate(); }
+    var el = ev.target, f = el.getAttribute('data-zf'), s = el.getAttribute('data-zs');
+    if(f === 'zip' && state.step === 'where'){ state.zip = el.value; return; }
+    if(!s) return;
+    if(s === 'st'){ state.st = el.value; return; }
+    if(s === 'timeline'){ state.timeline = el.value; return; }
+    if(ev.type === 'change' && (s === 'homes' || s === 'snow' || s === 'assembly')){ state[s] = el.value; state.errors = {}; fetchEstimate(); }
   }
-  function onSubmit(ev){ if(ev.target.id === 'zp-form'){ ev.preventDefault(); send(); } }
+  function onSubmit(ev){
+    ev.preventDefault();
+    if(ev.target.id === 'zp-account') startAccount(ev.target);
+    if(ev.target.id === 'zp-send-form') send(ev.target);
+  }
 
   function init(){
     app = document.querySelector(C.publicMount || '[data-zk-app="public"]');
@@ -355,13 +458,18 @@
     app.addEventListener('input', onInput);
     app.addEventListener('change', onInput);
     app.addEventListener('submit', onSubmit);
-    fetch(C.publicCatalogUrl || ZK.url('data/catalog-public.json'), { cache: 'no-cache', credentials: 'omit' })
+    captureUtm();
+    accounts = makeAccounts();
+    fetch(C.publicCatalogUrl || ZK.url('data/catalog-public-' + (C.brand || 'zipkit') + '.json'), { cache: 'no-cache', credentials: 'omit' })
       .then(function(r){ if(!r.ok) throw new Error('catalog ' + r.status); return r.json(); })
       .then(function(d){
         cat = d;
-        var saved = store('zkPublicState');
-        if(saved && STATES.some(function(s){ return s[0] === saved; })) state.st = saved;
+        // The brand's own colors.
+        if(d.brand.colors){ app.style.setProperty('--accent', d.brand.colors.main); app.style.setProperty('--accent-2', d.brand.colors.dark); }
         render();
+        if(!accounts) return;
+        accounts.onChange(function(u){ if(u) signedIn(u); });
+        return accounts.session().then(signedIn);
       })
       .catch(function(e){
         console.error(e);
@@ -369,6 +477,6 @@
       });
   }
 
-  ZK.Public = { state: function(){ return state; }, catalog: function(){ return cat; }, go: go, render: render };
+  ZK.Public = { state: function(){ return state; }, catalog: function(){ return cat; }, accounts: function(){ return accounts; }, go: go, render: render };
   if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
 })(window);

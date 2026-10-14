@@ -12,7 +12,7 @@ add_action(
 	'wp_enqueue_scripts',
 	function () {
 		wp_register_style( 'zkst-public', zkst_app_url( 'css/public.css' ), array( 'zkst-tool' ), null );
-		wp_register_script( 'zkst-public', zkst_app_url( 'js/public.js' ), array( 'zkst-config' ), null, true );
+		wp_register_script( 'zkst-public', zkst_app_url( 'js/public.js' ), array( 'zkst-supabase-js', 'zkst-config' ), null, true );
 		if ( zkst_page_has_shortcode( 'zipkit_quote_public' ) ) {
 			zkst_enqueue_public();
 		}
@@ -28,8 +28,13 @@ function zkst_enqueue_public() {
 	$done = true;
 	$config = array(
 		'base'             => ZKST_URL . 'app/',
-		'publicCatalogUrl' => zkst_app_url( 'data/catalog-public.json' ),
+		'brand'            => zkst_public_brand(),
+		'publicCatalogUrl' => zkst_app_url( 'data/catalog-public-' . zkst_public_brand() . '.json' ),
+		'estimateUrl'      => rest_url( 'zipkit/v1/estimate' ),
 		'leadUrl'          => rest_url( 'zipkit/v1/lead' ),
+		'accounts'         => 'supabase',
+		'customerSupabaseUrl' => zkst_customer_target()[0],
+		'customerSupabaseKey' => zkst_customer_target()[1],
 		'publicMount'      => '[data-zk-app="public"]',
 		'legacyGlobals'    => false,
 	);

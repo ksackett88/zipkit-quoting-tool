@@ -261,50 +261,67 @@
     }
   },
   "public": {
-    "note": "Rules for the customer quoter ([zipkit_quote_public]). The build turns this file into data/catalog-public.json, which holds only what customers may see. No prices live here: starting prices come from the products below.",
-    "status": "CONFIRM WITH KELSEY: every rule marked confirm:true is from Kelsey's 2026-10-13 brief and still needs her OK.",
+    "note": "Rules for the customer quoter ([zipkit_quote_public]). The build makes data/catalog-public-<brand>.json from this file: public fields only. Zone adjustments, shipping rates and road factors stay server-side (WordPress plugin). Nothing here changes a rep-tool price.",
+    "status": "Rules marked confirm:true still need Kelsey's OK. needs_price means the number isn't in yet: no price shows where it applies.",
     "availability": {
-      "wood_kits": {
-        "label": "Wood panelized kits",
-        "states": ["UT", "ID", "MT", "WY", "CO", "AZ", "NV", "NM", "CA", "OR", "WA"],
-        "confirm": true,
-        "source": "Kelsey 2026-10-13: western states only, roughly as far east as Colorado, plus NM, CA, OR, WA. Matches the 11 wood-kit states on the region map (Sven, 2026-10-02)."
-      },
-      "steel_kits": {
-        "label": "Steel kits",
-        "states": "all",
-        "diy_only": true,
-        "confirm": true,
-        "source": "Kelsey 2026-10-13: steel kits nationwide, DIY."
-      },
-      "complete_modular": {
-        "label": "Complete modular",
-        "states_from": "product_types.modular.service_states",
-        "confirm": false,
-        "source": "Same list the rep tool uses (UT, ID, MT, WY)."
-      },
-      "assembly": {
-        "label": "Assembly by our crew",
-        "states": ["UT", "ID", "WY", "MT", "CO", "AZ", "NV"],
-        "confirm": true,
-        "source": "Kelsey 2026-10-13: assembly in UT, ID, WY, MT, CO, AZ, NV only. Everything else is DIY."
-      }
+      "wood_kits": { "label": "Wood panelized kits", "states": ["UT", "ID", "MT", "WY", "CO", "AZ", "NV", "NM", "CA", "OR", "WA"], "confirm": false, "source": "Approved by Kelsey 2026-10-13." },
+      "steel_kits": { "label": "Steel kits", "states": "all", "diy_only": true, "confirm": false, "source": "Approved by Kelsey 2026-10-13." },
+      "complete_modular": { "label": "Complete modular", "states_from": "product_types.modular.service_states", "confirm": false, "source": "Same list as the rep tool." },
+      "assembly": { "label": "Assembly by our crew", "states_from": "brands.zipkit.assembly.states", "confirm": false, "source": "Approved by Kelsey 2026-10-13. Garages follow it too." }
     },
     "types": {
-      "shell": { "show": true, "line": "wood_kits", "label": "Panelized home kits", "per": "home", "ask_homes": true, "ask_snow": true, "ask_assembly": true, "design_from": "product_types.shell.design_fee", "confirm": false },
-      "modular": { "show": true, "line": "complete_modular", "label": "Complete modular homes", "per": "home", "ask_homes": true, "ask_snow": true, "ask_assembly": false, "design_from": null, "confirm": true, "confirm_note": "No design fee line: modular design is part of its payment schedule, not a $2,500 fee. Show one anyway?" },
-      "garage": { "show": true, "line": "wood_kits", "label": "Garages", "per": "garage", "ask_homes": false, "ask_snow": false, "ask_assembly": false, "design_from": null, "confirm": true, "confirm_note": "Garages follow the wood-kit map and are DIY. Their design fee is $1,125 ($562 with a home), not $2,500, so no design line is shown." },
-      "hangar": { "show": true, "line": "steel_kits", "label": "Hangars", "per": "hangar", "ask_homes": false, "ask_snow": false, "ask_assembly": false, "design_from": "product_types.hangar.design_fee", "confirm": true, "confirm_note": "Hangars are Zip Kit Steel, so they follow the steel map (nationwide, DIY)." },
-      "steel": { "show": true, "line": "steel_kits", "label": "Steel kits", "per": "project", "lead_only": true, "confirm": true, "confirm_note": "Steel kits are priced per project, so customers send their details instead of seeing a price." },
-      "custom": { "show": false, "confirm": true, "confirm_note": "Custom homes are left out of the public quoter." }
+      "shell": { "show": true, "line": "wood_kits", "label": "Panelized home kits", "per": "home", "ask_homes": true, "ask_snow": true, "ask_assembly": true, "design_line": "Design starts at {amount}.", "design_from": "product_types.shell.design_fee" },
+      "modular": { "show": true, "line": "complete_modular", "label": "Complete modular homes", "per": "home", "ask_homes": true, "ask_snow": true, "ask_assembly": false, "design_line": "Design & engineering included.", "design_from": null },
+      "garage": { "show": true, "line": "wood_kits", "label": "Garages", "per": "garage", "ask_homes": false, "ask_snow": false, "ask_assembly": true, "design_line": "Design starts at {amount}.", "design_from": "product_types.garage.design_fee.standalone" },
+      "hangar": { "show": true, "line": "steel_kits", "label": "Hangars", "per": "hangar", "ask_homes": false, "ask_snow": false, "ask_assembly": false, "design_line": "Design starts at {amount}.", "design_from": "product_types.hangar.design_fee" },
+      "steel": { "show": true, "line": "steel_kits", "label": "Steel kits", "per": "project", "lead_only": true },
+      "custom": { "show": false }
+    },
+    "brands": {
+      "zipkit": {
+        "types": ["shell", "modular", "garage", "hangar", "steel"],
+        "catalog_brands": ["zipkit", "zksteel"],
+        "prices": "catalog",
+        "factory_zip": "84721",
+        "confirm": true,
+        "confirm_note": "Shipping is figured from Cedar City (zip 84721, the office) to the customer's zip."
+      },
+      "mvp": {
+        "pilot": true,
+        "catalog_brands": ["mvp"],
+        "types": ["modular"],
+        "products": ["sierra", "ridgeline", "dakota"],
+        "prices": "needs_price",
+        "availability": { "complete_modular": { "states_from": "brands.mvp.service_states" } },
+        "photo_labels": { "sierra": "Rendering" },
+        "factory_zip": null,
+        "confirm": true,
+        "confirm_note": "MVP pilot: models (the catalog has Sierra, Ridgeline, Dakota), states (UT, ID, MT, WY), ship-from location and every price come from Sven. Until then MVP shows no prices."
+      }
+    },
+    "location": {
+      "note": "Server-side only (WordPress plugin). Price zones adjust a model's starting price per home; shipping is the rep tool's per-mile rate times road miles from the factory zip to the customer's zip.",
+      "zones": [
+        { "id": "core_modular", "label": "Utah, Idaho, Montana, Wyoming", "states": ["UT", "ID", "MT", "WY"], "adjust": { "zipkit": "needs_price", "mvp": "needs_price" } },
+        { "id": "core", "label": "Colorado, Arizona, Nevada", "states": ["CO", "AZ", "NV"], "adjust": { "zipkit": "needs_price", "mvp": "needs_price" } },
+        { "id": "west", "label": "California, Oregon, Washington, New Mexico", "states": ["CA", "OR", "WA", "NM"], "adjust": { "zipkit": "needs_price", "mvp": "needs_price" } },
+        { "id": "rest", "label": "All other states", "states": "rest", "adjust": { "zipkit": "needs_price", "mvp": "needs_price" } }
+      ],
+      "state_overrides": {},
+      "zones_confirm": "Zones copied from the region map (Sven, 2026-10-02). Each adjust is {\"pct\": 5} or {\"flat\": 2500} per home, or needs_price.",
+      "road_factor": "needs_price",
+      "road_factor_note": "Road miles = straight-line miles x this factor. Needs Kelsey's number.",
+      "zip_data": "needs_data",
+      "zip_data_note": "Zip code centers (and states) for the distance math. Waiting on Kelsey's OK to use the US Census ZCTA Gazetteer (public domain).",
+      "city_cost": { "provider": null, "note": "Hook for a city cost index (for example RSMeans). Not built: the plugin filter zkst_city_cost returns nothing." }
     },
     "snow_choices": [
       { "id": "standard", "label": "Normal snow", "help": "Up to 35 pounds per square foot. Included in the price." },
       { "id": "tier1", "label": "Heavy snow", "help": "35 to 100 pounds per square foot. Adds to the price." },
       { "id": "tier2", "label": "Very heavy snow", "help": "Up to 250 pounds per square foot. Adds to the price." }
     ],
-    "max_homes": 10,
-    "lead_email": "sales@zipkithomes.com"
+    "timelines": ["As soon as I can", "In the next 6 months", "6 to 12 months from now", "More than a year out", "Just looking for now"],
+    "max_homes": 10
   },
   "products": [
     {

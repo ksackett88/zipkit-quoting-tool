@@ -62,7 +62,7 @@ The model disappears from the tool, but old quotes that used it still open. **Do
 
 ## The customer quoter (`"public"` section)
 
-"Quote your own project" (`public.html`, or `[zipkit_quote_public]` in WordPress) never reads this file. It reads **`data/catalog-public.json`**, which is made from this file by:
+"Quote your own project" (`public.html`, or `[zipkit_quote_public]` in WordPress) never reads this file. It reads **`data/catalog-public-<brand>.json`** (one per brand in `public.brands`, for example `catalog-public-mvp.json`), which are made from this file by:
 
 ```
 powershell -ExecutionPolicy Bypass -File data\build-public-catalog.ps1
@@ -81,4 +81,6 @@ What you can change in the `"public"` section:
 - **`availability`**: which states get wood kits, steel kits and assembly. Complete modular uses `product_types.modular.service_states`, the same list as the rep tool.
 - **`types`**: which product types customers can pick, and which questions each one asks: homes, snow, assembly. Set `"show": false` to hide a type.
 - **`snow_choices`**: the wording of the snow-load choices. There are no prices here; snow never changes the customer's number.
+- **`brands`**: which product types and models each brand offers, its factory ZIP for shipping, and `"prices": "needs_price"` to show no prices at all (MVP until Sven sends numbers).
+- **`location`**: price zones per brand (`{"pct": 5}` or `{"flat": 2500}` per home, or `needs_price`), the road factor, and the ZIP data. These are used only by the WordPress server, never sent to the page.
 - **`confirm: true`**: marks a rule Kelsey still needs to OK. The build lists them every time it runs. They never go into the public file.

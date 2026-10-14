@@ -27,7 +27,10 @@ function zkst_settings() {
 			'portal_url'   => '',
 			'contract_url' => '',
 			'mvp_url'      => '',
-			'lead_email'   => 'sales@zipkithomes.com',
+			'lead_email'   => '',
+			'public_brand' => 'mvp',
+			'customer_supabase_url' => '',
+			'customer_supabase_key' => '',
 			'save_leads'   => false,
 		)
 	);
@@ -80,7 +83,15 @@ function zkst_sanitize_settings( $in ) {
 	}
 
 	$email             = isset( $in['lead_email'] ) ? sanitize_email( $in['lead_email'] ) : '';
-	$out['lead_email'] = is_email( $email ) ? $email : 'sales@zipkithomes.com';
+	$out['lead_email'] = is_email( $email ) ? $email : '';
+	$out['public_brand'] = ( isset( $in['public_brand'] ) && in_array( $in['public_brand'], array( 'mvp', 'zipkit' ), true ) ) ? $in['public_brand'] : 'mvp';
+	$out['customer_supabase_url'] = isset( $in['customer_supabase_url'] ) ? esc_url_raw( trim( $in['customer_supabase_url'] ), array( 'https' ) ) : '';
+	$ckey = isset( $in['customer_supabase_key'] ) ? sanitize_text_field( trim( $in['customer_supabase_key'] ) ) : '';
+	if ( '' !== $ckey && zkst_is_secret_key( $ckey ) ) {
+		add_settings_error( ZKST_OPTION, 'zkst_secret_c', __( 'That customer key is a Supabase secret (service role) key. It was not saved. Use the publishable (anon) key.', 'zipkit-sales-tools' ) );
+		$ckey = zkst_settings()['customer_supabase_key'];
+	}
+	$out['customer_supabase_key'] = $ckey;
 	$out['save_leads'] = ! empty( $in['save_leads'] );
 	return $out;
 }
@@ -101,14 +112,30 @@ add_action(
 		add_settings_section( 'zkst_supabase', __( 'Sales account (Supabase)', 'zipkit-sales-tools' ), function () {
 			echo '<p>' . esc_html__( 'Saved projects, invoices and payments live in Supabase. Leave these blank to use the built-in project. Only ever paste the publishable (anon) key here, never a secret or service role key.', 'zipkit-sales-tools' ) . '</p>';
 		}, 'zkst' );
-		add_settings_section( 'zkst_leads', __( 'Customer quoter leads', 'zipkit-sales-tools' ), function () {
-			echo '<p>' . esc_html__( 'Leads from [zipkit_quote_public] are emailed to this address. Turn on saving to Supabase only after sql/2026-10_public_leads.sql has been run.', 'zipkit-sales-tools' ) . '</p>';
+		add_settings_section( 'zkst_leads', __( 'Customer quoter ([zipkit_quote_public])', 'zipkit-sales-tools' ), function () {
+			echo '<p>' . esc_html__( 'Customers make their own account (email link, so every email is verified) in a separate Supabase project for customers, never the sales one. Run sql/customer-project/2026-10_customer_accounts.sql there first.', 'zipkit-sales-tools' ) . '</p>';
 		}, 'zkst' );
+		add_settings_field( 'public_brand', __( 'Runs as brand', 'zipkit-sales-tools' ), function () {
+			$v = zkst_settings()['public_brand'];
+			echo '<select name="' . esc_attr( ZKST_OPTION ) . '[public_brand]" id="zkst-public_brand">';
+			foreach ( array( 'mvp' => 'Mountain Valley Prefab (pilot)', 'zipkit' => 'Zip Kit Homes' ) as $k => $label ) {
+				echo '<option value="' . esc_attr( $k ) . '"' . selected( $v, $k, false ) . '>' . esc_html( $label ) . '</option>';
+			}
+			echo '</select>';
+		}, 'zkst', 'zkst_leads', array( 'label_for' => 'zkst-public_brand' ) );
+		foreach ( array( 'customer_supabase_url' => array( __( 'Customer Supabase URL', 'zipkit-sales-tools' ), 'https://xxxx.supabase.co' ), 'customer_supabase_key' => array( __( 'Customer publishable key', 'zipkit-sales-tools' ), 'sb_publishable_…' ) ) as $k => $f ) {
+			add_settings_field( $k, $f[0], function () use ( $k, $f ) {
+				printf( '<input type="text" class="regular-text code" name="%1$s[%2$s]" id="zkst-%2$s" value="%3$s" placeholder="%4$s" autocomplete="off" spellcheck="false">', esc_attr( ZKST_OPTION ), esc_attr( $k ), esc_attr( zkst_settings()[ $k ] ), esc_attr( $f[1] ) );
+				if ( '' === zkst_settings()[ $k ] ) {
+					echo '<p class="description">' . esc_html__( 'Blank: customer accounts are off, and the quoter says it is not open yet.', 'zipkit-sales-tools' ) . '</p>';
+				}
+			}, 'zkst', 'zkst_leads', array( 'label_for' => 'zkst-' . $k ) );
+		}
 		add_settings_field( 'lead_email', __( 'Send leads to', 'zipkit-sales-tools' ), function () {
-			printf( '<input type="email" class="regular-text" name="%1$s[lead_email]" id="zkst-lead_email" value="%2$s">', esc_attr( ZKST_OPTION ), esc_attr( zkst_settings()['lead_email'] ) );
+			printf( '<input type="email" class="regular-text" name="%1$s[lead_email]" id="zkst-lead_email" value="%2$s" placeholder="%3$s">', esc_attr( ZKST_OPTION ), esc_attr( zkst_settings()['lead_email'] ), esc_attr__( 'Blank: the brand\'s sales email', 'zipkit-sales-tools' ) );
 		}, 'zkst', 'zkst_leads', array( 'label_for' => 'zkst-lead_email' ) );
-		add_settings_field( 'save_leads', __( 'Save leads to Supabase', 'zipkit-sales-tools' ), function () {
-			printf( '<label><input type="checkbox" name="%1$s[save_leads]" value="1" %2$s> %3$s</label>', esc_attr( ZKST_OPTION ), checked( zkst_settings()['save_leads'], true, false ), esc_html__( 'Also save each lead to the public_leads table', 'zipkit-sales-tools' ) );
+		add_settings_field( 'save_leads', __( 'Save quotes to Supabase', 'zipkit-sales-tools' ), function () {
+			printf( '<label><input type="checkbox" name="%1$s[save_leads]" value="1" %2$s> %3$s</label>', esc_attr( ZKST_OPTION ), checked( zkst_settings()['save_leads'], true, false ), esc_html__( 'Also save each sent quote to the customer\'s account (customer_quotes)', 'zipkit-sales-tools' ) );
 		}, 'zkst', 'zkst_leads' );
 		add_settings_section( 'zkst_links', __( 'Links', 'zipkit-sales-tools' ), function () {
 			echo '<p>' . esc_html__( 'Where the tool sends reps for the portal, contracts and old MVP quotes. Blank uses the current GitHub Pages copies.', 'zipkit-sales-tools' ) . '</p>';

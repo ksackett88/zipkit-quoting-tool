@@ -28,6 +28,7 @@ require_once ZKST_DIR . 'includes/settings.php';
 require_once ZKST_DIR . 'includes/assets.php';
 require_once ZKST_DIR . 'includes/rest.php';
 require_once ZKST_DIR . 'includes/shortcode-quote.php';
+require_once ZKST_DIR . 'includes/customers.php';
 require_once ZKST_DIR . 'includes/shortcode-public.php';
 require_once ZKST_DIR . 'includes/leads.php';
 

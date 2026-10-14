@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"><title>Shipping cases</title></head>
+<body>
+<p>Makes <code>tests/fixtures/shipping-cases.json</code>: shipping amounts computed by the rep tool's own math (js/pricing.js), which the server-side estimate (tests/estimate-test.php) must match exactly. Copy the text below into that file.</p>
+<pre id="out">Working…</pre>
+<script src="../js/config.js"></script>
+<script src="../js/pricing.js"></script>
+<script>
+(async function(){
+  var cat = await fetch('../data/catalog.json', { cache: 'no-store' }).then(function(r){ return r.json(); });
+  var picks = { shell: ['big-sky', 'alpine', 'kolob'], modular: ['teton', 'yellowstone'], garage: ['garage-1-car', 'garage-3-car'], hangar: ['hangar-64-x-50', 'hangar-80-x-60'] };
+  var cases = [];
+  Object.keys(picks).forEach(function(type){
+    picks[type].forEach(function(id){
+      [1, 250, 600, 601, 1480].forEach(function(miles){
+        (type === 'shell' || type === 'modular' ? [1, 3] : [1]).forEach(function(units){
+          var cfg = { type: type, productId: id, units: units, miles: miles, snow: 'standard', assembly: 'none', addons: [], customLines: [], adjustments: {} };
+          if(type === 'garage') cfg.garageUse = 'standalone';
+          var r = ZK.Pricing.price(cat, cfg);
+          var line = r.lines.filter(function(l){ return l.key === 'shipping' || /^Shipping/.test(l.label); })[0];
+          cases.push({ product_id: id, type: type, miles: miles, units: units, shipping: line && line.kind !== 'note' ? line.amount : null });
+        });
+      });
+    });
+  });
+  var json = JSON.stringify({ made_by: 'tests/make-shipping-cases.html from js/pricing.js', cases: cases }, null, 1);
+  document.getElementById('out').textContent = json;
+  window.ZK_CASES = json;
+})();
+</script>
+</body>
+</html>

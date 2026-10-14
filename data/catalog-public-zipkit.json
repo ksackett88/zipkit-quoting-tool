@@ -2,10 +2,17 @@
     "generated":  "Made by data/build-public-catalog.ps1 from data/catalog.json. Do not edit by hand.",
     "catalog_updated":  "2026-10-13",
     "brand":  {
+                  "key":  "zipkit",
                   "name":  "Zip Kit Homes",
                   "phone":  "(435) 340-1171",
-                  "email":  "sales@zipkithomes.com"
+                  "email":  "sales@zipkithomes.com",
+                  "logo":  "images/zk-logo.png",
+                  "colors":  {
+                                 "main":  "#d85a30",
+                                 "dark":  "#993c1d"
+                             }
               },
+    "needs_price":  false,
     "availability":  {
                          "wood_kits":  [
                                            "UT",
@@ -47,7 +54,7 @@
                       "ask_homes":  true,
                       "ask_snow":  true,
                       "ask_assembly":  true,
-                      "design_from":  2500
+                      "design_line":  "Design starts at $2,500."
                   },
                   {
                       "id":  "modular",
@@ -58,7 +65,7 @@
                       "ask_homes":  true,
                       "ask_snow":  true,
                       "ask_assembly":  false,
-                      "design_from":  null
+                      "design_line":  "Design \u0026 engineering included."
                   },
                   {
                       "id":  "garage",
@@ -68,8 +75,8 @@
                       "lead_only":  false,
                       "ask_homes":  false,
                       "ask_snow":  false,
-                      "ask_assembly":  false,
-                      "design_from":  null
+                      "ask_assembly":  true,
+                      "design_line":  "Design starts at $1,125."
                   },
                   {
                       "id":  "hangar",
@@ -80,7 +87,7 @@
                       "ask_homes":  false,
                       "ask_snow":  false,
                       "ask_assembly":  false,
-                      "design_from":  2500
+                      "design_line":  "Design starts at $2,500."
                   },
                   {
                       "id":  "steel",
@@ -91,7 +98,7 @@
                       "ask_homes":  false,
                       "ask_snow":  false,
                       "ask_assembly":  false,
-                      "design_from":  null
+                      "design_line":  null
                   }
               ],
     "snow_choices":  [
@@ -111,6 +118,13 @@
                              "help":  "Up to 250 pounds per square foot. Adds to the price."
                          }
                      ],
+    "timelines":  [
+                      "As soon as I can",
+                      "In the next 6 months",
+                      "6 to 12 months from now",
+                      "More than a year out",
+                      "Just looking for now"
+                  ],
     "max_homes":  10,
     "products":  [
                      {
@@ -121,6 +135,7 @@
                          "size":  "640 sq ft",
                          "tag":  null,
                          "photo":  "photos/cards/bigsky.jpg",
+                         "photo_label":  null,
                          "start_price":  51875
                      },
                      {
@@ -131,6 +146,7 @@
                          "size":  "800 sq ft",
                          "tag":  null,
                          "photo":  "photos/cards/bridger.jpg",
+                         "photo_label":  null,
                          "start_price":  71288
                      },
                      {
@@ -141,6 +157,7 @@
                          "size":  "1,000 sq ft",
                          "tag":  null,
                          "photo":  "photos/cards/tahoe.jpg",
+                         "photo_label":  null,
                          "start_price":  67145
                      },
                      {
@@ -151,6 +168,7 @@
                          "size":  "977 sq ft",
                          "tag":  null,
                          "photo":  "photos/cards/sequoia.jpg",
+                         "photo_label":  null,
                          "start_price":  87100
                      },
                      {
@@ -161,6 +179,7 @@
                          "size":  "1,044 sq ft",
                          "tag":  null,
                          "photo":  "photos/cards/frontier.jpg",
+                         "photo_label":  null,
                          "start_price":  74225
                      },
                      {
@@ -171,6 +190,7 @@
                          "size":  "1,198 sq ft",
                          "tag":  null,
                          "photo":  "photos/cards/clyde1.jpg",
+                         "photo_label":  null,
                          "start_price":  82260
                      },
                      {
@@ -181,6 +201,7 @@
                          "size":  "1,284 sq ft",
                          "tag":  null,
                          "photo":  "photos/cards/birch1.jpg",
+                         "photo_label":  null,
                          "start_price":  102595
                      },
                      {
@@ -191,6 +212,7 @@
                          "size":  "1,290 to 1,536 sq ft",
                          "tag":  null,
                          "photo":  "photos/cards/willow3.jpg",
+                         "photo_label":  null,
                          "start_price":  72850
                      },
                      {
@@ -201,6 +223,7 @@
                          "size":  "1,403 sq ft",
                          "tag":  null,
                          "photo":  "photos/cards/bozeman1.jpg",
+                         "photo_label":  null,
                          "start_price":  103600
                      },
                      {
@@ -211,6 +234,7 @@
                          "size":  "1,471 sq ft",
                          "tag":  null,
                          "photo":  "photos/cards/sunstone1.jpg",
+                         "photo_label":  null,
                          "start_price":  89550
                      },
                      {
@@ -221,6 +245,7 @@
                          "size":  "1,536 sq ft",
                          "tag":  null,
                          "photo":  "photos/cards/bluebell2.jpg",
+                         "photo_label":  null,
                          "start_price":  134120
                      },
                      {
@@ -231,6 +256,7 @@
                          "size":  "1,590 sq ft",
                          "tag":  null,
                          "photo":  "photos/cards/shasta.jpg",
+                         "photo_label":  null,
                          "start_price":  96225
                      },
                      {
@@ -241,6 +267,7 @@
                          "size":  "1,793 sq ft",
                          "tag":  null,
                          "photo":  "photos/cards/summit.jpg",
+                         "photo_label":  null,
                          "start_price":  102900
                      },
                      {
@@ -251,6 +278,7 @@
                          "size":  "1,800 sq ft",
                          "tag":  null,
                          "photo":  "photos/cards/jasper.jpg",
+                         "photo_label":  null,
                          "start_price":  124765
                      },
                      {
@@ -261,6 +289,7 @@
                          "size":  "1,823 sq ft",
                          "tag":  null,
                          "photo":  "photos/cards/mesa.jpg",
+                         "photo_label":  null,
                          "start_price":  127435
                      },
                      {
@@ -271,6 +300,7 @@
                          "size":  "1,864 sq ft",
                          "tag":  null,
                          "photo":  "photos/cards/koda.jpg",
+                         "photo_label":  null,
                          "start_price":  131475
                      },
                      {
@@ -281,6 +311,7 @@
                          "size":  "1,959 sq ft",
                          "tag":  null,
                          "photo":  "photos/cards/hayden.jpg",
+                         "photo_label":  null,
                          "start_price":  127435
                      },
                      {
@@ -291,6 +322,7 @@
                          "size":  "1,989 sq ft",
                          "tag":  null,
                          "photo":  "photos/cards/cedar1.jpg",
+                         "photo_label":  null,
                          "start_price":  152157
                      },
                      {
@@ -301,6 +333,7 @@
                          "size":  "2,125 sq ft",
                          "tag":  null,
                          "photo":  "photos/cards/timberline1.jpg",
+                         "photo_label":  null,
                          "start_price":  134120
                      },
                      {
@@ -311,6 +344,7 @@
                          "size":  "2,170 sq ft",
                          "tag":  "Barndominium",
                          "photo":  "photos/cards/apache4.jpg",
+                         "photo_label":  null,
                          "start_price":  108475
                      },
                      {
@@ -321,6 +355,7 @@
                          "size":  "2,120 sq ft",
                          "tag":  "Barndominium",
                          "photo":  "photos/cards/juniper.jpg",
+                         "photo_label":  null,
                          "start_price":  235850
                      },
                      {
@@ -331,6 +366,7 @@
                          "size":  "2,226 sq ft",
                          "tag":  null,
                          "photo":  "photos/cards/zion.jpg",
+                         "photo_label":  null,
                          "start_price":  115225
                      },
                      {
@@ -341,6 +377,7 @@
                          "size":  "2,276 sq ft",
                          "tag":  null,
                          "photo":  "photos/cards/columbia.jpg",
+                         "photo_label":  null,
                          "start_price":  163540
                      },
                      {
@@ -351,6 +388,7 @@
                          "size":  "2,372 sq ft",
                          "tag":  null,
                          "photo":  "photos/cards/alpine.jpg",
+                         "photo_label":  null,
                          "start_price":  199380
                      },
                      {
@@ -361,6 +399,7 @@
                          "size":  "2,562 sq ft",
                          "tag":  null,
                          "photo":  "photos/cards/moab1.jpg",
+                         "photo_label":  null,
                          "start_price":  166280
                      },
                      {
@@ -371,6 +410,7 @@
                          "size":  "2,617 sq ft",
                          "tag":  null,
                          "photo":  "photos/cards/meadow.1.jpg",
+                         "photo_label":  null,
                          "start_price":  185580
                      },
                      {
@@ -381,6 +421,7 @@
                          "size":  "2,955 sq ft",
                          "tag":  null,
                          "photo":  "photos/cards/solitude.jpg",
+                         "photo_label":  null,
                          "start_price":  179550
                      },
                      {
@@ -391,6 +432,7 @@
                          "size":  "3,516 sq ft",
                          "tag":  null,
                          "photo":  "photos/cards/olympic.jpg",
+                         "photo_label":  null,
                          "start_price":  209850
                      },
                      {
@@ -401,6 +443,7 @@
                          "size":  "340 sq ft",
                          "tag":  null,
                          "photo":  "photos/cards/teton.jpg",
+                         "photo_label":  null,
                          "start_price":  119600
                      },
                      {
@@ -411,6 +454,7 @@
                          "size":  "470 sq ft",
                          "tag":  null,
                          "photo":  "photos/cards/xl470.jpg",
+                         "photo_label":  null,
                          "start_price":  126500
                      },
                      {
@@ -421,6 +465,7 @@
                          "size":  "550 sq ft",
                          "tag":  null,
                          "photo":  "photos/cards/yellowstone.jpg",
+                         "photo_label":  null,
                          "start_price":  176900
                      },
                      {
@@ -431,6 +476,7 @@
                          "size":  "497 sq ft",
                          "tag":  null,
                          "photo":  "photos/cards/gallatin.jpg",
+                         "photo_label":  null,
                          "start_price":  123790
                      },
                      {
@@ -441,6 +487,7 @@
                          "size":  "620 sq ft",
                          "tag":  null,
                          "photo":  "photos/cards/gallatin-ii.jpg",
+                         "photo_label":  null,
                          "start_price":  153740
                      },
                      {
@@ -451,6 +498,7 @@
                          "size":  "20\u0027-11\" × 26\u0027-0\"",
                          "tag":  null,
                          "photo":  "photos/cards/1car-garage.jpg",
+                         "photo_label":  null,
                          "start_price":  14520
                      },
                      {
@@ -461,6 +509,7 @@
                          "size":  "30\u0027-0\" × 25\u0027-1\"",
                          "tag":  null,
                          "photo":  "photos/cards/2car-garage.jpg",
+                         "photo_label":  null,
                          "start_price":  19640
                      },
                      {
@@ -471,6 +520,7 @@
                          "size":  "45\u0027-5½\" × 25\u0027-0\"",
                          "tag":  null,
                          "photo":  "photos/cards/3car-garage.jpg",
+                         "photo_label":  null,
                          "start_price":  23720
                      },
                      {
@@ -481,6 +531,7 @@
                          "size":  "52\u0027-4\" × 26\u0027-4\"",
                          "tag":  null,
                          "photo":  "photos/cards/4car-garage.jpg",
+                         "photo_label":  null,
                          "start_price":  27440
                      },
                      {
@@ -491,6 +542,7 @@
                          "size":  "64\u0027×50\u0027 (3,200 sqft footprint)",
                          "tag":  null,
                          "photo":  "photos/cards/6450hangar.jpg",
+                         "photo_label":  null,
                          "start_price":  158700
                      },
                      {
@@ -501,6 +553,7 @@
                          "size":  "80\u0027×60\u0027 (4,800 sqft footprint)",
                          "tag":  null,
                          "photo":  "photos/cards/8060hangar.jpg",
+                         "photo_label":  null,
                          "start_price":  179400
                      }
                  ]

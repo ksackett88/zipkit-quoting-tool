@@ -4,21 +4,25 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="robots" content="noindex, nofollow">
-<title>Quote your own project · Zip Kit Homes</title>
+<title>Quote your own project</title>
 <link rel="stylesheet" href="css/tool.css?v=8">
-<link rel="stylesheet" href="css/public.css?v=1">
+<link rel="stylesheet" href="css/public.css?v=2">
 </head>
 <body class="zk-standalone">
 <!-- Test page for the customer quoter. In WordPress it is the
      [zipkit_quote_public] shortcode. NOT LIVE: Kelsey approves first.
-     Leads only go somewhere when ZK_CONFIG.leadUrl is set; on a local test
-     server they go to a local file, everywhere else the form says it isn't
-     connected yet. -->
+     ?brand=mvp or ?brand=zipkit picks the brand (default mvp, the pilot).
+     On a local test server, accounts use a test stub; estimates and leads
+     need the WordPress plugin, so here they say they aren't connected. -->
 <div class="zk-tool zk-public" data-zk-app="public"></div>
 <script>
-  window.ZK_CONFIG = { leadUrl: /^(localhost|127\.0\.0\.1)$/.test(location.hostname) ? '/save/public-lead.json' : '' };
+  (function(){
+    var brand = (new URLSearchParams(location.search).get('brand') || 'mvp').replace(/[^a-z0-9_-]/g, '');
+    var local = /^(localhost|127\.0\.0\.1)$/.test(location.hostname);
+    window.ZK_CONFIG = { brand: brand, publicCatalogUrl: 'data/catalog-public-' + brand + '.json', accounts: local ? 'stub' : '', estimateUrl: '', leadUrl: '' };
+  })();
 </script>
-<script src="js/config.js?v=8"></script>
-<script src="js/public.js?v=1"></script>
+<script src="js/config.js?v=9"></script>
+<script src="js/public.js?v=2"></script>
 </body>
 </html>
