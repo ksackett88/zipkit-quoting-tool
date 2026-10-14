@@ -5,7 +5,7 @@ The Zip Kit quote tool for sales reps, as a WordPress shortcode. It is the same 
 | Shortcode | Who sees it | Status |
 |---|---|---|
 | `[zipkit_quote]` | Signed-in reps (role **Zip Kit Sales Rep**, or administrators) | Ready |
-| `[zipkit_quote_public]` | Customers ("Quote your own project") | Not in this build. Waiting for Kelsey's approval. |
+| `[zipkit_quote_public]` | Customers ("Quote your own project") | Built and tested locally. **Not live anywhere until Kelsey approves.** See section 8. |
 
 Tested on WordPress 7.1.2 and PHP 8.3, with the Kadence theme. It needs WordPress 6.0+ and PHP 7.4+.
 
@@ -122,3 +122,28 @@ zipkit-sales-tools/
   - the price list served by WordPress is byte-identical to the repo's;
   - quotes for four product types total the same in WordPress as on GitHub Pages;
   - the settings page refuses a secret key and drops a `javascript:` link.
+
+## 8. Customer quoter: `[zipkit_quote_public]` (not live until Kelsey approves)
+
+"Quote your own project". The customer:
+1. picks their state;
+2. sees only what we sell there;
+3. picks a model and answers 2 or 3 questions (homes, snow, assembly where offered);
+4. sees a **"Starting at"** estimate;
+5. gives name, email, phone and timeline to see the full breakdown and a PDF.
+
+No payments of any kind.
+
+- **Data.**
+  - It loads only `app/data/catalog-public.json`: names, sizes, photos, starting prices and availability. It never touches the full price list.
+  - The build regenerates that file from `data/catalog.json` every time (`data/build-public-catalog.ps1`).
+- **Leads: `POST /wp-json/zipkit/v1/lead`.**
+  - **Spam.** A hidden spam-trap field and a 3-second minimum to fill in the form both get a quiet "ok" with nothing sent.
+  - **Limits.** 5 leads an hour per visitor IP and 60 an hour site-wide. If the site sits behind a proxy or CDN that hides visitor IPs, the per-IP limit acts like a site-wide one.
+  - **Checks.** Every field is checked, and the model and estimate are recomputed on the server from the public catalog.
+  - **Email.** The lead is emailed to **Send leads to** (default `sales@zipkithomes.com`) with Reply-To set to the customer.
+  - **Supabase.** With **Save leads to Supabase** on, the lead is also saved to Supabase through `submit_public_lead()`. Run `sql/2026-10_public_leads.sql` first; it needs `admin_migration.sql` step 1. That function is the only way in with the publishable key. It caps leads at 60 an hour, and only admins can read the table.
+  - Nothing is stored in WordPress.
+- **Email delivery.** It uses `wp_mail`. Use the site's normal SMTP plugin so lead emails don't land in spam.
+- **Page.** Use a full-width template. The quoter is built phone-first, and a boxed theme layout wastes width on phones.
+- **Later.** Leads may go straight into Pipedrive. Hook into `zkst_lead_submit()` after the email.

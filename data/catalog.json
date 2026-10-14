@@ -260,6 +260,52 @@
       "editable_schedule": "custom_home_default"
     }
   },
+  "public": {
+    "note": "Rules for the customer quoter ([zipkit_quote_public]). The build turns this file into data/catalog-public.json, which holds only what customers may see. No prices live here: starting prices come from the products below.",
+    "status": "CONFIRM WITH KELSEY: every rule marked confirm:true is from Kelsey's 2026-10-13 brief and still needs her OK.",
+    "availability": {
+      "wood_kits": {
+        "label": "Wood panelized kits",
+        "states": ["UT", "ID", "MT", "WY", "CO", "AZ", "NV", "NM", "CA", "OR", "WA"],
+        "confirm": true,
+        "source": "Kelsey 2026-10-13: western states only, roughly as far east as Colorado, plus NM, CA, OR, WA. Matches the 11 wood-kit states on the region map (Sven, 2026-10-02)."
+      },
+      "steel_kits": {
+        "label": "Steel kits",
+        "states": "all",
+        "diy_only": true,
+        "confirm": true,
+        "source": "Kelsey 2026-10-13: steel kits nationwide, DIY."
+      },
+      "complete_modular": {
+        "label": "Complete modular",
+        "states_from": "product_types.modular.service_states",
+        "confirm": false,
+        "source": "Same list the rep tool uses (UT, ID, MT, WY)."
+      },
+      "assembly": {
+        "label": "Assembly by our crew",
+        "states": ["UT", "ID", "WY", "MT", "CO", "AZ", "NV"],
+        "confirm": true,
+        "source": "Kelsey 2026-10-13: assembly in UT, ID, WY, MT, CO, AZ, NV only. Everything else is DIY."
+      }
+    },
+    "types": {
+      "shell": { "show": true, "line": "wood_kits", "label": "Panelized home kits", "per": "home", "ask_homes": true, "ask_snow": true, "ask_assembly": true, "design_from": "product_types.shell.design_fee", "confirm": false },
+      "modular": { "show": true, "line": "complete_modular", "label": "Complete modular homes", "per": "home", "ask_homes": true, "ask_snow": true, "ask_assembly": false, "design_from": null, "confirm": true, "confirm_note": "No design fee line: modular design is part of its payment schedule, not a $2,500 fee. Show one anyway?" },
+      "garage": { "show": true, "line": "wood_kits", "label": "Garages", "per": "garage", "ask_homes": false, "ask_snow": false, "ask_assembly": false, "design_from": null, "confirm": true, "confirm_note": "Garages follow the wood-kit map and are DIY. Their design fee is $1,125 ($562 with a home), not $2,500, so no design line is shown." },
+      "hangar": { "show": true, "line": "steel_kits", "label": "Hangars", "per": "hangar", "ask_homes": false, "ask_snow": false, "ask_assembly": false, "design_from": "product_types.hangar.design_fee", "confirm": true, "confirm_note": "Hangars are Zip Kit Steel, so they follow the steel map (nationwide, DIY)." },
+      "steel": { "show": true, "line": "steel_kits", "label": "Steel kits", "per": "project", "lead_only": true, "confirm": true, "confirm_note": "Steel kits are priced per project, so customers send their details instead of seeing a price." },
+      "custom": { "show": false, "confirm": true, "confirm_note": "Custom homes are left out of the public quoter." }
+    },
+    "snow_choices": [
+      { "id": "standard", "label": "Normal snow", "help": "Up to 35 pounds per square foot. Included in the price." },
+      { "id": "tier1", "label": "Heavy snow", "help": "35 to 100 pounds per square foot. Adds to the price." },
+      { "id": "tier2", "label": "Very heavy snow", "help": "Up to 250 pounds per square foot. Adds to the price." }
+    ],
+    "max_homes": 10,
+    "lead_email": "sales@zipkithomes.com"
+  },
   "products": [
     {
       "id": "big-sky",

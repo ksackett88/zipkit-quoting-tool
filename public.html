@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Quote your own project · Zip Kit Homes</title>
+<link rel="stylesheet" href="css/tool.css?v=8">
+<link rel="stylesheet" href="css/public.css?v=1">
+</head>
+<body class="zk-standalone">
+<!-- Test page for the customer quoter. In WordPress it is the
+     [zipkit_quote_public] shortcode. NOT LIVE: Kelsey approves first.
+     Leads only go somewhere when ZK_CONFIG.leadUrl is set; on a local test
+     server they go to a local file, everywhere else the form says it isn't
+     connected yet. -->
+<div class="zk-tool zk-public" data-zk-app="public"></div>
+<script>
+  window.ZK_CONFIG = { leadUrl: /^(localhost|127\.0\.0\.1)$/.test(location.hostname) ? '/save/public-lead.json' : '' };
+</script>
+<script src="js/config.js?v=8"></script>
+<script src="js/public.js?v=1"></script>
+</body>
+</html>

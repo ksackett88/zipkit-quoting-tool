@@ -27,6 +27,8 @@ function zkst_settings() {
 			'portal_url'   => '',
 			'contract_url' => '',
 			'mvp_url'      => '',
+			'lead_email'   => 'sales@zipkithomes.com',
+			'save_leads'   => false,
 		)
 	);
 }
@@ -76,6 +78,10 @@ function zkst_sanitize_settings( $in ) {
 	foreach ( array( 'portal_url', 'contract_url', 'mvp_url' ) as $k ) {
 		$out[ $k ] = isset( $in[ $k ] ) ? esc_url_raw( trim( $in[ $k ] ), array( 'https', 'http' ) ) : '';
 	}
+
+	$email             = isset( $in['lead_email'] ) ? sanitize_email( $in['lead_email'] ) : '';
+	$out['lead_email'] = is_email( $email ) ? $email : 'sales@zipkithomes.com';
+	$out['save_leads'] = ! empty( $in['save_leads'] );
 	return $out;
 }
 
@@ -95,6 +101,15 @@ add_action(
 		add_settings_section( 'zkst_supabase', __( 'Sales account (Supabase)', 'zipkit-sales-tools' ), function () {
 			echo '<p>' . esc_html__( 'Saved projects, invoices and payments live in Supabase. Leave these blank to use the built-in project. Only ever paste the publishable (anon) key here, never a secret or service role key.', 'zipkit-sales-tools' ) . '</p>';
 		}, 'zkst' );
+		add_settings_section( 'zkst_leads', __( 'Customer quoter leads', 'zipkit-sales-tools' ), function () {
+			echo '<p>' . esc_html__( 'Leads from [zipkit_quote_public] are emailed to this address. Turn on saving to Supabase only after sql/2026-10_public_leads.sql has been run.', 'zipkit-sales-tools' ) . '</p>';
+		}, 'zkst' );
+		add_settings_field( 'lead_email', __( 'Send leads to', 'zipkit-sales-tools' ), function () {
+			printf( '<input type="email" class="regular-text" name="%1$s[lead_email]" id="zkst-lead_email" value="%2$s">', esc_attr( ZKST_OPTION ), esc_attr( zkst_settings()['lead_email'] ) );
+		}, 'zkst', 'zkst_leads', array( 'label_for' => 'zkst-lead_email' ) );
+		add_settings_field( 'save_leads', __( 'Save leads to Supabase', 'zipkit-sales-tools' ), function () {
+			printf( '<label><input type="checkbox" name="%1$s[save_leads]" value="1" %2$s> %3$s</label>', esc_attr( ZKST_OPTION ), checked( zkst_settings()['save_leads'], true, false ), esc_html__( 'Also save each lead to the public_leads table', 'zipkit-sales-tools' ) );
+		}, 'zkst', 'zkst_leads' );
 		add_settings_section( 'zkst_links', __( 'Links', 'zipkit-sales-tools' ), function () {
 			echo '<p>' . esc_html__( 'Where the tool sends reps for the portal, contracts and old MVP quotes. Blank uses the current GitHub Pages copies.', 'zipkit-sales-tools' ) . '</p>';
 		}, 'zkst' );

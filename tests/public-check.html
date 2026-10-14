@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Public quoter check</title>
+<style>
+  body { margin:0; padding:24px 16px; font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; color:#17150f; background:#faf8f0; }
+  #status { padding:14px 16px; border-radius:10px; font-weight:600; font-size:16px; background:#fff; border:1px solid #e6e2d6; }
+  #status.ok { background:#dceee6; color:#0e6b53; } #status.bad { background:#f7e1dc; color:#a33526; }
+  li.bad { color:#a33526; } pre { white-space:pre-wrap; font-size:12px; }
+  iframe { position:fixed; left:-5000px; top:0; width:390px; height:900px; border:0; }
+</style>
+</head>
+<body>
+<h1>Public quoter check</h1>
+<p>Checks data/catalog-public.json against data/catalog.json, and walks public.html as a customer.</p>
+<div id="status">Running…</div>
+<ul id="list"></ul>
+<script src="../js/config.js"></script>
+<script src="../js/catalog.js"></script>
+<script>
+(async function(){
+  'use strict';
+  var results = [];
+  function rec(name, pass, detail){ results.push({ name: name, pass: !!pass, detail: pass ? undefined : detail }); }
+  function get(u){ return fetch(u, { cache: 'no-store' }).then(function(r){ return r.json(); }); }
+  function same(a, b){ return JSON.stringify(a) === JSON.stringify(b); }
+  function sleep(ms){ return new Promise(function(r){ setTimeout(r, ms); }); }
+  var full = await get('../data/catalog.json'), pub = await get('../data/catalog-public.json');
+  var Cat = new ZK.Catalog(full);
+
+  // 1. Rebuild the public file from catalog.json by the same rules (drift check).
+  function ref(path){ return path ? path.split('.').reduce(function(o, k){ return o == null ? o : o[k]; }, full) : null; }
+  var P = full.public, avail = {};
+  ['wood_kits', 'steel_kits', 'complete_modular', 'assembly'].forEach(function(l){
+    var a = P.availability[l]; avail[l] = a.states_from ? ref(a.states_from) : a.states;
+  });
+  var types = ['shell', 'modular', 'garage', 'hangar', 'steel', 'custom'].filter(function(id){ return P.types[id] && P.types[id].show; }).map(function(id){
+    var t = P.types[id], d = ref(t.design_from);
+    return { id: id, label: t.label, line: t.line, per: t.per, lead_only: !!t.lead_only, ask_homes: !!t.ask_homes, ask_snow: !!t.ask_snow, ask_assembly: !!t.ask_assembly, design_from: typeof d === 'number' ? d : null };
+  });
+  var priced = types.filter(function(t){ return !t.lead_only; }).map(function(t){ return t.id; });
+  var products = full.products.filter(function(p){ return priced.indexOf(p.type) !== -1 && p.status === 'active' && p.brands.some(function(b){ return full.brands[b] && full.brands[b].active; }); }).map(function(p){
+    return { id: p.id, type: p.type, name: p.name, sqft: p.sqft || null, size: (p.sqft_label ? p.sqft_label + ' sq ft' : p.dimensions || '').replace(/\s*[–—]\s*/g, ' to '), tag: p.barndominium ? 'Barndominium' : null,
+      photo: p.photo ? 'photos/cards/' + p.photo.replace(/^.*\//, '').replace(/\.[^.]+$/, '') + '.jpg' : null, start_price: Cat.startingPrice(p) };
+  });
+  var expect = { catalog_updated: full.updated, brand: { name: full.brands.zipkit.name, phone: full.brands.zipkit.phone.replace(/·/g, '-'), email: full.brands.zipkit.email },
+    availability: avail, types: types, snow_choices: P.snow_choices.map(function(s){ return { id: s.id, label: s.label, help: s.help }; }), max_homes: P.max_homes, products: products };
+  var got = Object.assign({}, pub); delete got.generated;
+  rec('catalog-public.json is up to date with catalog.json (rebuild with data/build-public-catalog.ps1 if not)', same(got, expect),
+    Object.keys(expect).filter(function(k){ return !same(got[k], expect[k]); }));
+
+  // 2. Only public fields.
+  var TOP = ['generated', 'catalog_updated', 'brand', 'availability', 'types', 'snow_choices', 'max_homes', 'products'];
+  var PKEYS = ['id', 'type', 'name', 'sqft', 'size', 'tag', 'photo', 'start_price'];
+  var extraTop = Object.keys(pub).filter(function(k){ return TOP.indexOf(k) === -1; });
+  var extraP = []; pub.products.forEach(function(p){ Object.keys(p).forEach(function(k){ if(PKEYS.indexOf(k) === -1) extraP.push(p.id + '.' + k); }); });
+  var bad = JSON.stringify(pub).match(/"(pricing|rate|rates|override\w*|discount\w*|note|notes|confirm\w*|source|engineering|windows?|window_\w+|ship\w*|legacy_index|brands|status|addons|max_discount_pct|schedule\w*|payment\w*|assembly_shell_fraction|legal_name|colors)":/g);
+  rec('The public file has only public fields (no rates, overrides, discounts, notes, confirm list)', !extraTop.length && !extraP.length && !bad, { extraTop: extraTop, extraP: extraP, bad: bad });
+
+  // 3. No internal number leaks (snow, window, engineering, shipping, assembly amounts).
+  var internal = {};
+  full.products.forEach(function(p){ var z = p.pricing[p.brands[0]] || {};
+    [z.engineering, z.ship_per_mile].concat(z.snow ? [z.snow.tier1, z.snow.tier2] : [], z.windows ? Object.keys(z.windows).map(function(k){ return z.windows[k]; }) : [],
+      (z.window_upgrades || []).map(function(w){ return w.price; })).forEach(function(n){ if(typeof n === 'number' && n > 100) internal[n] = p.id; }); });
+  var allowed = {}; pub.products.forEach(function(p){ allowed[p.start_price] = 1; if(p.sqft) allowed[p.sqft] = 1; }); pub.types.forEach(function(t){ if(t.design_from) allowed[t.design_from] = 1; });
+  var nums = (JSON.stringify(pub).match(/\d{3,}/g) || []).map(Number).filter(function(n){ return internal[n] && !allowed[n]; });
+  rec('No internal amounts (snow, windows, engineering, shipping) appear in the public file', !nums.length, nums);
+  rec('Every starting price matches the rep tool\'s card price', pub.products.every(function(p){ return p.start_price === Cat.startingPrice(Cat.product(p.id)); }), 'mismatch');
+
+  // 4. Walk public.html as a customer.
+  var f = document.createElement('iframe'); document.body.appendChild(f);
+  var W, sent = [];
+  async function open(){
+    await new Promise(function(r){ f.onload = r; f.src = '../public.html?t=' + Date.now(); });
+    W = f.contentWindow;
+    try { W.localStorage.removeItem('zkPublicSends'); W.localStorage.removeItem('zkPublicState'); } catch(e){}
+    for(var i = 0; i < 50 && !(W.ZK && W.ZK.Public && W.ZK.Public.catalog()); i++) await sleep(100);
+    // Capture lead posts instead of sending them.
+    sent = []; W.fetch = function(u, o){ sent.push({ url: u, body: JSON.parse(o.body) }); return Promise.resolve(new W.Response('{}', { status: 200 })); };
+  }
+  function q(s){ return W.document.querySelector(s); }
+  function qa(s){ return Array.prototype.slice.call(W.document.querySelectorAll(s)); }
+  function setVal(el, v){ el.value = v; el.dispatchEvent(new W.Event('input', { bubbles: true })); el.dispatchEvent(new W.Event('change', { bubbles: true })); }
+  function pickState(st){ setVal(q('#zp-state'), st); q('[data-go="pick"]').click(); }
+  function tabs(){ return qa('.zp-tab').map(function(t){ return t.getAttribute('data-type'); }); }
+  var texts = [];
+  function grab(){ texts.push(W.document.querySelector('[data-zk-app]').innerText); }
+
+  await open(); grab();
+  var res = W.performance.getEntriesByType('resource').map(function(e){ return e.name; });
+  rec('The public page never loads the full price list (catalog.json)', !res.some(function(n){ return /\/catalog\.json(\?|$)/.test(n); }) && res.some(function(n){ return /catalog-public\.json/.test(n); }), res);
+
+  q('[data-go="pick"]').click();
+  rec('No state picked: asks for one', /Pick the state/.test(q('.zp-err').textContent), q('.zp-err').textContent);
+
+  pickState('UT'); grab();
+  rec('Utah sees panelized kits, modular, garages, hangars, steel', same(tabs(), ['shell', 'modular', 'garage', 'hangar', 'steel']), tabs());
+  pickState && q('[data-go="where"]').click(); pickState('CO');
+  rec('Colorado sees no complete modular', same(tabs(), ['shell', 'garage', 'hangar', 'steel']), tabs());
+  q('[data-go="where"]').click(); pickState('TX'); grab();
+  rec('Texas sees only steel (hangars, steel kits)', same(tabs(), ['hangar', 'steel']), tabs());
+  q('[data-go="where"]').click(); pickState('NM');
+  rec('New Mexico sees wood kits and steel, no modular', same(tabs(), ['shell', 'garage', 'hangar', 'steel']), tabs());
+
+  // Utah, Alpine: three questions, estimate = starting price x homes.
+  q('[data-go="where"]').click(); pickState('UT');
+  q('[data-type="shell"]').click(); q('[data-product="alpine"]').click(); grab();
+  var alp = pub.products.filter(function(p){ return p.id === 'alpine'; })[0];
+  rec('Utah panelized kit asks homes, snow and assembly', !!q('#zp-homes') && qa('input[data-zp="snow"]').length === 3 && qa('input[data-zp="assembly"]').length === 2, 'questions');
+  q('[data-homes="1"]').click();
+  var est = q('.zp-est-v').textContent;
+  rec('Estimate is "Starting at" the starting price × homes', est === 'Starting at $' + (alp.start_price * 2).toLocaleString('en-US'), est);
+  var heavy = qa('input[data-zp="snow"]')[1]; heavy.checked = true; heavy.dispatchEvent(new W.Event('change', { bubbles: true }));
+  var lines = q('.zp-est-l').textContent;
+  rec('Estimate lists design from $2,500, snow note, assembly note, shipping and "final pricing is set after design"',
+    /Design starts at \$2,500/.test(lines) && /snow load adds/.test(lines) && /Assembly by our crew is quoted separately/.test(lines) && /Shipping is quoted/.test(lines) && /Final pricing is set after design/.test(lines), lines);
+  rec('Snow choice never changes the number (no snow prices in public)', q('.zp-est-v').textContent === est, q('.zp-est-v').textContent);
+
+  // Contact step: honeypot, too fast, then a real send.
+  q('[data-go="contact"]').click(); grab();
+  function fill(){ setVal(q('#zp-name'), 'Pat Buyer'); setVal(q('#zp-email'), 'pat@example.test'); setVal(q('#zp-phone'), '435-555-0100'); setVal(q('#zp-timeline'), 'In the next 6 months'); }
+  q('#zp-send').click();
+  rec('Empty contact form shows plain errors', qa('.zp-field.invalid').length === 4, qa('.zp-err').map(function(e){ return e.textContent; }));
+  fill(); W.ZK.Public.state().shownAt = Date.now() - 10000;
+  q('#zp-website').value = 'http://spam.example';
+  q('#zp-send').click();
+  rec('Spam trap filled: nothing is sent', sent.length === 0 && W.ZK.Public.state().step === 'done', sent);
+  q('[data-restart]').click(); q('[data-product="alpine"]').click(); q('[data-go="contact"]').click(); fill();
+  W.ZK.Public.state().shownAt = Date.now(); q('#zp-send').click();
+  rec('Sent within 3 seconds of opening the form: nothing is sent', sent.length === 0, sent);
+  q('[data-restart]').click(); q('[data-product="alpine"]').click(); q('[data-go="contact"]').click(); fill();
+  W.ZK.Public.state().shownAt = Date.now() - 10000; q('#zp-send').click(); await sleep(50); grab();
+  var b = sent[0] && sent[0].body;
+  rec('A real lead posts once to the lead URL with the project details', sent.length === 1 && sent[0].url === W.ZK.config.leadUrl && b.name === 'Pat Buyer' && b.state === 'UT' && b.product_id === 'alpine' && b.homes === 1 && b.estimate_start === alp.start_price && b.timeline === 'In the next 6 months' && b.website === '', sent);
+  rec('After sending: breakdown with "Starting at" and the fine print', /Here's your breakdown/.test(W.document.body.innerText) && /Starting at/.test(q('.zp-total').textContent) && /local building department/.test(W.document.body.innerText), q('.zp-main').innerText.slice(0, 300));
+  for(var k = 0; k < 3; k++){ q('[data-restart]').click(); q('[data-product="alpine"]').click(); q('[data-go="contact"]').click(); fill(); W.ZK.Public.state().shownAt = Date.now() - 10000; q('#zp-send').click(); await sleep(20); }
+  rec('More than 3 sends an hour from one browser are refused', sent.length === 3 && /call/.test(q('#zp-form-err').textContent), { sent: sent.length, err: (q('#zp-form-err') || {}).textContent });
+
+  // Texas: hangar (DIY, no questions) and steel kits (lead only, no price).
+  await open(); pickState('TX'); q('[data-product="hangar-80-x-60"]').click(); grab();
+  rec('Texas hangar: no assembly question (DIY only)', !q('input[data-zp="assembly"]') && !q('#zp-homes'), 'questions shown');
+  q('[data-go="pick"]').click(); q('[data-type="steel"]').click(); grab();
+  rec('Steel kits show no price, only "tell us about your project"', !/\$\d/.test(q('.zp-main').innerText) && !!q('.zp-steel [data-go="contact"]'), q('.zp-main').innerText);
+  q('.zp-steel [data-go="contact"]').click(); grab(); fill(); W.ZK.Public.state().shownAt = Date.now() - 10000; q('#zp-send').click(); await sleep(50); grab();
+  rec('Steel lead sends with no price', sent.length === 1 && sent[0].body.product_type === 'steel' && sent[0].body.estimate_start === null, sent);
+
+  // Colorado modular can't be reached; Utah modular has no assembly question.
+  await open(); pickState('UT'); q('[data-type="modular"]').click(); q('.zp-model').click(); grab();
+  rec('Modular: homes and snow, no assembly question', !!q('#zp-homes') && !q('input[data-zp="assembly"]'), 'questions');
+
+  // 5. Copy rules across every screen we saw.
+  var all = texts.join('\n');
+  rec('No em or en dashes anywhere in the copy', !/[—–]/.test(all), (all.match(/.{0,30}[—–].{0,30}/g) || []).slice(0, 5));
+  rec('No window or door package, no payments, deposits or Stripe', !/\b(window|windows|door|doors|deposit|stripe|pay now|payment)\b/i.test(all), (all.match(/.{0,30}\b(window|door|deposit|stripe|payment)s?\b.{0,30}/gi) || []).slice(0, 5));
+  rec('No permit or zoning promises; only the "ask your local building department" line', !/(permit|zoning|allowed)/i.test(all.replace(/Permits, zoning and what you can build on your land: your local building department can tell you\./g, '')), (all.match(/.{0,40}(permit|zoning|allowed).{0,40}/gi) || []));
+
+  var ok = results.every(function(r){ return r.pass; });
+  var s = document.getElementById('status'); s.className = ok ? 'ok' : 'bad';
+  s.textContent = (ok ? 'PASS ' : 'FAIL ') + results.filter(function(r){ return r.pass; }).length + '/' + results.length;
+  document.title = s.textContent;
+  document.getElementById('list').innerHTML = results.map(function(r){ return '<li class="' + (r.pass ? '' : 'bad') + '">' + (r.pass ? '✓ ' : '✗ ') + r.name + (r.pass ? '' : '<pre>' + JSON.stringify(r.detail, null, 1).replace(/</g, '&lt;') + '</pre>') + '</li>'; }).join('');
+  window.ZK_PUBLIC_RESULT = { pass: ok, results: results };
+})().catch(function(e){ document.getElementById('status').textContent = 'Could not run: ' + e; document.title = 'ERROR'; window.ZK_PUBLIC_RESULT = { error: String(e && e.stack || e) }; });
+</script>
+</body>
+</html>

@@ -1,0 +1,118 @@
+/* "Quote your own project" (customer quoter). Load after css/tool.css, which
+   supplies the color tokens and the theme shield. Every rule is scoped to the
+   .zk-tool wrapper. Mobile first: the base styles are for phones; wider
+   screens add columns. */
+
+.zk-tool.zk-tool.zk-public { background: var(--paper); }
+.zk-tool.zk-tool .zp-wrap { max-width: 1040px; margin: 0 auto; padding: 16px 16px 48px; }
+.zk-tool.zk-tool .zp-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 4px 0 16px; }
+.zk-tool.zk-tool .zp-logo { height: 30px; width: auto; display: block; }
+.zk-tool.zk-tool .zp-progress { font-size: 13px; color: var(--muted); }
+
+.zk-tool.zk-tool .zp-title { font-size: 26px; line-height: 1.2; font-weight: 700; color: var(--ink); letter-spacing: -.01em; margin: 0 0 6px; outline: none; }
+.zk-tool.zk-tool .zp-lead { font-size: 16px; color: var(--muted); margin: 0 0 18px; }
+.zk-tool.zk-tool .zp-note { font-size: 14px; color: var(--info); background: var(--info-tint); border-radius: var(--radius); padding: 10px 12px; margin: 0 0 16px; }
+.zk-tool.zk-tool .zp-help { font-size: 13px; color: var(--muted); margin: 8px 0 0; }
+.zk-tool.zk-tool .zp-link { border: 0; background: none; padding: 0; font: inherit; font-size: 15px; color: var(--accent-2); text-decoration: underline; cursor: pointer; }
+
+.zk-tool.zk-tool .zp-card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg); box-shadow: var(--shadow-1); padding: 18px 16px; }
+.zk-tool.zk-tool .zp-card h2 { font-size: 20px; color: var(--ink); margin: 0 0 6px; }
+.zk-tool.zk-tool .zp-card p { margin: 0 0 14px; }
+.zk-tool.zk-tool .zp-actions { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-top: 18px; }
+
+/* Buttons: big enough for thumbs. */
+.zk-tool.zk-tool .zp-btn { min-height: 50px; padding: 0 22px; border-radius: var(--radius); font: inherit; font-size: 16px; font-weight: 600; border: 1px solid var(--line-strong); background: var(--surface); color: var(--ink); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; }
+.zk-tool.zk-tool .zp-btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.zk-tool.zk-tool .zp-btn.primary:hover { background: var(--accent-2); border-color: var(--accent-2); }
+.zk-tool.zk-tool .zp-btn.wide { width: 100%; margin-top: 16px; }
+.zk-tool.zk-tool .zp-btn[disabled] { opacity: .6; cursor: wait; }
+.zk-tool.zk-tool .zp-actions .zp-btn { flex: 1 1 100%; }
+
+/* Fields */
+.zk-tool.zk-tool .zp-field { margin-bottom: 16px; }
+.zk-tool.zk-tool .zp-field label { display: block; font-size: 15px; font-weight: 600; color: var(--ink-2); margin-bottom: 6px; }
+.zk-tool.zk-tool .zp-field input, .zk-tool.zk-tool .zp-field select { width: 100%; min-height: 50px; padding: 0 14px; font: inherit; font-size: 16px; color: var(--ink); background: var(--surface); border: 1px solid var(--line-strong); border-radius: var(--radius-sm); }
+.zk-tool.zk-tool .zp-field input:focus, .zk-tool.zk-tool .zp-field select:focus { outline: none; border-color: var(--accent); box-shadow: var(--shadow-focus); }
+.zk-tool.zk-tool .zp-field.invalid input, .zk-tool.zk-tool .zp-field.invalid select { border-color: var(--danger); }
+.zk-tool.zk-tool .zp-err { color: var(--danger); font-size: 14px; margin-top: 6px; }
+.zk-tool.zk-tool .zp-err:empty { display: none; }
+.zk-tool.zk-tool .zp-form-err { margin: 0 0 4px; }
+.zk-tool.zk-tool .zp-hp { position: absolute; left: -10000px; top: auto; width: 1px; height: 1px; overflow: hidden; }
+
+/* Product type tabs: scroll sideways on phones. */
+.zk-tool.zk-tool .zp-tabs { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; margin: 0 -16px 16px; padding-left: 16px; padding-right: 16px; scrollbar-width: none; }
+.zk-tool.zk-tool .zp-tab { flex: 0 0 auto; min-height: 42px; padding: 0 16px; border: 1px solid var(--line-strong); background: var(--surface); border-radius: var(--radius-pill); font: inherit; font-size: 15px; font-weight: 500; color: var(--muted); cursor: pointer; }
+.zk-tool.zk-tool .zp-tab.on { background: var(--ink); border-color: var(--ink); color: #fff; }
+
+/* Model cards */
+.zk-tool.zk-tool .zp-grid { display: grid; grid-template-columns: 1fr; gap: 14px; }
+.zk-tool.zk-tool .zp-model { display: flex; flex-direction: column; text-align: left; padding: 0; border: 1px solid var(--line); border-radius: var(--radius-lg); overflow: hidden; background: var(--surface); box-shadow: var(--shadow-1); cursor: pointer; font: inherit; color: inherit; }
+.zk-tool.zk-tool .zp-model:hover, .zk-tool.zk-tool .zp-model:focus-visible { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent); outline: none; }
+.zk-tool.zk-tool .zp-ph { display: block; aspect-ratio: 16 / 9; background: var(--surface-3); overflow: hidden; }
+.zk-tool.zk-tool .zp-ph img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.zk-tool.zk-tool .zp-mb { display: block; padding: 12px 14px 14px; }
+.zk-tool.zk-tool .zp-mname { display: block; font-size: 18px; font-weight: 700; color: var(--ink); }
+.zk-tool.zk-tool .zp-msize { display: block; font-size: 14px; color: var(--muted); }
+.zk-tool.zk-tool .zp-mprice { display: block; font-size: 16px; font-weight: 600; color: var(--ink-2); margin-top: 6px; }
+.zk-tool.zk-tool .zp-tag { display: inline-block; font-size: 12px; font-weight: 600; padding: 1px 8px; border-radius: var(--radius-pill); background: var(--surface-3); color: var(--muted); vertical-align: 2px; }
+
+/* Choices */
+.zk-tool.zk-tool .zp-split { display: grid; grid-template-columns: 1fr; gap: 16px; }
+.zk-tool.zk-tool .zp-hero { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; border-radius: var(--radius); display: block; margin-bottom: 8px; }
+.zk-tool.zk-tool .zp-q { padding: 16px 0 0; }
+.zk-tool.zk-tool .zp-ql { font-size: 17px; font-weight: 700; color: var(--ink); margin-bottom: 10px; }
+.zk-tool.zk-tool .zp-tiles { display: grid; grid-template-columns: 1fr; gap: 8px; }
+.zk-tool.zk-tool .zp-tile { position: relative; display: block; border: 1px solid var(--line-strong); border-radius: var(--radius); padding: 12px 14px; cursor: pointer; background: var(--surface); }
+.zk-tool.zk-tool .zp-tile input { position: absolute; opacity: 0; pointer-events: none; }
+.zk-tool.zk-tool .zp-tile.on { border-color: var(--accent); background: var(--accent-tint); box-shadow: inset 0 0 0 1px var(--accent); }
+.zk-tool.zk-tool .zp-tile:focus-within { box-shadow: var(--shadow-focus); }
+.zk-tool.zk-tool .zp-tt { display: block; font-size: 16px; font-weight: 600; color: var(--ink); }
+.zk-tool.zk-tool .zp-th { display: block; font-size: 14px; color: var(--muted); margin-top: 2px; }
+.zk-tool.zk-tool .zp-stepper { display: inline-flex; border: 1px solid var(--line-strong); border-radius: var(--radius-sm); overflow: hidden; background: var(--surface); }
+.zk-tool.zk-tool .zp-stepper button { width: 52px; min-height: 50px; border: 0; background: var(--surface-2); font-size: 22px; color: var(--ink-2); cursor: pointer; }
+.zk-tool.zk-tool .zp-stepper input { width: 64px; border: 0; border-left: 1px solid var(--line); border-right: 1px solid var(--line); text-align: center; font: inherit; font-size: 18px; -moz-appearance: textfield; }
+.zk-tool.zk-tool .zp-stepper input::-webkit-inner-spin-button, .zk-tool.zk-tool .zp-stepper input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+
+/* Estimate */
+.zk-tool.zk-tool .zp-est-k { font-size: 13px; text-transform: uppercase; letter-spacing: .07em; color: var(--hint); font-weight: 600; }
+.zk-tool.zk-tool .zp-est-v { font-size: 30px; font-weight: 700; color: var(--ink); letter-spacing: -.02em; margin: 2px 0; font-variant-numeric: tabular-nums; }
+.zk-tool.zk-tool .zp-est-s { font-size: 14px; color: var(--muted); }
+.zk-tool.zk-tool .zp-est-l { margin: 14px 0 0; padding: 0 0 0 18px; font-size: 14px; color: var(--ink-2); list-style: disc; }
+.zk-tool.zk-tool .zp-est-l li { margin: 4px 0; }
+
+/* Breakdown */
+.zk-tool.zk-tool .zp-table { width: 100%; border-collapse: collapse; font-size: 15px; }
+.zk-tool.zk-tool .zp-table td { padding: 10px 0; border-bottom: 1px solid var(--line-soft); vertical-align: top; }
+.zk-tool.zk-tool .zp-table td + td { text-align: right; padding-left: 12px; color: var(--ink); }
+.zk-tool.zk-tool .zp-table .zp-total td { border-top: 2px solid var(--ink); border-bottom: 0; font-weight: 700; font-size: 20px; padding-top: 14px; }
+.zk-tool.zk-tool .zp-fine { margin: 12px 0 0; padding: 0 0 0 18px; font-size: 13px; color: var(--muted); list-style: disc; }
+.zk-tool.zk-tool .zp-fine li { margin: 3px 0; }
+
+/* Steel kits (priced per project) */
+.zk-tool.zk-tool .zp-steel { max-width: 560px; }
+
+/* Wider screens */
+@media (min-width: 640px) {
+  .zk-tool.zk-tool .zp-wrap { padding: 24px 24px 64px; }
+  .zk-tool.zk-tool .zp-title { font-size: 32px; }
+  .zk-tool.zk-tool .zp-grid { grid-template-columns: repeat(2, 1fr); }
+  .zk-tool.zk-tool .zp-tiles { grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); }
+  .zk-tool.zk-tool .zp-actions .zp-btn { flex: 0 0 auto; }
+  .zk-tool.zk-tool .zp-tabs { flex-wrap: wrap; overflow: visible; margin: 0 0 16px; padding: 0; }
+  .zk-tool.zk-tool .zp-card { padding: 22px 24px; }
+  .zk-tool.zk-tool .zp-form, .zk-tool.zk-tool #zp-state { max-width: 520px; }
+  .zk-tool.zk-tool .zp-field:has(#zp-state) { max-width: 520px; }
+}
+@media (min-width: 900px) {
+  .zk-tool.zk-tool .zp-grid { grid-template-columns: repeat(3, 1fr); }
+  .zk-tool.zk-tool .zp-split { grid-template-columns: minmax(0, 1fr) 340px; align-items: start; }
+  .zk-tool.zk-tool .zp-est { position: sticky; top: calc(16px + var(--zk-top, 0px)); }
+}
+
+/* Phones and tablets: estimate bar pinned to the bottom while choosing. */
+.zk-tool.zk-tool .zp-bar { position: sticky; bottom: 0; z-index: 20; display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 16px -16px 0; padding: 10px 16px calc(10px + env(safe-area-inset-bottom)); background: rgba(250,248,240,.97); border-top: 1px solid var(--line); box-shadow: 0 -4px 14px rgba(23,21,15,.06); }
+.zk-tool.zk-tool .zp-bar-v { font-size: 14px; color: var(--muted); }
+.zk-tool.zk-tool .zp-bar-v b { display: block; font-size: 20px; color: var(--ink); font-variant-numeric: tabular-nums; }
+.zk-tool.zk-tool .zp-bar .zp-btn { flex: 0 0 auto; min-width: 120px; }
+@media (min-width: 640px) { .zk-tool.zk-tool .zp-bar { margin: 16px -24px 0; padding-left: 24px; padding-right: 24px; } }
+@media (min-width: 900px) { .zk-tool.zk-tool .zp-bar { display: none; } }

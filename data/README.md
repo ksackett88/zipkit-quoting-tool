@@ -59,3 +59,26 @@ The model disappears from the tool, but old quotes that used it still open. **Do
 - **`payment_schedules`**: payment percentages and wording. Changing these changes what customers sign. Talk to Sven first.
 - **The `mvp` brand and MVP models (`"status": "parked"`)**: MVP is on hold until Sven has numbers.
 - **Bank account numbers.** They are **not** in this file and must never be added. They live in Supabase (table `payment_accounts`).
+
+## The customer quoter (`"public"` section)
+
+"Quote your own project" (`public.html`, or `[zipkit_quote_public]` in WordPress) never reads this file. It reads **`data/catalog-public.json`**, which is made from this file by:
+
+```
+powershell -ExecutionPolicy Bypass -File data\build-public-catalog.ps1
+```
+
+The WordPress build (`wp-plugin/build.ps1`) runs it automatically, and `tests/public-check.html` fails if the two files ever disagree. **Never edit `catalog-public.json` by hand.**
+
+What goes into the public file:
+- model names, sizes and photos;
+- the starting price, which is the same "Kit from / Complete from / Starting at" number reps see on the cards;
+- where each product is sold.
+
+Nothing else is copied: no rates, snow or window prices, discounts, overrides or notes.
+
+What you can change in the `"public"` section:
+- **`availability`**: which states get wood kits, steel kits and assembly. Complete modular uses `product_types.modular.service_states`, the same list as the rep tool.
+- **`types`**: which product types customers can pick, and which questions each one asks: homes, snow, assembly. Set `"show": false` to hide a type.
+- **`snow_choices`**: the wording of the snow-load choices. There are no prices here; snow never changes the customer's number.
+- **`confirm: true`**: marks a rule Kelsey still needs to OK. The build lists them every time it runs. They never go into the public file.

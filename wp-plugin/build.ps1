@@ -43,6 +43,9 @@ $catalogText = [IO.File]::ReadAllText((Join-Path (Join-Path $repo 'data') 'catal
 try { $catalog = $catalogText | ConvertFrom-Json } catch { throw "data\catalog.json is not valid JSON: $($_.Exception.Message)" }
 if (-not $catalog.products -or $catalog.products.Count -lt 1) { throw 'data\catalog.json has no products' }
 
+# The public catalog is always rebuilt from catalog.json, so the two can't drift.
+& (Join-Path (Join-Path $repo 'data') 'build-public-catalog.ps1')
+
 # Fresh staging folder (build output only).
 if (Test-Path $stage) { Remove-Item -Recurse -Force $stage }
 New-Item -ItemType Directory -Force $stage | Out-Null
@@ -55,7 +58,9 @@ Copy-Item (Join-Path $here 'README.md') (Join-Path $stage 'README.md')
 $app = Join-Path $stage 'app'
 Copy-Into (Join-Path $repo 'js')     (Join-Path $app 'js')     @('*.js')
 Copy-Into (Join-Path $repo 'lib')    (Join-Path $app 'lib')    @('supabase.js')
-Copy-Into (Join-Path $repo 'css')    (Join-Path $app 'css')    @('tool.css')
+Copy-Into (Join-Path $repo 'css')    (Join-Path $app 'css')    @('tool.css', 'public.css')
+# Public catalog only. The full one goes to private/ below.
+Copy-Into (Join-Path $repo 'data')   (Join-Path $app 'data')   @('catalog-public.json')
 Copy-Into (Join-Path $repo 'images') (Join-Path $app 'images') @('*.png', '*.jpg', '*.svg')
 # Photos: web-size copies for documents (photos/web) and card copies. The
 # full-size originals stay in the repo only (Kelsey 2026-10-13: web-sized
