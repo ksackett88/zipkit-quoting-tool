@@ -99,17 +99,17 @@
   // A quote that already has invoices logged is never overwritten (its payment
   // schedule is what was billed), so edits to it are saved as a new quote.
   function save(cat, state, result, schedule){
-    if(!root.zkQuotes) return Promise.reject(new Error('Saving isn\'t available. Check your connection and sign in again.'));
+    if(!root.ZK.quotes) return Promise.reject(new Error('Saving isn\'t available. Check your connection and sign in again.'));
     var row = buildRow(cat, state, result, schedule);
     var s = state.saved;
     if(s && s.id && !s.hasInvoices && !s.readOnly){
-      return root.zkQuotes.update(s.id, row).catch(function(){ return root.zkQuotes.save(row); });
+      return root.ZK.quotes.update(s.id, row).catch(function(){ return root.ZK.quotes.save(row); });
     }
-    return root.zkQuotes.save(row);
+    return root.ZK.quotes.save(row);
   }
 
   // ---------- rep profile ----------
-  function client(){ return root.zkAuth && root.zkAuth.client; }
+  function client(){ return root.ZK.auth && root.ZK.auth.client; }
   function loadProfile(user){
     var c = client();
     if(!c || !user) return Promise.resolve({ name:'', phone:'', email: user ? user.email : '' });
@@ -128,5 +128,5 @@
     });
   }
 
-  root.ZKStore = { save: save, buildRow: buildRow, legacyFields: legacyFields, projectName: projectName, loadProfile: loadProfile, saveProfile: saveProfile };
+  (root.ZK = root.ZK || {}).Store = { save: save, buildRow: buildRow, legacyFields: legacyFields, projectName: projectName, loadProfile: loadProfile, saveProfile: saveProfile };
 })(window);

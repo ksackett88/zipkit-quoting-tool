@@ -4,9 +4,9 @@
    HTML pages; the caller opens them in a new window. */
 (function(root){
   'use strict';
-  var fmt = function(n){ return root.ZKPricing.fmt(n); };
+  var fmt = function(n){ return root.ZK.Pricing.fmt(n); };
   function esc(s){ return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;'); }
-  function absUrl(path){ return new URL(path, root.location.href).href; }
+  function absUrl(path){ return new URL(root.ZK.url ? root.ZK.url(path) : path, root.location.href).href; }
 
   var SCOPE = {
     'Shell Kit': {
@@ -236,5 +236,5 @@
     return { low: roundK(total * 0.90), high: roundK(total * 1.10) };
   }
 
-  root.ZKDocuments = { ballpark: ballpark, proposal: proposal, suggestedRange: suggestedRange };
+  (root.ZK = root.ZK || {}).Documents = { ballpark: ballpark, proposal: proposal, suggestedRange: suggestedRange };
 })(window);

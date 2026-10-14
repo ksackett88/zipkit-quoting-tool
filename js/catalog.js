@@ -61,12 +61,12 @@
     return null;
   };
 
-  Catalog.load = function(url){
-    return fetch(url || 'data/catalog.json', { cache: 'no-cache' })
+  Catalog.load = function(url, headers){
+    return fetch(url || 'data/catalog.json', { cache: 'no-cache', headers: headers || {}, credentials: 'same-origin' })
       .then(function(r){ if(!r.ok) throw new Error('catalog ' + r.status); return r.json(); })
       .then(function(d){ return new Catalog(d); });
   };
 
-  root.ZKCatalog = Catalog;
+  (root.ZK = root.ZK || {}).Catalog = Catalog;
   if(typeof module !== 'undefined' && module.exports) module.exports = Catalog;
 })(typeof window !== 'undefined' ? window : this);

@@ -523,6 +523,6 @@
   }
 
   var api = { price: price, schedule: schedule, customScheduleInfo: customScheduleInfo, fmt: fmt };
-  root.ZKPricing = api;
+  (root.ZK = root.ZK || {}).Pricing = api;
   if(typeof module !== 'undefined' && module.exports) module.exports = api;
 })(typeof window !== 'undefined' ? window : this);

@@ -94,7 +94,7 @@
       var problems = {};
       try {
         var oq = driveOld(w, cat, c.cfg);
-        var nr = window.ZKPricing.price(cat, c.cfg);
+        var nr = window.ZK.Pricing.price(cat, c.cfg);
         var nq = nr.quote;
         // Model names: renamed models (Solitude → Kolob …) are expected to differ.
         var p = c.cfg.productId ? product(cat, c.cfg.productId) : null;
@@ -106,7 +106,7 @@
         var ol = oldLines(w, t), nl = newLines(nr);
         if(p && p.aliases) ol.forEach(function(l){ p.aliases.forEach(function(a){ l.sub = l.sub.replace(a, p.name); }); });
         var dl = diff(ol, nl); if(dl) problems.lines = dl;
-        var newStages = stagesFacts(window.ZKPricing.schedule(cat, nr));
+        var newStages = stagesFacts(window.ZK.Pricing.schedule(cat, nr));
         var expected = nq.kind === 'Modular' ? stagesFacts(contractModularStages(nq.contract)) : stagesFacts(w.invoiceStages(oq));
         var ds = diff(expected, newStages); if(ds) problems.schedule = ds;
         var sumNew = newStages.reduce(function(a, s){ return a + s.amount; }, 0);

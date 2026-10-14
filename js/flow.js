@@ -2,7 +2,7 @@
    Pricing comes from js/pricing.js; option forms from js/options.js. */
 (function(root){
   'use strict';
-  var P = root.ZKPricing, O = root.ZKOptions, esc = O.esc;
+  var ZK = root.ZK, P = ZK.Pricing, O = ZK.Options, esc = O.esc;
   var fmt = function(n){ return P.fmt(n); };
 
   // Product types switched on in the new tool (added one at a time).
@@ -28,8 +28,11 @@
     shownErrors: {}             // field keys whose errors are visible (after Next or blur)
   };
 
-  var $ = function(sel, el){ return (el || document).querySelector(sel); };
-  var $$ = function(sel, el){ return Array.prototype.slice.call((el || document).querySelectorAll(sel)); };
+  // Everything the tool draws lives inside one element (the .zk-tool wrapper),
+  // so lookups never reach into a host page such as a WordPress theme.
+  var app = null;
+  var $ = function(sel, el){ return (el || app || document).querySelector(sel); };
+  var $$ = function(sel, el){ return Array.prototype.slice.call((el || app || document).querySelectorAll(sel)); };
 
   // ---------- config defaults ----------
   function defaultCfg(type, productId){
@@ -114,14 +117,14 @@
       var msg = e[key] && (state.shownErrors[key] || state.shownErrors.__all) ? e[key] : '';
       el.textContent = msg; el.style.display = msg ? 'block' : '';
     });
-    var pe = $('#product-error'); if(pe){ pe.textContent = (e.product && state.shownErrors.__all) ? e.product : ''; pe.hidden = !pe.textContent; }
+    var pe = $('#zk-product-error'); if(pe){ pe.textContent = (e.product && state.shownErrors.__all) ? e.product : ''; pe.hidden = !pe.textContent; }
     return e;
   }
 
   // ---------- step bar ----------
   function renderSteps(){
     var idx = stepIndex(state.step);
-    $('#steps').innerHTML = STEPS.map(function(s, i){
+    $('#zk-steps').innerHTML = STEPS.map(function(s, i){
       var cls = i === idx ? 'current' : (i <= state.reached ? 'done' : '');
       return '<li class="' + cls + '"><button type="button" data-goto="' + s.id + '"' + (cls === 'done' ? '' : ' tabindex="-1"') + (i === idx ? ' aria-current="step"' : '') + '>'
         + '<span class="num">' + (cls === 'done' ? '✓' : (i + 1)) + '</span><span class="label">' + s.label + '</span></button></li>';
@@ -131,17 +134,17 @@
 
   function renderBrand(){
     var b = cat.brandFor(state.cfg ? state.cfg.type : state.type);
-    $('#brand-logo').src = b.logo;
-    $('#brand-logo').alt = b.name;
-    $('#brand-name').textContent = 'Quoting as ' + b.name;
+    $('#zk-brand-logo').src = ZK.url(b.logo);
+    $('#zk-brand-logo').alt = b.name;
+    $('#zk-brand-name').textContent = 'Quoting as ' + b.name;
   }
 
   // ---------- steps ----------
   function renderCustomer(){
     var c = state.customer;
     function f(key, labelText, type, extra){
-      return '<div class="field' + (extra && extra.full ? ' full' : '') + '" data-field="' + key + '"><label for="c-' + key + '">' + labelText + (extra && extra.optional ? ' <span class="opt">(optional)</span>' : '') + '</label>'
-        + '<input type="' + type + '" id="c-' + key + '" data-cust="' + key + '" value="' + esc(c[key]) + '"' + (extra && extra.ac ? ' autocomplete="' + extra.ac + '"' : '') + (extra && extra.ph ? ' placeholder="' + esc(extra.ph) + '"' : '') + '>'
+      return '<div class="field' + (extra && extra.full ? ' full' : '') + '" data-field="' + key + '"><label for="zk-c-' + key + '">' + labelText + (extra && extra.optional ? ' <span class="opt">(optional)</span>' : '') + '</label>'
+        + '<input type="' + type + '" id="zk-c-' + key + '" data-cust="' + key + '" value="' + esc(c[key]) + '"' + (extra && extra.ac ? ' autocomplete="' + extra.ac + '"' : '') + (extra && extra.ph ? ' placeholder="' + esc(extra.ph) + '"' : '') + '>'
         + '<div class="err"></div></div>';
     }
     return '<h1 class="step-title">Who is this quote for?</h1>'
@@ -151,7 +154,7 @@
       + f('email', 'Email', 'email', { optional:true, ac:'off' })
       + f('phone', 'Phone', 'tel', { optional:true, ac:'off' })
       + f('city', 'City', 'text', { optional:true, ac:'off' })
-      + '<div class="field" data-field="state"><label for="c-state">State <span class="opt">(optional)</span></label><select id="c-state" data-cust="state"><option value="">Choose…</option>'
+      + '<div class="field" data-field="state"><label for="zk-c-state">State <span class="opt">(optional)</span></label><select id="zk-c-state" data-cust="state"><option value="">Choose…</option>'
       + STATES.map(function(s){ return '<option' + (c.state === s ? ' selected' : '') + '>' + s + '</option>'; }).join('') + '</select><div class="err"></div></div>'
       + f('project', 'Project name', 'text', { optional:true, full:true, ph:'Defaults to the model name, e.g. "Alpine project"' })
       + '</div></div>'
@@ -167,15 +170,15 @@
         return '<button type="button" class="type-tab' + (t === state.type ? ' on' : '') + '" role="tab" aria-selected="' + (t === state.type) + '" data-type="' + t + '">' + cat.typeLabel(t) + '</button>';
       }).join('') + '</div></div>';
     }
-    h += '<div class="notice bad" id="product-error" hidden></div>';
+    h += '<div class="notice bad" id="zk-product-error" hidden></div>';
     if(O.hasProjectStep(state.type)){
       var ctx = optionCtx();
       h += '<div class="card freeform">' + O.renderProject(ctx) + '</div>'
         + '<div class="actions"><button type="button" class="btn quiet" data-goto="customer">Back</button><div class="right"><button type="button" class="btn primary" data-next="options">Next: options</button></div></div>';
       return h;
     }
-    h += '<div class="toolbar"><input type="search" class="search" id="search" placeholder="Search models" value="' + esc(state.search) + '" aria-label="Search models"></div>';
-    h += '<div class="grid" id="grid">' + productCards() + '</div>';
+    h += '<div class="toolbar"><input type="search" class="search" id="zk-search" placeholder="Search models" value="' + esc(state.search) + '" aria-label="Search models"></div>';
+    h += '<div class="grid" id="zk-grid">' + productCards() + '</div>';
     h += '<div class="actions"><button type="button" class="btn quiet" data-goto="customer">Back</button></div>';
     return h;
   }
@@ -193,7 +196,7 @@
       var start = cat.startingPrice(p);
       var lead = state.type === 'modular' ? 'Complete from ' : (state.type === 'hangar' ? 'Starting at ' : 'Kit from ');
       return '<button type="button" class="pcard' + (p.id === sel ? ' on' : '') + '" data-product="' + p.id + '">'
-        + '<div class="ph">' + (p.photo ? '<img src="' + esc(cardPhoto(p.photo)) + '" data-full="' + esc(p.photo) + '" alt="" loading="lazy" onerror="if(this.dataset.full){this.src=this.dataset.full;this.removeAttribute(\x27data-full\x27);}">' : '') + '</div>'
+        + '<div class="ph">' + (p.photo ? '<img src="' + esc(ZK.url(cardPhoto(p.photo))) + '" data-full="' + esc(ZK.url(p.photo)) + '" alt="" loading="lazy" onerror="if(this.dataset.full){this.src=this.dataset.full;this.removeAttribute(\x27data-full\x27);}">' : '') + '</div>'
         + '<div class="pc-body"><div class="pc-name">' + esc(p.name) + (p.barndominium ? '<span class="tag">Barndominium</span>' : '') + '</div>'
         + '<div class="pc-meta">' + esc(meta) + '</div>'
         + (start != null ? '<div class="pc-price">' + lead + fmt(start) + '</div>' : '')
@@ -223,7 +226,7 @@
   }
   function serviceAreaWarning(){
     if(!outOfArea()) return '';
-    return '<div class="notice warn" id="area-warning"><b>' + esc(serviceAreaText()) + '</b></div>';
+    return '<div class="notice warn" id="zk-area-warning"><b>' + esc(serviceAreaText()) + '</b></div>';
   }
 
   function renderOptions(){
@@ -232,9 +235,9 @@
     return '<h1 class="step-title">' + esc(title) + '</h1>'
       + '<p class="step-lead">The defaults make a complete quote. Change only what the buyer asked for.</p>'
       + loadNotice() + serviceAreaWarning()
-      + '<div class="two-col"><div class="card" id="options-form">' + O.renderOptions(ctx) + '</div>'
-      + '<aside class="card summary sticky" id="summary" aria-live="polite">' + summaryHTML(ctx.result) + '</aside></div>'
-      + '<div class="actions options-bar"><button type="button" class="btn quiet" data-goto="product">Back</button><div class="right"><span class="bar-total" id="bar-total" aria-hidden="true">' + (ctx.result ? 'Total <b>' + fmt(ctx.result.total) + '</b>' : '') + '</span><button type="button" class="btn primary" data-next="review">Next: review</button></div></div>';
+      + '<div class="two-col"><div class="card" id="zk-options-form">' + O.renderOptions(ctx) + '</div>'
+      + '<aside class="card summary sticky" id="zk-summary" aria-live="polite">' + summaryHTML(ctx.result) + '</aside></div>'
+      + '<div class="actions options-bar"><button type="button" class="btn quiet" data-goto="product">Back</button><div class="right"><span class="bar-total" id="zk-bar-total" aria-hidden="true">' + (ctx.result ? 'Total <b>' + fmt(ctx.result.total) + '</b>' : '') + '</span><button type="button" class="btn primary" data-next="review">Next: review</button></div></div>';
   }
 
   function linesHTML(r){
@@ -278,11 +281,11 @@
       return '<div class="card"><div class="subtle-head first">You (on the documents)</div><div class="rep-line">' + esc(rep.name) + ' · ' + esc(rep.phone) + (rep.email ? ' · ' + esc(rep.email) : '') + '</div>'
         + '<button type="button" class="adjust-link" data-rep-edit="1">Change</button></div>';
     }
-    return '<div class="card" id="rep-card"><div class="subtle-head first">You (on the documents)</div>'
+    return '<div class="card" id="zk-rep-card"><div class="subtle-head first">You (on the documents)</div>'
       + '<p class="help">Your name and phone go on every document. You only enter them once.</p>'
       + '<div class="fields">'
-      + '<div class="field" data-field="repName"><label for="rep-name">Your name</label><input type="text" id="rep-name" value="' + esc(rep.name || '') + '" autocomplete="name"><div class="err"></div></div>'
-      + '<div class="field" data-field="repPhone"><label for="rep-phone">Your phone</label><input type="tel" id="rep-phone" value="' + esc(rep.phone || '') + '" autocomplete="tel"><div class="err"></div></div>'
+      + '<div class="field" data-field="repName"><label for="zk-rep-name">Your name</label><input type="text" id="zk-rep-name" value="' + esc(rep.name || '') + '" autocomplete="name"><div class="err"></div></div>'
+      + '<div class="field" data-field="repPhone"><label for="zk-rep-phone">Your phone</label><input type="tel" id="zk-rep-phone" value="' + esc(rep.phone || '') + '" autocomplete="tel"><div class="err"></div></div>'
       + '</div><div class="btn-row"><button type="button" class="btn" data-rep-save="1">Save my details</button></div></div>';
   }
 
@@ -307,7 +310,7 @@
       + '</div>' + repCard() + '</div>'
       + '<aside class="card summary">' + summaryHTML(r) + '<button type="button" class="adjust-link" data-goto="options">Change options</button></aside></div>'
       + '<div class="actions options-bar review-bar"><button type="button" class="btn quiet" data-goto="options">Back</button>'
-      + '<div class="right" id="review-actions"><span id="saved-line">' + savedLine() + '</span>'
+      + '<div class="right" id="zk-review-actions"><span id="zk-saved-line">' + savedLine() + '</span>'
       + '<button type="button" class="btn" data-save="1">Save project</button>'
       + '<button type="button" class="btn" data-contract="1">Make the contract</button>'
       + '<button type="button" class="btn primary" data-doc="1">Create document</button>'
@@ -319,17 +322,17 @@
   // ---------- document / save / contract ----------
   function toast(msg, bad){
     var t = document.createElement('div'); t.className = 'toast' + (bad ? ' bad' : ''); t.setAttribute('role', 'status'); t.textContent = msg;
-    document.body.appendChild(t); setTimeout(function(){ t.remove(); }, bad ? 6000 : 3500);
+    app.appendChild(t); setTimeout(function(){ t.remove(); }, bad ? 6000 : 3500);
   }
-  function busy(on){ $$('#review-actions .btn').forEach(function(b){ b.disabled = !!on; }); }
+  function busy(on){ $$('#zk-review-actions .btn').forEach(function(b){ b.disabled = !!on; }); }
 
   // Save (or update) the quote. Resolves to the saved row, or null if it failed.
   function saveNow(){
     var r = currentResult();
     // Promise.resolve().then(): an unexpected error becomes a message, not a stuck screen.
-    return Promise.resolve().then(function(){ return root.ZKStore.save(cat, state, r, r.schedule); }).then(function(row){
+    return Promise.resolve().then(function(){ return root.ZK.Store.save(cat, state, r, r.schedule); }).then(function(row){
       state.saved = { id: row.id, number: row.quote_number, hasInvoices: Array.isArray(row.invoices) && row.invoices.length > 0 };
-      var sl = $('#saved-line'); if(sl) sl.innerHTML = savedLine();
+      var sl = $('#zk-saved-line'); if(sl) sl.innerHTML = savedLine();
       return row;
     }).catch(function(e){
       console.error(e);
@@ -343,7 +346,7 @@
     return {
       result: r, schedule: r.schedule, customer: state.customer, rep: state.rep || {},
       brand: cat.brandFor(state.cfg.type), number: state.saved && state.saved.number,
-      date: new Date().toLocaleDateString('en-US'), projectName: root.ZKStore.projectName({ customer: state.customer, result: r }),
+      date: new Date().toLocaleDateString('en-US'), projectName: root.ZK.Store.projectName({ customer: state.customer, result: r }),
       photo: p && p.photo, shipsFrom: t.ships_from
     };
   }
@@ -358,7 +361,7 @@
     saveNow().then(function(){
       var d = docData();
       if(kind === 'ballpark') d.range = range;
-      var html = kind === 'ballpark' ? root.ZKDocuments.ballpark(d) : root.ZKDocuments.proposal(d);
+      var html = kind === 'ballpark' ? root.ZK.Documents.ballpark(d) : root.ZK.Documents.proposal(d);
       w.document.open(); w.document.write(html); w.document.close();
     }).then(function(){ busy(false); }, function(){ busy(false); });
   }
@@ -371,49 +374,49 @@
     saveNow().then(function(row){
       busy(false);
       if(!row){ w.close(); return; }
-      w.location.href = 'ZipKit_Contract_Generator.html?fromQuote=' + encodeURIComponent(row.id);
+      w.location.href = ZK.config.contractUrl + '?fromQuote=' + encodeURIComponent(row.id);
     });
   }
 
   function docDialog(){
-    var r = currentResult(), rg = root.ZKDocuments.suggestedRange(r.quote.total);
+    var r = currentResult(), rg = root.ZK.Documents.suggestedRange(r.quote.total);
     var o = document.createElement('div');
-    o.className = 'overlay'; o.id = 'doc-dialog';
-    o.innerHTML = '<div class="dialog" role="dialog" aria-modal="true" aria-labelledby="doc-title">'
-      + '<h2 id="doc-title">Create a document</h2><p>Which one does the buyer need?</p>'
+    o.className = 'overlay'; o.id = 'zk-doc-dialog';
+    o.innerHTML = '<div class="dialog" role="dialog" aria-modal="true" aria-labelledby="zk-doc-title">'
+      + '<h2 id="zk-doc-title">Create a document</h2><p>Which one does the buyer need?</p>'
       + (outOfArea()
-        ? '<button type="button" class="doc-choice" disabled aria-describedby="doc-area"><b>Proposal</b><span id="doc-area">' + esc(serviceAreaText()) + '</span></button>'
+        ? '<button type="button" class="doc-choice" disabled aria-describedby="zk-doc-area"><b>Proposal</b><span id="zk-doc-area">' + esc(serviceAreaText()) + '</span></button>'
         : '<button type="button" class="doc-choice" data-doc-kind="proposal"><b>Proposal</b><span>The real quote: price, scope and payment schedule.</span></button>')
       + '<button type="button" class="doc-choice" data-doc-kind="ballpark-open"><b>Ballpark estimate</b><span>One page with a price range, for early conversations.</span></button>'
-      + '<div id="range-box" hidden><div class="fields">'
-      + '<div class="field" data-field="rangeLow"><label for="range-low">Low</label><input type="number" id="range-low" min="0" step="1000" value="' + rg.low + '"><div class="err"></div></div>'
-      + '<div class="field" data-field="rangeHigh"><label for="range-high">High</label><input type="number" id="range-high" min="0" step="1000" value="' + rg.high + '"><div class="err"></div></div>'
+      + '<div id="zk-range-box" hidden><div class="fields">'
+      + '<div class="field" data-field="rangeLow"><label for="zk-range-low">Low</label><input type="number" id="zk-range-low" min="0" step="1000" value="' + rg.low + '"><div class="err"></div></div>'
+      + '<div class="field" data-field="rangeHigh"><label for="zk-range-high">High</label><input type="number" id="zk-range-high" min="0" step="1000" value="' + rg.high + '"><div class="err"></div></div>'
       + '</div><p class="help">Suggested: the quote total ±10%, rounded.</p><div class="btn-row"><button type="button" class="btn primary" data-doc-kind="ballpark">Create ballpark estimate</button></div></div>'
       + '<div class="btn-row"><button type="button" class="btn quiet" data-doc-cancel="1">Cancel</button></div></div>';
-    document.body.appendChild(o);
+    app.appendChild(o);
     o.querySelector('.doc-choice[data-doc-kind]').focus();
   }
-  function closeDialog(){ var d = $('#doc-dialog'); if(d) d.remove(); }
+  function closeDialog(){ var d = $('#zk-doc-dialog'); if(d) d.remove(); }
 
   // ---------- render ----------
   function render(){
     renderSteps();
     renderBrand();
     var html = { customer: renderCustomer, product: renderProduct, options: renderOptions, review: renderReview }[state.step]();
-    $('#main').innerHTML = html;
+    $('#zk-main').innerHTML = html;
     showErrors(state.step);
   }
   function refreshLive(){
     // Re-price and update the form in place. Never rebuilds the form, so a
     // click or keystroke in progress is never lost.
     var r = currentResult();
-    var s = $('#summary'); if(s) s.innerHTML = summaryHTML(r);
-    var bt = $('#bar-total'); if(bt) bt.innerHTML = r ? 'Total <b>' + fmt(r.total) + '</b>' : '';
-    var f = $('#options-form'); if(f && state.cfg) O.patchOptions(optionCtx(), f);
+    var s = $('#zk-summary'); if(s) s.innerHTML = summaryHTML(r);
+    var bt = $('#zk-bar-total'); if(bt) bt.innerHTML = r ? 'Total <b>' + fmt(r.total) + '</b>' : '';
+    var f = $('#zk-options-form'); if(f && state.cfg) O.patchOptions(optionCtx(), f);
     showErrors(state.step);
   }
   function refreshForm(){
-    var f = $('#options-form'); if(!f) return refreshLive();
+    var f = $('#zk-options-form'); if(!f) return refreshLive();
     var active = document.activeElement, sel = active && active.getAttribute && (active.getAttribute('data-key') || null);
     f.innerHTML = O.renderOptions(optionCtx());
     refreshLive();
@@ -429,7 +432,7 @@
         if(Object.keys(e).length){
           if(i !== cur){ state.step = STEPS[i].id; render(); }
           state.shownErrors.__all = true; showErrors(STEPS[i].id);
-          var first = $('.invalid input, .invalid select, .invalid textarea') || $('#product-error:not([hidden])');
+          var first = $('.invalid input, .invalid select, .invalid textarea') || $('#zk-product-error:not([hidden])');
           if(first && first.focus) first.focus();
           if(first && first.scrollIntoView) first.scrollIntoView({ block:'center', behavior:'smooth' });
           return;
@@ -440,7 +443,7 @@
     state.step = step;
     state.reached = Math.max(state.reached, target);
     render();
-    window.scrollTo(0, 0);
+    scrollToTop();
     var h = $('.step-title'); if(h){ h.setAttribute('tabindex', '-1'); h.focus({ preventScroll:true }); }
   }
 
@@ -471,7 +474,7 @@
   function onInput(ev){
     var el = ev.target;
     if(el.hasAttribute('data-cust')){ state.customer[el.getAttribute('data-cust')] = el.value; showErrors('customer'); return; }
-    if(el.id === 'search'){ state.search = el.value; $('#grid').innerHTML = productCards(); return; }
+    if(el.id === 'zk-search'){ state.search = el.value; $('#zk-grid').innerHTML = productCards(); return; }
     if(!state.cfg) return;
     if(el.hasAttribute('data-key')){ setCfgFromInput(el); refreshLive(); return; }
     if(el.hasAttribute('data-line')){ var i = +el.getAttribute('data-line'); state.cfg.customLines[i][el.getAttribute('data-part')] = el.value; refreshLive(); return; }
@@ -523,8 +526,8 @@
     if(t.hasAttribute('data-doc-kind')){
       var kind = t.getAttribute('data-doc-kind');
       if(kind === 'proposal') return openDoc('proposal');
-      if(kind === 'ballpark-open'){ $('#range-box').hidden = false; $('#range-low').focus(); return; }
-      var lo = parseFloat($('#range-low').value), hi = parseFloat($('#range-high').value), bad = false;
+      if(kind === 'ballpark-open'){ $('#zk-range-box').hidden = false; $('#zk-range-low').focus(); return; }
+      var lo = parseFloat($('#zk-range-low').value), hi = parseFloat($('#zk-range-high').value), bad = false;
       [['rangeLow', lo], ['rangeHigh', hi]].forEach(function(x){
         var f = $('[data-field="' + x[0] + '"]'), ok = x[1] >= 0;
         f.classList.toggle('invalid', !ok); $('.err', f).textContent = ok ? '' : 'Enter a dollar amount.'; if(!ok) bad = true;
@@ -541,7 +544,7 @@
     if(t.hasAttribute('data-new-quote')) return newQuote();
     if(t.hasAttribute('data-rep-edit')){ state.ui.editRep = true; render(); return; }
     if(t.hasAttribute('data-rep-save')){
-      var nm = $('#rep-name').value.trim(), ph = $('#rep-phone').value.trim(), errs = false;
+      var nm = $('#zk-rep-name').value.trim(), ph = $('#zk-rep-phone').value.trim(), errs = false;
       var fn = $('[data-field="repName"]'), fp = $('[data-field="repPhone"]');
       fn.classList.toggle('invalid', !nm); $('.err', fn).textContent = nm ? '' : 'Add your name.';
       var phOk = ph.replace(/\D/g, '').length >= 10;
@@ -549,7 +552,7 @@
       if(!nm || !phOk) return;
       state.rep = { name: nm, phone: ph, email: (state.user && state.user.email) || '' };
       state.ui.editRep = false;
-      root.ZKStore.saveProfile(state.user, nm, ph).then(function(){ toast('Saved. Your details will be on every document.'); },
+      root.ZK.Store.saveProfile(state.user, nm, ph).then(function(){ toast('Saved. Your details will be on every document.'); },
         function(){ toast('Your details are on this quote, but couldn\'t be saved to your profile. Tell Kelsey.', true); });
       render(); return;
     }
@@ -567,7 +570,7 @@
       refreshLive(); return;
     }
     if(t.hasAttribute('data-tip')){
-      var tx = document.getElementById('tip-' + t.getAttribute('data-tip')); var open = tx.hidden; tx.hidden = !open; t.setAttribute('aria-expanded', open ? 'true' : 'false'); return;
+      var tx = document.getElementById('zk-tip-' + t.getAttribute('data-tip')); var open = tx.hidden; tx.hidden = !open; t.setAttribute('aria-expanded', open ? 'true' : 'false'); return;
     }
     if(t.hasAttribute('data-adjust-toggle')){ state.ui.adjustOpen = !($('.adjust-box')); if(!state.ui.adjustOpen){ /* keep entries; box stays open if any are set */ } refreshForm(); return; }
     if(t.hasAttribute('data-add-line')){ state.cfg.customLines.push({ desc:'', amount:'' }); refreshForm(); var ins = $$('[data-part="desc"][data-line]'); if(ins.length) ins[ins.length - 1].focus(); return; }
@@ -580,21 +583,27 @@
     if(t.hasAttribute('data-remove-sched')){ state.cfg.customSchedule.splice(+t.getAttribute('data-remove-sched'), 1); refreshForm(); return; }
   }
   function onToggle(ev){ if(ev.target.matches && ev.target.matches('[data-more]')) state.ui.moreOpen = ev.target.open; }
-  function onKey(ev){ if(ev.key === 'Escape' && $('#doc-dialog')) closeDialog(); }
+  function onKey(ev){ if(ev.key === 'Escape' && $('#zk-doc-dialog')) closeDialog(); }
+
+  // Back to the top of the tool (the top of the page when it's the whole page).
+  function scrollToTop(){
+    var top = app.getBoundingClientRect().top + (window.pageYOffset || 0);
+    if((window.pageYOffset || 0) > top) window.scrollTo(0, Math.max(0, top - 8));
+  }
 
   // ---------- sign-in gate ----------
   function signInGate(){
     return new Promise(function(resolve){
-      if(!root.ZK_REQUIRE_AUTH || !root.zkAuth) return resolve(null);
-      root.zkAuth.getCurrentUser().then(function(user){
+      if(!root.ZK.config.requireAuth || !root.ZK.auth) return resolve(null);
+      root.ZK.auth.getCurrentUser().then(function(user){
         if(user) return resolve(user);
-        var o = $('#signin'); o.hidden = false;
-        $('#signin-form').addEventListener('submit', function(e){
+        var o = $('#zk-signin'); o.hidden = false;
+        $('#zk-signin-form').addEventListener('submit', function(e){
           e.preventDefault();
-          var err = $('#signin-err'), btn = $('#signin-btn');
+          var err = $('#zk-signin-err'), btn = $('#zk-signin-btn');
           err.hidden = true; btn.disabled = true; btn.textContent = 'Signing in…';
-          root.zkAuth.signIn($('#signin-email').value.trim(), $('#signin-password').value)
-            .then(function(){ return root.zkAuth.getCurrentUser(); })
+          root.ZK.auth.signIn($('#zk-signin-email').value.trim(), $('#zk-signin-password').value)
+            .then(function(){ return root.ZK.auth.getCurrentUser(); })
             .then(function(u){ o.hidden = true; resolve(u); })
             .catch(function(x){ err.textContent = (x && x.message) || 'Sign in failed.'; err.hidden = false; })
             .then(function(){ btn.disabled = false; btn.textContent = 'Sign in'; });
@@ -603,29 +612,54 @@
     });
   }
 
+  // The tool's frame: header, step bar, page and the sign-in box. Drawn into
+  // the mount element so a host page only needs <div data-zk-app="quote">.
+  function shellHTML(){
+    var portal = ZK.config.portalUrl;
+    return '<header class="topbar"><div class="topbar-inner">'
+      + '<a class="brand-badge"' + (portal ? ' href="' + esc(portal) + '" title="Back to the Sales Portal"' : '') + '>'
+      + '<img id="zk-brand-logo" src="' + esc(ZK.url('images/zk-logo.png')) + '" alt="Zip Kit Homes">'
+      + '<span class="brand-name" id="zk-brand-name">Quoting as Zip Kit Homes</span></a>'
+      + '<ol class="steps" id="zk-steps" aria-label="Quote steps"></ol>'
+      + '<div class="topbar-right"><span id="zk-user-email"></span>' + (portal ? '<a class="link-btn" href="' + esc(portal) + '">Portal</a>' : '') + '</div>'
+      + '</div></header>'
+      + '<main class="page" id="zk-main"><div class="empty">Loading the price list…</div></main>'
+      + '<div class="overlay" id="zk-signin" hidden><form class="dialog signin" id="zk-signin-form">'
+      + '<h2>Sign in</h2><p>Use your Zip Kit sales account.</p>'
+      + '<div class="field"><label for="zk-signin-email">Email</label><input type="email" id="zk-signin-email" autocomplete="email" required></div>'
+      + '<div class="field"><label for="zk-signin-password">Password</label><input type="password" id="zk-signin-password" autocomplete="current-password" required></div>'
+      + '<div class="notice bad" id="zk-signin-err" hidden></div>'
+      + '<button type="submit" class="btn primary" id="zk-signin-btn">Sign in</button>'
+      + '<p class="help">Need an account? Ask Kelsey or Sven.</p></form></div>';
+  }
+
   function init(){
-    root.ZKCatalog.load('data/catalog.json').then(function(c){
+    app = document.querySelector(ZK.config.mount);
+    if(!app) return;
+    app.classList.add('zk-tool');
+    app.innerHTML = shellHTML();
+    root.ZK.Catalog.load(ZK.config.catalogUrl, ZK.config.catalogHeaders).then(function(c){
       cat = c;
       state.type = cat.activeTypes(ENABLED_TYPES)[0];
-      var main = $('#main');
+      var main = $('#zk-main');
       main.addEventListener('input', onInput);
       main.addEventListener('change', onChange);
       main.addEventListener('toggle', onToggle, true);
-      document.addEventListener('click', onClick);
+      app.addEventListener('click', onClick);
       document.addEventListener('keydown', onKey);
       render();
       return signInGate();
     }).then(function(user){
       state.user = user;
-      if(user && user.email) $('#user-email').textContent = user.email;
-      return root.ZKStore.loadProfile(user).then(function(rep){
+      if(user && user.email) $('#zk-user-email').textContent = user.email;
+      return root.ZK.Store.loadProfile(user).then(function(rep){
         state.rep = rep;
         var openId = new URLSearchParams(location.search).get('open');
         if(openId) return openSaved(openId);
         if(state.step === 'review') render();
       });
     }).catch(function(e){
-      $('#main').innerHTML = '<div class="notice bad"><b>The quote tool couldn\'t load its price list.</b> Check your connection and reload the page. If it keeps happening, tell the office.</div>';
+      $('#zk-main').innerHTML = '<div class="notice bad"><b>The quote tool couldn\'t load its price list.</b> Check your connection and reload the page. If it keeps happening, tell the office.</div>';
       console.error(e);
     });
   }
@@ -638,19 +672,19 @@
   }
 
   function openSaved(id){
-    if(!root.zkQuotes) return Promise.resolve();
-    return root.zkQuotes.get(id).then(function(row){
+    if(!root.ZK.quotes) return Promise.resolve();
+    return root.ZK.quotes.get(id).then(function(row){
       if(!row) throw new Error('not found');
       var kind = row.product_kind || '';
-      if(kind.indexOf('contract-') === 0){ location.replace('ZipKit_Contract_Generator.html?open=' + encodeURIComponent(id)); return; }
+      if(kind.indexOf('contract-') === 0){ location.replace(ZK.config.contractUrl + '?open=' + encodeURIComponent(id)); return; }
       // MVP is parked: its quotes open in the old tool, kept at legacy/mvp-quote.html.
-      if(row.brand === 'mvp'){ location.replace('legacy/mvp-quote.html?open=' + encodeURIComponent(id)); return; }
+      if(row.brand === 'mvp'){ location.replace(ZK.config.legacyMvpUrl + '?open=' + encodeURIComponent(id)); return; }
       var cfg = row.config || {}, loaded, notes = [];
       if(cfg.schema_version >= 2 && cfg.quote){
         loaded = { customer: cfg.quote.customer, cfg: cfg.quote.cfg };
       } else {
-        loaded = root.ZKLegacy.fromLegacy(cat, row);
-        if(loaded.error === 'parked'){ location.replace('legacy/mvp-quote.html?open=' + encodeURIComponent(id)); return; }
+        loaded = root.ZK.Legacy.fromLegacy(cat, row);
+        if(loaded.error === 'parked'){ location.replace(ZK.config.legacyMvpUrl + '?open=' + encodeURIComponent(id)); return; }
         if(loaded.error) throw new Error(loaded.error);
         notes = loaded.notes || [];
         notes.unshift('Saved by the old quote tool.');
@@ -688,10 +722,10 @@
     state.type = cat.activeTypes(ENABLED_TYPES)[0]; state.search = '';
     state.cfg = null; state.ui = { moreOpen:false, adjustOpen:false }; state.shownErrors = {};
     state.saved = null; state.ui.loadNote = null;
-    render(); window.scrollTo(0, 0);
+    render(); scrollToTop();
   }
 
-  root.ZKFlow = {
+  (root.ZK = root.ZK || {}).Flow = {
     state: state,
     go: go,
     newQuote: newQuote,
@@ -700,7 +734,7 @@
     result: currentResult,
     enabledTypes: ENABLED_TYPES,
     // Test helper: hide the sign-in screen on a local test server only.
-    _unlockForTests: function(){ if(/^(localhost|127\.0\.0\.1)$/.test(location.hostname)){ $('#signin').hidden = true; } }
+    _unlockForTests: function(){ if(/^(localhost|127\.0\.0\.1)$/.test(location.hostname)){ $('#zk-signin').hidden = true; } }
   };
-  document.addEventListener('DOMContentLoaded', init);
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
 })(window);

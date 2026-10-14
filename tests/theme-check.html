@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Theme check</title>
+<style>
+  body { margin:0; padding:24px 16px; font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; color:#17150f; background:#faf8f0; }
+  h1 { font-size:20px; margin:0 0 12px; }
+  #status { padding:14px 16px; border-radius:10px; font-weight:600; font-size:16px; background:#fff; border:1px solid #e6e2d6; }
+  #status.ok { background:#dceee6; color:#0e6b53; border-color:#0e6b53; }
+  #status.bad { background:#f7e1dc; color:#a33526; border-color:#a33526; }
+  pre { background:#fff; border:1px solid #e6e2d6; padding:10px; font-size:12px; white-space:pre-wrap; }
+  iframe { position:fixed; left:-5000px; top:0; width:1200px; height:900px; border:0; }
+</style>
+</head>
+<body>
+<h1>Theme check: a WordPress theme can't change the quote tool</h1>
+<p>Loads the tool on its own page and inside <code>theme-host.html</code> (a deliberately hostile theme), walks both through every step, and compares the computed style of every element in the tool. They must match. Add <code>?a=…&amp;b=…</code> to compare two other pages.</p>
+<div id="status">Running…</div>
+<pre id="out"></pre>
+<iframe id="fa"></iframe><iframe id="fb"></iframe>
+<script>
+(function(){
+  'use strict';
+  var qs = new URLSearchParams(location.search);
+  var A = qs.get('a') || '../quote.html', B = qs.get('b') || 'theme-host.html';
+  var width = +(qs.get('w') || 1200);
+  var PROPS = ['display','position','box-sizing','width','height','margin-top','margin-right','margin-bottom','margin-left',
+    'padding-top','padding-right','padding-bottom','padding-left','border-top-width','border-top-style','border-top-color',
+    'border-left-width','border-bottom-width','border-right-width','border-top-left-radius','background-color','background-image','box-shadow',
+    'color','font-family','font-size','font-weight','font-style','line-height','letter-spacing','word-spacing','text-transform',
+    'text-align','text-decoration-line','list-style-type','outline-style','opacity','visibility'];
+
+  function sleep(ms){ return new Promise(function(r){ setTimeout(r, ms); }); }
+  function load(frame, src){
+    frame.style.width = width + 'px';
+    return new Promise(function(res){
+      frame.onload = function(){
+        var W = frame.contentWindow;
+        // Same scrollbar on both pages, so the tool gets the same width.
+        W.document.documentElement.style.overflowY = 'scroll';
+        (function wait(){
+          var F = W.ZK && W.ZK.Flow || W.ZKFlow;
+          if(F && W.document.querySelector('[data-cust="name"]')) res(W); else setTimeout(wait, 100);
+        })();
+      };
+      frame.src = src;
+    });
+  }
+  function flow(W){ return W.ZK && W.ZK.Flow || W.ZKFlow; }
+  function rootOf(W){ return W.document.querySelector('.zk-tool') || W.document.body; }
+  function els(W){
+    return Array.prototype.slice.call(rootOf(W).querySelectorAll('*')).filter(function(e){ return !/^(SCRIPT|STYLE|LINK|OPTION)$/.test(e.tagName); });
+  }
+  function name(e){ return e.tagName.toLowerCase() + (e.id ? '#' + e.id.replace(/^zk-/, '') : '') + (e.className && typeof e.className === 'string' ? '.' + e.className.trim().split(/\s+/).join('.') : ''); }
+  function setVal(W, sel, v){ var e = W.document.querySelector(sel); e.value = v; e.dispatchEvent(new W.Event('input', { bubbles:true })); e.dispatchEvent(new W.Event('change', { bubbles:true })); }
+
+  // Each stage puts both pages in the same state.
+  var STAGES = [
+    ['Customer step', function(W){ flow(W).newQuote(); setVal(W, '[data-cust="name"]', 'Pat Buyer'); setVal(W, '[data-cust="state"]', 'UT'); }],
+    ['Product step (kits)', function(W){ flow(W).go('product'); }],
+    ['Product step (search)', function(W){ setVal(W, 'input[type=search]', 'al'); }],
+    ['Options step', function(W){ setVal(W, 'input[type=search]', ''); W.document.querySelector('[data-product="alpine"]').click(); }],
+    ['Options with More open', function(W){ var d = W.document.querySelector('details'); if(d) d.open = true; }],
+    ['Steel project step', function(W){ flow(W).go('product'); W.document.querySelector('[data-type="steel"]').click(); }],
+    ['Review step', function(W){ W.document.querySelector('[data-type="shell"]').click(); W.document.querySelector('[data-product="alpine"]').click(); flow(W).go('review'); }],
+    ['Create document box', function(W){ W.document.querySelector('[data-doc="1"]').click(); }],
+    ['Ballpark range', function(W){ W.document.querySelector('[data-doc-kind="ballpark-open"]').click(); }]
+  ];
+
+  function compare(Wa, Wb){
+    var a = els(Wa), b = els(Wb), diffs = [];
+    if(a.length !== b.length) return ['element count differs: ' + a.length + ' vs ' + b.length];
+    for(var i = 0; i < a.length; i++){
+      if(a[i].tagName !== b[i].tagName){ diffs.push('element ' + i + ': ' + name(a[i]) + ' vs ' + name(b[i])); break; }
+      var ca = Wa.getComputedStyle(a[i]), cb = Wb.getComputedStyle(b[i]);
+      PROPS.forEach(function(p){
+        var va = ca.getPropertyValue(p), vb = cb.getPropertyValue(p);
+        if(va !== vb) diffs.push(name(a[i]) + ' ' + p + ': ' + va + ' → ' + vb);
+      });
+    }
+    return diffs;
+  }
+
+  (async function(){
+    var Wa = await load(document.getElementById('fa'), A), Wb = await load(document.getElementById('fb'), B);
+    [Wa, Wb].forEach(function(W){ var F = flow(W); if(F._unlockForTests) F._unlockForTests(); });
+    var report = [], total = 0;
+    for(var s = 0; s < STAGES.length; s++){
+      STAGES[s][1](Wa); STAGES[s][1](Wb); await sleep(250);
+      var d = compare(Wa, Wb);
+      total += d.length;
+      report.push((d.length ? '✗ ' : '✓ ') + STAGES[s][0] + ' (' + els(Wa).length + ' elements)' + (d.length ? '\n    ' + d.slice(0, 25).join('\n    ') + (d.length > 25 ? '\n    … ' + (d.length - 25) + ' more' : '') : ''));
+    }
+    var ok = total === 0;
+    var st = document.getElementById('status'); st.className = ok ? 'ok' : 'bad';
+    st.textContent = ok ? 'PASS: every element looks the same in all ' + STAGES.length + ' stages.' : 'FAIL: ' + total + ' style differences.';
+    document.getElementById('out').textContent = 'A: ' + A + '\nB: ' + B + '\nwidth: ' + width + 'px\n\n' + report.join('\n');
+    document.title = (ok ? 'PASS ' : 'FAIL ') + STAGES.length + ' stages' + (ok ? '' : ', ' + total + ' diffs');
+    window.ZK_THEME_RESULT = { pass: ok, total: total, report: report };
+  })().catch(function(e){ document.getElementById('status').textContent = 'Could not run: ' + e; document.title = 'ERROR'; window.ZK_THEME_RESULT = { error: String(e && e.stack || e) }; });
+})();
+</script>
+</body>
+</html>

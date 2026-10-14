@@ -3,14 +3,14 @@
    rep needs on most quotes; the rest sit under "More options". */
 (function(root){
   'use strict';
-  var fmt = function(n){ return root.ZKPricing.fmt(n); };
+  var fmt = function(n){ return root.ZK.Pricing.fmt(n); };
   function esc(s){ return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
   // ---------- small HTML helpers ----------
   function tip(id, text){
     if(!text) return '';
-    return '<button type="button" class="tip" aria-expanded="false" aria-controls="tip-' + id + '" data-tip="' + id + '" title="More info">?</button>'
-      + '<span class="tip-text" id="tip-' + id + '" hidden>' + text + '</span>';
+    return '<button type="button" class="tip" aria-expanded="false" aria-controls="zk-tip-' + id + '" data-tip="' + id + '" title="More info">?</button>'
+      + '<span class="tip-text" id="zk-tip-' + id + '" hidden>' + text + '</span>';
   }
   function label(c){ return '<span class="group-label">' + esc(c.label) + (c.optional ? ' <span class="opt">(optional)</span>' : '') + tip(c.key, c.tip) + '</span>'; }
   function helpLine(c, ctx){ var h = typeof c.help === 'function' ? c.help(ctx) : c.help; return h ? '<div class="help">' + h + '</div>' : ''; }
@@ -29,21 +29,21 @@
     },
     number: function(c, ctx){
       var v = get(ctx, c.key);
-      return '<div class="field" data-field="' + c.key + '"><label for="f-' + c.key + '">' + esc(c.label) + (c.optional ? ' <span class="opt">(optional)</span>' : '') + tip(c.key, c.tip) + '</label>'
+      return '<div class="field" data-field="' + c.key + '"><label for="zk-f-' + c.key + '">' + esc(c.label) + (c.optional ? ' <span class="opt">(optional)</span>' : '') + tip(c.key, c.tip) + '</label>'
         + '<div class="inline">' + (c.prefix ? '<span class="suffix">' + c.prefix + '</span>' : '')
-        + '<input type="number" inputmode="decimal" id="f-' + c.key + '" data-key="' + c.key + '" data-kind="num" min="' + (c.min != null ? c.min : 0) + '"' + (c.max != null ? ' max="' + c.max + '"' : '') + ' step="' + (c.step || 'any') + '" value="' + (v == null ? '' : esc(v)) + '"' + (c.placeholder ? ' placeholder="' + esc(c.placeholder) + '"' : '') + '>'
+        + '<input type="number" inputmode="decimal" id="zk-f-' + c.key + '" data-key="' + c.key + '" data-kind="num" min="' + (c.min != null ? c.min : 0) + '"' + (c.max != null ? ' max="' + c.max + '"' : '') + ' step="' + (c.step || 'any') + '" value="' + (v == null ? '' : esc(v)) + '"' + (c.placeholder ? ' placeholder="' + esc(c.placeholder) + '"' : '') + '>'
         + (c.suffix ? '<span class="suffix">' + (typeof c.suffix === 'function' ? c.suffix(ctx) : c.suffix) + '</span>' : '') + '</div>'
         + helpLine(c, ctx) + errLine(c) + '</div>';
     },
     text: function(c, ctx){
       var v = get(ctx, c.key);
-      return '<div class="field' + (c.full ? ' full' : '') + '" data-field="' + c.key + '"><label for="f-' + c.key + '">' + esc(c.label) + (c.optional ? ' <span class="opt">(optional)</span>' : '') + tip(c.key, c.tip) + '</label>'
-        + '<input type="text" id="f-' + c.key + '" data-key="' + c.key + '" data-kind="text" value="' + esc(v || '') + '"' + (c.placeholder ? ' placeholder="' + esc(c.placeholder) + '"' : '') + '>'
+      return '<div class="field' + (c.full ? ' full' : '') + '" data-field="' + c.key + '"><label for="zk-f-' + c.key + '">' + esc(c.label) + (c.optional ? ' <span class="opt">(optional)</span>' : '') + tip(c.key, c.tip) + '</label>'
+        + '<input type="text" id="zk-f-' + c.key + '" data-key="' + c.key + '" data-kind="text" value="' + esc(v || '') + '"' + (c.placeholder ? ' placeholder="' + esc(c.placeholder) + '"' : '') + '>'
         + helpLine(c, ctx) + errLine(c) + '</div>';
     },
     textarea: function(c, ctx){
-      return '<div class="field full" data-field="' + c.key + '"><label for="f-' + c.key + '">' + esc(c.label) + (c.optional ? ' <span class="opt">(optional)</span>' : '') + tip(c.key, c.tip) + '</label>'
-        + '<textarea id="f-' + c.key + '" data-key="' + c.key + '" data-kind="text"' + (c.placeholder ? ' placeholder="' + esc(c.placeholder) + '"' : '') + '>' + esc(get(ctx, c.key) || '') + '</textarea>'
+      return '<div class="field full" data-field="' + c.key + '"><label for="zk-f-' + c.key + '">' + esc(c.label) + (c.optional ? ' <span class="opt">(optional)</span>' : '') + tip(c.key, c.tip) + '</label>'
+        + '<textarea id="zk-f-' + c.key + '" data-key="' + c.key + '" data-kind="text"' + (c.placeholder ? ' placeholder="' + esc(c.placeholder) + '"' : '') + '>' + esc(get(ctx, c.key) || '') + '</textarea>'
         + helpLine(c, ctx) + errLine(c) + '</div>';
     },
     choices: function(c, ctx){
@@ -60,8 +60,8 @@
     select: function(c, ctx){
       var cur = get(ctx, c.key);
       var opts = typeof c.options === 'function' ? c.options(ctx) : c.options;
-      return '<div class="field" data-field="' + c.key + '"><label for="f-' + c.key + '">' + esc(c.label) + tip(c.key, c.tip) + '</label>'
-        + '<select id="f-' + c.key + '" data-key="' + c.key + '" data-kind="select">' + opts.map(function(o){
+      return '<div class="field" data-field="' + c.key + '"><label for="zk-f-' + c.key + '">' + esc(c.label) + tip(c.key, c.tip) + '</label>'
+        + '<select id="zk-f-' + c.key + '" data-key="' + c.key + '" data-kind="select">' + opts.map(function(o){
           return '<option value="' + esc(o.value) + '"' + (String(cur == null ? '' : cur) === String(o.value) ? ' selected' : '') + '>' + esc(o.title) + '</option>';
         }).join('') + '</select>' + helpLine(c, ctx) + errLine(c) + '</div>';
     },
@@ -89,7 +89,7 @@
     },
     schedule: function(c, ctx){
       var rows = ctx.cfg.customSchedule || [];
-      var info = root.ZKPricing.customScheduleInfo(rows);
+      var info = root.ZK.Pricing.customScheduleInfo(rows);
       var sumText = rows.length ? (Math.round(info.sum * 100) / 100) + '%' : '';
       return '<div class="field" data-field="customSchedule">' + label(c)
         + (rows.length ? '' : '<div class="help">Standard schedule: engineering first, then 45% / 45% / 10%.</div>')
@@ -363,5 +363,5 @@
   function adjustItems(ctx){ return TYPES[ctx.type].adjust(ctx); }
   function hasProjectStep(t){ return !!(TYPES[t] && TYPES[t].project); }
 
-  root.ZKOptions = { renderOptions: renderOptions, patchOptions: patchOptions, renderProject: renderProject, adjustItems: adjustItems, hasProjectStep: hasProjectStep, esc: esc };
+  (root.ZK = root.ZK || {}).Options = { renderOptions: renderOptions, patchOptions: patchOptions, renderProject: renderProject, adjustItems: adjustItems, hasProjectStep: hasProjectStep, esc: esc };
 })(window);

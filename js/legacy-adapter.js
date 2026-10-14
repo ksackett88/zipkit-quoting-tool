@@ -111,6 +111,6 @@
     return { customer: customerOf(row), cfg: cfg, notes: notes };
   }
 
-  root.ZKLegacy = { fromLegacy: fromLegacy, NO_REASON: NO_REASON };
-  if(typeof module !== 'undefined' && module.exports) module.exports = root.ZKLegacy;
+  (root.ZK = root.ZK || {}).Legacy = { fromLegacy: fromLegacy, NO_REASON: NO_REASON };
+  if(typeof module !== 'undefined' && module.exports) module.exports = root.ZK.Legacy;
 })(typeof window !== 'undefined' ? window : this);
