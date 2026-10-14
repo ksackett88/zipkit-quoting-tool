@@ -36,17 +36,28 @@ foreach ( $cases as $c ) {
 }
 rec( 'Shipping matches the rep tool for ' . count( $cases ) . ' cases (kits, modular, garages incl. over 600 mi, hangars)', ! $bad, $bad );
 
-// 2. Today's data: national starting price, no zone, shipping quoted separately.
-$e = zkst_estimate( $cat, $zk, 'zipkit', array( 'product_id' => 'alpine', 'homes' => 2, 'snow' => 'tier1', 'assembly' => 'crew', 'state' => 'UT', 'zip' => '84101' ) );
+// 2. Today's real data: zones at 0% (national price), road factor 1.25, real ZIP centers.
+$zips = load( $root . '/data/zips.json' );
+rec( 'ZIP data loaded (Census 2025 ZCTA Gazetteer) with both factories', count( $zips ) > 30000 && isset( $zips['84721'], $zips['83401'] ), count( $zips ) );
+$e = zkst_estimate( $cat, $zk, 'zipkit', array( 'product_id' => 'alpine', 'homes' => 2, 'snow' => 'tier1', 'assembly' => 'crew', 'state' => 'UT', 'zip' => '84101' ), $zips );
 $alpine = null; foreach ( $zk['products'] as $p ) { if ( 'alpine' === $p['id'] ) { $alpine = $p; } }
-rec( 'Zip Kit Alpine x2 in Utah: starting price x 2, no zone (not set), shipping quoted separately',
-	$e['start'] === $alpine['start_price'] * 2 && null === $e['zone'] && null === $e['shipping'] && in_array( array( 'Shipping to your build site', 'Quoted separately' ), $e['lines'], true ), $e );
+$miles = (int) round( zkst_est_haversine( $zips['84721'], $zips['84101'] ) * 1.25 );
+$ship  = (int) round( $miles * product( $cat, 'alpine' )['pricing']['zipkit']['ship_per_mile'] * 2 );
+rec( 'Zip Kit Alpine x2 to Salt Lake City 84101: national price (0% zone, no area note), shipping = road miles (x1.25) x rate x 2',
+	$e['each'] === $alpine['start_price'] && null === $e['zone'] && ! in_array( 'Includes pricing for your area.', $e['notes'], true )
+	&& $e['shipping'] === $ship && $e['start'] === $alpine['start_price'] * 2 + $ship && in_array( array( 'Shipping to 84101 (estimated)', '$' . number_format( $ship ) ), $e['lines'], true ), array( $e, $miles, $ship ) );
+rec( 'Shipping is labeled estimated, and the rep sets the final number', in_array( 'Shipping is estimated. Your sales rep confirms the final number.', $e['notes'], true ), $e['notes'] );
 rec( 'Design line and "final pricing is set after design" are in the notes', in_array( 'Design starts at $2,500.', $e['notes'], true ) && in_array( 'Final pricing is set after design.', $e['notes'], true ), $e['notes'] );
 
-// 3. MVP pilot: no prices anywhere.
-$m = zkst_estimate( $cat, $mvp, 'mvp', array( 'product_id' => 'sierra', 'homes' => 1, 'snow' => 'standard', 'state' => 'ID', 'zip' => '83401' ) );
-rec( 'MVP Sierra: needs_price, no number anywhere, "Price coming soon"',
-	$m['needs_price'] && null === $m['start'] && null === $m['each'] && ! preg_match( '/\$\d/', json_encode( $m ) ) && 'Price coming soon' === $m['lines'][0][1], $m );
+// 3. MVP pilot: no prices anywhere, and never another brand's rates.
+$m = zkst_estimate( $cat, $mvp, 'mvp', array( 'product_id' => 'sierra', 'homes' => 1, 'snow' => 'standard', 'state' => 'ID', 'zip' => '83401' ), $zips );
+rec( 'MVP Sierra: needs_price, no number anywhere, "Price coming soon", shipping quoted separately',
+	$m['needs_price'] && null === $m['start'] && null === $m['each'] && null === $m['shipping'] && ! preg_match( '/\$\d/', json_encode( $m ) ) && 'Price coming soon' === $m['lines'][0][1], $m );
+$priced = $mvp; $priced['needs_price'] = false; foreach ( $priced['products'] as &$pp ) { $pp['start_price'] = 100000; } unset( $pp );
+$g = zkst_estimate( $cat, $priced, 'mvp', array( 'product_id' => 'gallatin-ii', 'homes' => 1, 'snow' => 'standard', 'state' => 'ID', 'zip' => '84101' ), $zips );
+rec( 'MVP Gallatin II never borrows Zip Kit\'s shipping rate (even once MVP has prices)', null === $g['shipping'], $g );
+$d = zkst_estimate( $cat, $mvp, 'mvp', array( 'product_id' => 'dakota', 'homes' => 1, 'state' => 'UT', 'zip' => '84101' ), $zips );
+rec( 'Multifamily-only Dakota is quoted from 2 units', 2 === $d['units'], $d['units'] );
 
 // 4. With zones, road factor and zip points filled in (TEST VALUES ONLY).
 $t = $cat;
@@ -70,7 +81,7 @@ $n = zkst_estimate( $t, $zk, 'zipkit', array( 'product_id' => 'alpine', 'homes' 
 rec( 'Unknown zip: shipping quoted separately, never guessed', null === $n['shipping'] && in_array( array( 'Shipping to your build site', 'Quoted separately' ), $n['lines'], true ), $n );
 
 // 5. City-cost hook: an add-on line when provided, nothing otherwise.
-$c = zkst_estimate( $cat, $zk, 'zipkit', array( 'product_id' => 'alpine', 'homes' => 1, 'snow' => 'standard', 'state' => 'UT', 'zip' => '84101' ), null, array( 'label' => 'Local building costs', 'amount' => 1234 ) );
+$c = zkst_estimate( $cat, $zk, 'zipkit', array( 'product_id' => 'alpine', 'homes' => 1, 'snow' => 'standard', 'state' => 'UT', 'zip' => '' ), null, array( 'label' => 'Local building costs', 'amount' => 1234 ) );
 rec( 'City-cost hook adds its line and amount', $c['start'] === $alpine['start_price'] + 1234 && in_array( array( 'Local building costs', '$1,234' ), $c['lines'], true ), $c );
 
 // 6. Homes are capped and products must exist in the brand's public catalog.

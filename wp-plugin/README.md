@@ -150,7 +150,9 @@ There are no payments of any kind.
 - **`POST /wp-json/zipkit/v1/estimate`.** It needs the customer's Supabase sign-in token. The plugin checks it with Supabase, caches it for 10 minutes, and requires a confirmed email. The math is in `includes/estimate-engine.php`:
   - **Starting price:** the public card price × homes.
   - **Price zone:** catalog.json `public.location.zones`, per brand, as `{"pct": n}` or `{"flat": n}` per home. A state can override its zone.
-  - **Shipping:** road miles from the brand's factory ZIP to the customer's ZIP, × the rep tool's per-mile rate (the same formulas as the rep tool) × homes. It needs ZIP data in `data/zips.json` (copied to `private/zips.json` by the build), a factory ZIP and a road factor. Until all three exist it says "Quoted separately".
+  - **Shipping:** straight-line miles from the brand's factory ZIP (Zip Kit 84721, MVP 83401) to the customer's ZIP, × **1.25** for road miles, × the rep tool's per-mile rate (the same formulas as the rep tool) × homes. Customers see it as **estimated**, with "Your sales rep confirms the final number." MVP has no rates yet, so its shipping says "Quoted separately".
+  - **ZIP data:** `data/zips.json` (US Census 2025 ZCTA Gazetteer, public domain, 33,791 ZIP code areas). The build copies it to `private/zips.json`.
+  - **Zones:** the four from the region map, every adjustment **0%** until Sven sends numbers. Zip Kit shows the national "Starting at" price meanwhile.
   - **City cost (e.g. RSMeans), later:** add a filter `zkst_city_cost` returning `['label' => '…', 'amount' => 1234]`. Nothing is built behind it.
   - Anything marked `needs_price` / `needs_data` is left out, never guessed.
 - **`POST /wp-json/zipkit/v1/lead`.** Also needs the customer's token.

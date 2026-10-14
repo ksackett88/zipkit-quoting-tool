@@ -142,17 +142,27 @@ function zkst_estimate( $cat, $public, $brand, $in, $zipdata = null, $city = nul
 			$type = $t;
 		}
 	}
+	// The catalog product behind this model (for shipping rates), and only
+	// when it belongs to this brand: a brand never borrows another's rates.
+	$src = $pub['id'];
+	foreach ( (array) zkst_est_ref( $cat, 'public.brands.' . $brand . '.models' ) as $m ) {
+		if ( $m['id'] === $pub['id'] ) {
+			$src = isset( $m['from_product'] ) ? $m['from_product'] : null;
+		}
+	}
+	$own  = (array) zkst_est_ref( $cat, 'public.brands.' . $brand . '.catalog_brands' );
 	$full = null;
 	foreach ( (array) $cat['products'] as $p ) {
-		if ( $p['id'] === $pub['id'] ) {
+		if ( $src && $p['id'] === $src && in_array( $p['brands'][0], $own, true ) ) {
 			$full = $p;
 		}
 	}
 	$state  = isset( $in['state'] ) ? $in['state'] : '';
 	$zip    = isset( $in['zip'] ) ? substr( preg_replace( '/\D/', '', (string) $in['zip'] ), 0, 5 ) : '';
-	$units  = ( $type && $type['ask_homes'] ) ? max( 1, min( (int) $public['max_homes'], (int) ( isset( $in['homes'] ) ? $in['homes'] : 1 ) ) ) : 1;
+	$min    = isset( $pub['min_units'] ) ? max( 1, (int) $pub['min_units'] ) : 1;
+	$units  = ( $type && $type['ask_homes'] ) ? max( $min, min( (int) $public['max_homes'], (int) ( isset( $in['homes'] ) ? $in['homes'] : $min ) ) ) : 1;
 	$word   = array( 'home' => 'home', 'garage' => 'garage', 'hangar' => 'hangar' );
-	$unit   = isset( $word[ $type['per'] ] ) ? $word[ $type['per'] ] : 'home';
+	$unit   = $min > 1 ? 'unit' : ( isset( $word[ $type['per'] ] ) ? $word[ $type['per'] ] : 'home' );
 	$units_word = $units . ' ' . $unit . ( 1 === $units ? '' : 's' );
 
 	$res = array(
@@ -174,7 +184,7 @@ function zkst_estimate( $cat, $public, $brand, $in, $zipdata = null, $city = nul
 	} else {
 		$each = (int) $pub['start_price'];
 		$adj  = zkst_est_adjust( $cat, $brand, $state, $each );
-		if ( null !== $adj ) {
+		if ( null !== $adj && 0 !== $adj ) {
 			$each += $adj;
 			$zone  = zkst_est_zone( $cat, $state );
 			$res['zone']    = $zone ? $zone['label'] : null;
@@ -213,6 +223,9 @@ function zkst_estimate( $cat, $public, $brand, $in, $zipdata = null, $city = nul
 		}
 	}
 	$res['shipping'] = $ship;
+	if ( null !== $ship ) {
+		$res['notes'][] = 'Shipping is estimated. Your sales rep confirms the final number.';
+	}
 	$res['lines'][]  = null !== $ship
 		? array( 'Shipping to ' . $zip . ' (estimated)', zkst_est_money( $ship ) )
 		: array( 'Shipping to your build site', 'Quoted separately' );

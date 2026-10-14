@@ -283,36 +283,44 @@
         "catalog_brands": ["zipkit", "zksteel"],
         "prices": "catalog",
         "factory_zip": "84721",
-        "confirm": true,
-        "confirm_note": "Shipping is figured from Cedar City (zip 84721, the office) to the customer's zip."
+        "confirm": false,
+        "confirm_note": "Ships from Cedar City, 84721 (Kelsey 2026-10-14)."
       },
       "mvp": {
         "pilot": true,
         "catalog_brands": ["mvp"],
         "types": ["modular"],
-        "products": ["sierra", "ridgeline", "dakota"],
+        "models": [
+          { "id": "ridgeline", "from_product": "ridgeline" },
+          { "id": "dakota", "from_product": "dakota", "multifamily_only": true },
+          { "id": "gallatin-i", "from_product": "gallatin", "name": "Gallatin I" },
+          { "id": "gallatin-ii", "from_product": "gallatin-ii" },
+          { "id": "mckinley", "name": "McKinley", "size": "971 sq ft per live/work unit", "source": "MVP site facts (Kelsey D103): 538 sq ft home over 433 sq ft commercial per unit." },
+          { "id": "westley", "name": "Westley", "multifamily_only": true, "source": "Size and photo not on file yet." },
+          { "id": "sierra", "from_product": "sierra" }
+        ],
         "prices": "needs_price",
         "availability": { "complete_modular": { "states_from": "brands.mvp.service_states" } },
         "photo_labels": { "sierra": "Rendering" },
-        "factory_zip": null,
+        "factory_zip": "83401",
         "confirm": true,
-        "confirm_note": "MVP pilot: models (the catalog has Sierra, Ridgeline, Dakota), states (UT, ID, MT, WY), ship-from location and every price come from Sven. Until then MVP shows no prices."
+        "confirm_note": "MVP pilot (Kelsey 2026-10-14): lineup Ridgeline, Dakota, Gallatin I, Gallatin II, McKinley, Westley, Sierra; UT, ID, MT, WY only; Dakota and Westley multifamily only; ships from Idaho Falls 83401. Every price, shipping rate and the Westley size and photo still come from Sven: until then MVP shows no prices."
       }
     },
     "location": {
       "note": "Server-side only (WordPress plugin). Price zones adjust a model's starting price per home; shipping is the rep tool's per-mile rate times road miles from the factory zip to the customer's zip.",
       "zones": [
-        { "id": "core_modular", "label": "Utah, Idaho, Montana, Wyoming", "states": ["UT", "ID", "MT", "WY"], "adjust": { "zipkit": "needs_price", "mvp": "needs_price" } },
-        { "id": "core", "label": "Colorado, Arizona, Nevada", "states": ["CO", "AZ", "NV"], "adjust": { "zipkit": "needs_price", "mvp": "needs_price" } },
-        { "id": "west", "label": "California, Oregon, Washington, New Mexico", "states": ["CA", "OR", "WA", "NM"], "adjust": { "zipkit": "needs_price", "mvp": "needs_price" } },
-        { "id": "rest", "label": "All other states", "states": "rest", "adjust": { "zipkit": "needs_price", "mvp": "needs_price" } }
+        { "id": "core_modular", "label": "Utah, Idaho, Montana, Wyoming", "states": ["UT", "ID", "MT", "WY"], "adjust": { "zipkit": { "pct": 0 }, "mvp": { "pct": 0 } } },
+        { "id": "core", "label": "Colorado, Arizona, Nevada", "states": ["CO", "AZ", "NV"], "adjust": { "zipkit": { "pct": 0 }, "mvp": { "pct": 0 } } },
+        { "id": "west", "label": "California, Oregon, Washington, New Mexico", "states": ["CA", "OR", "WA", "NM"], "adjust": { "zipkit": { "pct": 0 }, "mvp": { "pct": 0 } } },
+        { "id": "rest", "label": "All other states", "states": "rest", "adjust": { "zipkit": { "pct": 0 }, "mvp": { "pct": 0 } } }
       ],
       "state_overrides": {},
-      "zones_confirm": "Zones copied from the region map (Sven, 2026-10-02). Each adjust is {\"pct\": 5} or {\"flat\": 2500} per home, or needs_price.",
-      "road_factor": "needs_price",
-      "road_factor_note": "Road miles = straight-line miles x this factor. Needs Kelsey's number.",
-      "zip_data": "needs_data",
-      "zip_data_note": "Zip code centers (and states) for the distance math. Waiting on Kelsey's OK to use the US Census ZCTA Gazetteer (public domain).",
+      "zones_note": "The four zones from the region map (Kelsey 2026-10-14). Every adjustment is 0% until Sven sends numbers. Each adjust is {\"pct\": 5} or {\"flat\": 2500} per home, or needs_price.",
+      "road_factor": 1.25,
+      "road_factor_note": "Road miles = straight-line miles x 1.25 (Kelsey 2026-10-14). Customers see shipping as estimated; the rep sets the final number.",
+      "zip_data": "data/zips.json",
+      "zip_data_note": "US Census 2025 ZCTA Gazetteer (public domain), interior point of each ZIP code area, rounded to 3 decimals. Approved by Kelsey 2026-10-14.",
       "city_cost": { "provider": null, "note": "Hook for a city cost index (for example RSMeans). Not built: the plugin filter zkst_city_cost returns nothing." }
     },
     "snow_choices": [

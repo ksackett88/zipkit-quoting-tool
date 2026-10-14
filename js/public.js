@@ -106,7 +106,10 @@
   function product(){ return cat.products.filter(function(p){ return p.id === state.productId; })[0] || null; }
   function assemblyHere(){ var t = type(); return !!(t && t.ask_assembly && sold('assembly', state.st)); }
   function hasAssemblyTypes(){ return cat.types.some(function(t){ return t.ask_assembly; }); }
-  function unitWord(t, n){ var w = { home: 'home', garage: 'garage', hangar: 'hangar' }[t.per] || 'home'; return n === 1 ? w : w + 's'; }
+  function unitWord(t, n){
+    var p = product(), w = p && p.min_units > 1 ? 'unit' : ({ home: 'home', garage: 'garage', hangar: 'hangar' }[t.per] || 'home');
+    return n === 1 ? w : w + 's';
+  }
 
   // Which questions this model asks, and whether they're all answered.
   function questions(){
@@ -224,10 +227,13 @@
       + ' <button type="button" class="zp-link" data-go="pick">Pick a different model</button></p>'
       + '<div class="zp-split"><div class="zp-card zp-form">'
       + (p && p.photo ? '<div class="zp-herowrap"><img class="zp-hero" src="' + esc(ZK.url(p.photo)) + '" alt="' + esc(p.name) + '">' + (p.photo_label ? '<span class="zp-plabel">' + esc(p.photo_label) + '</span>' : '') + '</div>' : '');
-    var homes = [];
-    for(var i = 1; i <= cat.max_homes; i++) homes.push([i, i + ' ' + unitWord(t, i)]);
+    // Multifamily-only models start at 2 units.
+    var homes = [], min = p && p.min_units > 1 ? p.min_units : 1;
+    for(var i = min; i <= cat.max_homes; i++) homes.push([i, i + ' ' + unitWord(t, i)]);
     questions().forEach(function(k){
-      if(k === 'homes') h += select('homes', 'How many homes?', 'Select number of homes', homes, state.homes);
+      if(k === 'homes') h += min > 1
+        ? select('homes', 'How many units?', 'Select number of units', homes, state.homes) + '<p class="zp-help">The ' + esc(p.name) + ' is built as multifamily only.</p>'
+        : select('homes', 'How many homes?', 'Select number of homes', homes, state.homes);
       if(k === 'snow') h += select('snow', 'How much snow do you get?', 'Select a snow load', cat.snow_choices.map(function(s){ return [s.id, s.label]; }), state.snow)
         + '<ul class="zp-help zp-snowlist">' + cat.snow_choices.map(function(s){ return '<li><b>' + esc(s.label) + ':</b> ' + esc(s.help) + '</li>'; }).join('') + '</ul>'
         + '<p class="zp-help">Not sure? Your local building department can tell you the snow load where you\'re building.</p>';

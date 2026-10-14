@@ -86,8 +86,20 @@ foreach ($bp in $pub.brands.PSObject.Properties) {
   # Models. Starting price = the rep tool's card price ("Kit from / Complete
   # from / Starting at"), or nothing while the brand needs prices.
   $priced = @($types | Where-Object { -not $_.lead_only } | ForEach-Object { $_.id })
-  if ($pb.products) {
-    $list = @($pb.products | ForEach-Object { $id = $_; $c.products | Where-Object { $_.id -eq $id } })
+  # A brand either lists its public models ("models": name, size and photo
+  # from a catalog product, or given directly) or takes every active catalog
+  # product of its catalog brands.
+  if ($pb.models) {
+    $list = @($pb.models | ForEach-Object {
+      $m = $_; $src = $null
+      if ($m.from_product) { $src = $c.products | Where-Object { $_.id -eq $m.from_product }; if (-not $src) { throw "Model $($m.id): no catalog product $($m.from_product)" } }
+      [pscustomobject]@{
+        id = $m.id; type = $(if ($src) { $src.type } else { $pb.types[0] }); name = $(if ($m.name) { $m.name } else { $src.name })
+        sqft = $(if ($src) { $src.sqft } else { $null }); sqft_label = $(if ($m.size) { $null } elseif ($src) { $src.sqft_label } else { $null })
+        dimensions = $(if ($m.size) { $m.size } elseif ($src) { $src.dimensions } else { $null }); photo = $(if ($src) { $src.photo } else { $null })
+        barndominium = $false; multifamily = [bool]$m.multifamily_only; brands = $(if ($src) { $src.brands } else { @() }); pricing = $(if ($src) { $src.pricing } else { $null })
+      }
+    })
   } else {
     $list = @($c.products | Where-Object { $_.status -eq 'active' -and @($_.brands | Where-Object { $pb.catalog_brands -contains $_ }).Count -gt 0 })
   }
@@ -96,6 +108,7 @@ foreach ($bp in $pub.brands.PSObject.Properties) {
     if ($priced -notcontains $p.type) { continue }
     $start = $null
     if (-not $needsPrice) {
+      if (-not $p.pricing) { throw "Model $($p.id) has no catalog prices; mark the brand needs_price" }
       $z = $p.pricing.($p.brands[0])
       switch ($p.type) {
         'shell'   { $start = $z.shell_kit }
@@ -116,9 +129,11 @@ foreach ($bp in $pub.brands.PSObject.Properties) {
       sqft        = $(if ($p.sqft) { $p.sqft } else { $null })
       # Ranges read "1,290 to 1,536", never with a dash (public copy rule).
       size        = ($(if ($p.sqft_label) { ($p.sqft_label -replace '^(.+?) / (\w+)$', '$1 sq ft per $2') + $(if ($p.sqft_label -match ' / ') { '' } else { ' sq ft' }) } else { [string]$p.dimensions }) -replace ('\s*[' + [char]0x2013 + [char]0x2014 + ']\s*'), ' to ')
-      tag         = $(if ($p.barndominium) { 'Barndominium' } else { $null })
+      tag         = $(if ($p.multifamily) { 'Multifamily only' } elseif ($p.barndominium) { 'Barndominium' } else { $null })
       photo       = $photo
       photo_label = $label
+      # Multifamily-only models are priced and quoted from 2 units up.
+      min_units   = $(if ($p.multifamily) { 2 } else { 1 })
       start_price = $start
     })
   }

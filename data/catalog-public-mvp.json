@@ -84,17 +84,6 @@
     "max_homes":  10,
     "products":  [
                      {
-                         "id":  "sierra",
-                         "type":  "modular",
-                         "name":  "Sierra",
-                         "sqft":  806,
-                         "size":  "806 sq ft",
-                         "tag":  null,
-                         "photo":  "photos/cards/sierra.jpg",
-                         "photo_label":  "Rendering",
-                         "start_price":  null
-                     },
-                     {
                          "id":  "ridgeline",
                          "type":  "modular",
                          "name":  "Ridgeline",
@@ -103,6 +92,7 @@
                          "tag":  null,
                          "photo":  "photos/cards/ridgeline.jpg",
                          "photo_label":  null,
+                         "min_units":  1,
                          "start_price":  null
                      },
                      {
@@ -111,9 +101,70 @@
                          "name":  "Dakota",
                          "sqft":  840,
                          "size":  "840 sq ft per module",
-                         "tag":  null,
+                         "tag":  "Multifamily only",
                          "photo":  "photos/cards/dakota1.jpg",
                          "photo_label":  null,
+                         "min_units":  2,
+                         "start_price":  null
+                     },
+                     {
+                         "id":  "gallatin-i",
+                         "type":  "modular",
+                         "name":  "Gallatin I",
+                         "sqft":  497,
+                         "size":  "497 sq ft",
+                         "tag":  null,
+                         "photo":  "photos/cards/gallatin.jpg",
+                         "photo_label":  null,
+                         "min_units":  1,
+                         "start_price":  null
+                     },
+                     {
+                         "id":  "gallatin-ii",
+                         "type":  "modular",
+                         "name":  "Gallatin II",
+                         "sqft":  620,
+                         "size":  "620 sq ft",
+                         "tag":  null,
+                         "photo":  "photos/cards/gallatin-ii.jpg",
+                         "photo_label":  null,
+                         "min_units":  1,
+                         "start_price":  null
+                     },
+                     {
+                         "id":  "mckinley",
+                         "type":  "modular",
+                         "name":  "McKinley",
+                         "sqft":  null,
+                         "size":  "971 sq ft per live/work unit",
+                         "tag":  null,
+                         "photo":  null,
+                         "photo_label":  null,
+                         "min_units":  1,
+                         "start_price":  null
+                     },
+                     {
+                         "id":  "westley",
+                         "type":  "modular",
+                         "name":  "Westley",
+                         "sqft":  null,
+                         "size":  "",
+                         "tag":  "Multifamily only",
+                         "photo":  null,
+                         "photo_label":  null,
+                         "min_units":  2,
+                         "start_price":  null
+                     },
+                     {
+                         "id":  "sierra",
+                         "type":  "modular",
+                         "name":  "Sierra",
+                         "sqft":  806,
+                         "size":  "806 sq ft",
+                         "tag":  null,
+                         "photo":  "photos/cards/sierra.jpg",
+                         "photo_label":  "Rendering",
+                         "min_units":  1,
                          "start_price":  null
                      }
                  ]

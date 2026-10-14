@@ -84,3 +84,11 @@ What you can change in the `"public"` section:
 - **`brands`**: which product types and models each brand offers, its factory ZIP for shipping, and `"prices": "needs_price"` to show no prices at all (MVP until Sven sends numbers).
 - **`location`**: price zones per brand (`{"pct": 5}` or `{"flat": 2500}` per home, or `needs_price`), the road factor, and the ZIP data. These are used only by the WordPress server, never sent to the page.
 - **`confirm: true`**: marks a rule Kelsey still needs to OK. The build lists them every time it runs. They never go into the public file.
+
+## ZIP code data (`zips.json`)
+
+Each ZIP code's center point, used only by the WordPress server to estimate shipping distance. It comes from the US Census Bureau's **2025 ZCTA Gazetteer** (public domain), using each ZIP code area's interior point rounded to 3 decimals (about 100 m). It has 33,791 ZIP codes.
+
+To refresh it once a year:
+1. Download `<year>_Gaz_zcta_national.zip` from census.gov (Gazetteer files).
+2. Convert the `GEOID`, `INTPTLAT` and `INTPTLONG` columns to the same `{"84101": [lat, lon]}` shape.
