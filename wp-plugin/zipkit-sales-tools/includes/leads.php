@@ -221,7 +221,7 @@ function zkst_lead_email_customer( $pub, $lead ) {
 
 /** Save to the customer's own account (customer_quotes), as the customer. */
 function zkst_lead_save( $lead ) {
-	if ( ! zkst_settings()['save_leads'] ) {
+	if ( ! zkst_settings()['save_leads'] || ! empty( $lead['customer']['test'] ) ) {
 		return false;
 	}
 	list( $url, $key ) = zkst_customer_target();

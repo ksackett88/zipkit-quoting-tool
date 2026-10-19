@@ -81,3 +81,43 @@ function zkst_limited( $key, $max ) {
 	set_transient( $key, array_values( $hits ), HOUR_IN_SECONDS );
 	return false;
 }
+
+/**
+ * Test sign-in, for trying the customer flow before the customer Supabase
+ * project exists. Only ever on a local site: WordPress in "local" or
+ * "development" mode AND a localhost, .local, .test or .localhost address.
+ * Anywhere else the setting does nothing.
+ */
+function zkst_is_local_site() {
+	$host = (string) wp_parse_url( home_url(), PHP_URL_HOST );
+	$env  = function_exists( 'wp_get_environment_type' ) ? wp_get_environment_type() : 'production';
+	return in_array( $env, array( 'local', 'development' ), true )
+		&& ( in_array( $host, array( 'localhost', '127.0.0.1' ), true ) || (bool) preg_match( '/\.(local|test|localhost)$/', $host ) );
+}
+function zkst_test_signin() {
+	return ! empty( zkst_settings()['test_signin'] ) && zkst_is_local_site();
+}
+
+// A test token is "zkst-test." + base64url of {email, name, phone, zip},
+// made by the page's test sign-in. Answered here, before Supabase is asked.
+add_filter(
+	'zkst_verify_customer_token',
+	function ( $user, $token ) {
+		if ( null !== $user || 0 !== strpos( $token, 'zkst-test.' ) ) {
+			return $user;
+		}
+		if ( ! zkst_test_signin() ) {
+			return array( 'id' => '', 'confirmed' => false );
+		}
+		$d = json_decode( (string) base64_decode( strtr( substr( $token, 10 ), '-_', '+/' ) ), true );
+		$d = is_array( $d ) ? $d : array();
+		$email = isset( $d['email'] ) ? sanitize_email( $d['email'] ) : '';
+		if ( ! is_email( $email ) ) {
+			return array( 'id' => '', 'confirmed' => false );
+		}
+		$t = function ( $k ) use ( $d ) { return isset( $d[ $k ] ) ? mb_substr( sanitize_text_field( (string) $d[ $k ] ), 0, 100 ) : ''; };
+		return array( 'id' => 'test-' . md5( $email ), 'email' => $email, 'confirmed' => true, 'name' => $t( 'name' ), 'phone' => $t( 'phone' ), 'zip' => $t( 'zip' ), 'test' => true );
+	},
+	5,
+	2
+);

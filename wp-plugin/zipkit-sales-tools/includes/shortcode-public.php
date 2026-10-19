@@ -2,7 +2,7 @@
 /**
  * [zipkit_quote_public]: "Quote your own project" for customers.
  *
- * Loads only the public catalog (app/data/catalog-public.json) and posts
+ * Loads only the public catalog (app/data/catalog-public-<brand>.json) and posts
  * leads to the plugin's own endpoint (includes/leads.php). No payments.
  */
 
@@ -32,7 +32,8 @@ function zkst_enqueue_public() {
 		'publicCatalogUrl' => zkst_app_url( 'data/catalog-public-' . zkst_public_brand() . '.json' ),
 		'estimateUrl'      => rest_url( 'zipkit/v1/estimate' ),
 		'leadUrl'          => rest_url( 'zipkit/v1/lead' ),
-		'accounts'         => 'supabase',
+		'accounts'         => zkst_test_signin() ? 'stub' : 'supabase',
+		'testSignin'       => zkst_test_signin(),
 		'customerSupabaseUrl' => zkst_customer_target()[0],
 		'customerSupabaseKey' => zkst_customer_target()[1],
 		'publicMount'      => '[data-zk-app="public"]',

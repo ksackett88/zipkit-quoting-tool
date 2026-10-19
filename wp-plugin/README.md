@@ -133,7 +133,7 @@ zipkit-sales-tools/
    - Returning customers just ask for a new link.
 2. **Where are you building?** State and build-site ZIP (filled in from the account).
 3. Sees only what the brand sells in that state, then picks a model.
-4. Answers 1 to 3 dropdowns: homes, snow, and assembly where offered. Each has a placeholder and nothing preselected.
+4. Answers 1 to 3 dropdowns: homes, snow, and assembly where offered. Multifamily models ask by the building instead: Dakota "2-unit or 3-unit building?" and "How many buildings?", Westley (5 units) "How many buildings?", with "X buildings × Y units = Z units." Each has a placeholder and nothing preselected.
 5. Sees an estimate from the server: **"Starting at"**, or **"We'll send your price"** while a brand has no prices (MVP today).
 6. Picks a timeline and sends.
    - The brand's sales inbox and the customer each get an email.
@@ -146,6 +146,7 @@ There are no payments of any kind.
 - **A separate Supabase project for customers.** It holds customer accounts, `customer_profiles` and `customer_quotes`, and is never the sales project.
   - Run `sql/customer-project/2026-10_customer_accounts.sql` there. The file's header has the dashboard steps: confirm email, redirect URLs, the sign-in email.
   - Put that project's URL and publishable key in **Customer Supabase URL / key**. With these blank, the quoter says "Pricing online is coming soon" and shows the phone number.
+- **Test sign-in (local sites only).** Before the customer project exists, turn on **Test sign-in** to try the whole flow: the "Check your email" screen gets an "Act as if I clicked the email link" button, and the plugin accepts that test sign-in. It works only when WordPress is in local or development mode on a localhost, `.local`, `.test` or `.localhost` address; anywhere else it does nothing. Test sign-ins are never saved to Supabase. Steps: `wp-plugin/dist/HANDOFF.md`.
 - **Public data.** The page loads only `app/data/catalog-public-<brand>.json`: models, sizes, photos, starting prices and availability. The build makes these from `data/catalog.json` (`data/build-public-catalog.ps1`).
 - **`POST /wp-json/zipkit/v1/estimate`.** It needs the customer's Supabase sign-in token. The plugin checks it with Supabase, caches it for 10 minutes, and requires a confirmed email. The math is in `includes/estimate-engine.php`:
   - **Starting price:** the public card price × homes.

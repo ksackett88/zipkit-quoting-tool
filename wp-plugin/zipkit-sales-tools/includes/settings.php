@@ -32,6 +32,7 @@ function zkst_settings() {
 			'customer_supabase_url' => '',
 			'customer_supabase_key' => '',
 			'save_leads'   => false,
+			'test_signin'  => false,
 		)
 	);
 }
@@ -93,6 +94,7 @@ function zkst_sanitize_settings( $in ) {
 	}
 	$out['customer_supabase_key'] = $ckey;
 	$out['save_leads'] = ! empty( $in['save_leads'] );
+	$out['test_signin'] = ! empty( $in['test_signin'] );
 	return $out;
 }
 
@@ -136,6 +138,12 @@ add_action(
 		}, 'zkst', 'zkst_leads', array( 'label_for' => 'zkst-lead_email' ) );
 		add_settings_field( 'save_leads', __( 'Save quotes to Supabase', 'zipkit-sales-tools' ), function () {
 			printf( '<label><input type="checkbox" name="%1$s[save_leads]" value="1" %2$s> %3$s</label>', esc_attr( ZKST_OPTION ), checked( zkst_settings()['save_leads'], true, false ), esc_html__( 'Also save each sent quote to the customer\'s account (customer_quotes)', 'zipkit-sales-tools' ) );
+		}, 'zkst', 'zkst_leads' );
+		add_settings_field( 'test_signin', __( 'Test sign-in', 'zipkit-sales-tools' ), function () {
+			printf( '<label><input type="checkbox" name="%1$s[test_signin]" value="1" %2$s> %3$s</label>', esc_attr( ZKST_OPTION ), checked( zkst_settings()['test_signin'], true, false ), esc_html__( 'Skip the email link (test the customer flow without the customer Supabase project)', 'zipkit-sales-tools' ) );
+			echo '<p class="description">' . ( zkst_is_local_site()
+				? esc_html__( 'This is a local site, so this works here. Turn it off when you are done.', 'zipkit-sales-tools' )
+				: esc_html__( 'This is not a local site, so this setting does nothing here.', 'zipkit-sales-tools' ) ) . '</p>';
 		}, 'zkst', 'zkst_leads' );
 		add_settings_section( 'zkst_links', __( 'Links', 'zipkit-sales-tools' ), function () {
 			echo '<p>' . esc_html__( 'Where the tool sends reps for the portal, contracts and old MVP quotes. Blank uses the current GitHub Pages copies.', 'zipkit-sales-tools' ) . '</p>';

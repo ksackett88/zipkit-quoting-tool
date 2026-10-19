@@ -64,7 +64,7 @@ rec( 'Dakota refuses a building size it does not come in (4 units)', empty( $bad
 $w = zkst_estimate( $cat, $mvp, 'mvp', array( 'product_id' => 'westley', 'buildings' => 3, 'homes' => 1, 'state' => 'ID', 'zip' => '83401' ), $zips );
 rec( 'Westley: always 5 units per building; 3 buildings = 15 units ("homes" ignored)', 15 === $w['units'] && in_array( array( 'Buildings', '3 buildings × 5 units = 15 units' ), $w['lines'], true ), $w );
 $d1 = zkst_estimate( $cat, $priced, 'mvp', array( 'product_id' => 'dakota', 'buildings' => 1, 'building_units' => 2, 'state' => 'UT', 'zip' => '84101' ), $zips );
-rec( 'Priced (test value $100,000): 1 Dakota building of 2 units = 2 × each', 2 === $d1['units'] && 200000 + (int) $d1['shipping'] === $d1['start'] && 'Buildings' === $d1['lines'][1][0], $d1 );
+rec( 'Priced (test value $100,000): 1 Dakota building of 2 units = 2 × each, shipping "Quoted separately" (MVP rates not in)', 2 === $d1['units'] && 200000 === $d1['start'] && null === $d1['shipping'] && in_array( array( 'Shipping to your build site', 'Quoted separately' ), $d1['lines'], true ) && 'Buildings' === $d1['lines'][1][0], $d1 );
 
 // 4. With zones, road factor and zip points filled in (TEST VALUES ONLY).
 $t = $cat;

@@ -34,7 +34,7 @@
   function esc(s){ return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;'); }
   function money(n){ return '$' + Math.round(n).toLocaleString('en-US'); }
   function stateName(code){ for(var i = 0; i < STATES.length; i++) if(STATES[i][0] === code) return STATES[i][1]; return code; }
-  function isLocal(){ return /^(localhost|127\.0\.0\.1)$/.test(root.location.hostname); }
+  function isLocal(){ return /^(localhost|127\.0\.0\.1)$|\.(local|test|localhost)$/.test(root.location.hostname); }
 
   // ---------- UTM and landing page (first-party cookie, 90 days) ----------
   function cookie(name, value){
@@ -88,7 +88,10 @@
       saveProfile: function(){ return Promise.resolve(); },
       // Test only: act as if the customer clicked the link in their email.
       _verify: function(){
-        var u = { id: 'stub-' + (pending.email || 'x'), email: pending.email, name: pending.name || 'Returning Customer', phone: pending.phone || '', zip: pending.zip || '', token: 'stub-token' };
+        var u = { id: 'stub-' + (pending.email || 'x'), email: pending.email, name: pending.name || 'Returning Customer', phone: pending.phone || '', zip: pending.zip || '' };
+        // The plugin accepts this only on a local site with Test sign-in on (customers.php).
+        u.token = 'zkst-test.' + btoa(unescape(encodeURIComponent(JSON.stringify({ email: u.email, name: u.name, phone: u.phone, zip: u.zip }))))
+          .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
         root.sessionStorage.setItem(key, JSON.stringify(u)); if(listener) listener(u);
       }
     };
@@ -161,7 +164,8 @@
     if(state.mode === 'check'){
       return '<h1 class="zp-title" tabindex="-1">Check your email</h1>'
         + '<p class="zp-lead">We sent a link to <b>' + esc(state.sentTo) + '</b>. Open it on this device to keep going. It can take a minute to arrive.</p>'
-        + '<div class="zp-actions"><button type="button" class="zp-btn" data-resend="1">Send it again</button><button type="button" class="zp-link" data-mode="new">Use a different email</button></div>';
+        + '<div class="zp-actions"><button type="button" class="zp-btn" data-resend="1">Send it again</button><button type="button" class="zp-link" data-mode="new">Use a different email</button></div>'
+        + (accounts._verify && C.testSignin ? '<p class="zp-note zp-testmode">Test sign-in is on (local site only). No email is sent. <button type="button" class="zp-btn" data-test-verify="1">Act as if I clicked the email link</button></p>' : '');
     }
     var returning = state.mode === 'returning';
     return '<h1 class="zp-title" tabindex="-1">' + (returning ? 'Welcome back' : 'First, make your free account') + '</h1>'
@@ -440,6 +444,7 @@
     if(!t || !app.contains(t)) return;
     if(t.hasAttribute('data-go')) return go(t.getAttribute('data-go'));
     if(t.hasAttribute('data-mode')){ state.mode = t.getAttribute('data-mode'); state.errors = {}; return render(true); }
+    if(t.hasAttribute('data-test-verify') && accounts._verify){ accounts._verify(); return; }
     if(t.hasAttribute('data-resend')){ if(state.pending) accounts.start(state.pending); t.textContent = 'Sent again'; t.disabled = true; return; }
     if(t.hasAttribute('data-signout')){ accounts.signOut().then(signedOut); return; }
     if(t.hasAttribute('data-type')){ state.type = t.getAttribute('data-type'); state.productId = ''; render(); return; }

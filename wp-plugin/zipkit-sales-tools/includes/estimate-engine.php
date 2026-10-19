@@ -235,9 +235,11 @@ function zkst_estimate( $cat, $public, $brand, $in, $zipdata = null, $city = nul
 		$res['notes'][] = $type['design_line'];
 	}
 
-	// Shipping from the zip, when everything it needs is in.
+	// Shipping from the zip, when everything it needs is in. A brand set to
+	// "quoted_separately" (MVP until Sven sends rates) never shows a number.
 	$ship = null;
-	if ( ! $res['needs_price'] && $full && preg_match( '/^\d{5}$/', $zip ) ) {
+	$quoted_sep = 'quoted_separately' === zkst_est_ref( $cat, 'public.brands.' . $brand . '.shipping' );
+	if ( ! $res['needs_price'] && ! $quoted_sep && $full && preg_match( '/^\d{5}$/', $zip ) ) {
 		$miles = zkst_est_miles( $cat, $brand, $zip, $zipdata );
 		if ( null !== $miles ) {
 			$per = zkst_est_ship_per( $cat, $full, $miles );

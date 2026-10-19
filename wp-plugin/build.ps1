@@ -72,8 +72,8 @@ Copy-Into (Join-Path (Join-Path $repo 'photos') 'cards') (Join-Path (Join-Path $
 $private = Join-Path $stage 'private'
 New-Item -ItemType Directory -Force $private | Out-Null
 [IO.File]::WriteAllText((Join-Path $private 'catalog.json.php'), "<?php defined( 'ABSPATH' ) || exit; ?>`n" + $catalogText, $utf8)
-# Zip code centers for shipping math, once Kelsey approves a data source
-# (data/zips.json: {"84101": [lat, lon], ...}). Not added yet.
+# Zip code centers for shipping math
+# (data/zips.json: {"84101": [lat, lon], ...}, Census 2025 ZCTA Gazetteer).
 $zips = Join-Path (Join-Path $repo 'data') 'zips.json'
 if (Test-Path $zips) { Copy-Item $zips (Join-Path $private 'zips.json') }
 

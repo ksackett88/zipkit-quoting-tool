@@ -303,6 +303,8 @@
         "availability": { "complete_modular": { "states_from": "brands.mvp.service_states" } },
         "photo_labels": { "sierra": "Rendering" },
         "factory_zip": "83401",
+        "shipping": "quoted_separately",
+        "shipping_note": "MVP customers see \"Quoted separately\" for shipping until Sven sends MVP rates (Kelsey 2026-10-19). The parked per-mile numbers on the MVP products are for the rep tool only and are never used here.",
         "confirm": true,
         "confirm_note": "MVP pilot (Kelsey 2026-10-14): lineup Ridgeline, Dakota, Gallatin I, Gallatin II, McKinley, Westley, Sierra; UT, ID, MT, WY only; Dakota and Westley multifamily only (Dakota 2-unit or 3-unit buildings, Westley 5-unit 2-story buildings; customers pick buildings, the tool counts units); ships from Idaho Falls 83401. Every price, shipping rate and the Westley size and photo still come from Sven: until then MVP shows no prices."
       }
