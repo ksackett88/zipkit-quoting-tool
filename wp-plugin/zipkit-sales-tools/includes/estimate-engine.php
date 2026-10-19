@@ -226,7 +226,7 @@ function zkst_estimate( $cat, $public, $brand, $in, $zipdata = null, $city = nul
 				$lab = $s['label'];
 			}
 		}
-		$res['lines'][] = array( 'Snow load: ' . strtolower( $lab ), 'standard' === $snow ? 'Included' : 'Priced in your quote' );
+		$res['lines'][] = array( 'Snow load (' . strtolower( preg_replace( '/\s*snow$/i', '', $lab ) ) . ')', 'standard' === $snow ? 'Included' : 'Priced in your quote' );
 	}
 	if ( isset( $in['assembly'] ) && in_array( $in['assembly'], array( 'crew', 'diy' ), true ) ) {
 		$res['lines'][] = 'crew' === $in['assembly'] ? array( 'Assembly by our crew', 'Quoted separately' ) : array( 'You or your own crew build it', 'Plans and instructions included' );

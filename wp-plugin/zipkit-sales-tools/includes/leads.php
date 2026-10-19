@@ -151,13 +151,13 @@ function zkst_lead_endpoint( WP_REST_Request $req ) {
 }
 
 /** The fine print, the same on the page, the PDF and the emails. */
-function zkst_fine_print( $type ) {
-	$scope = 'modular' === $type
+function zkst_fine_print( $type, $pub = null ) {
+	$scope = ( $pub && ! empty( $pub['scope'][ $type ] ) ) ? $pub['scope'][ $type ] : ( 'modular' === $type
 		? 'A complete modular home arrives finished inside. Site prep, foundation, setting it on site and utility hookups are not included.'
-		: 'Kits are the shell only. Foundation, siding and roofing, insulation, plumbing, electrical and interior finishes are not included.';
+		: 'Kits are the shell only. Foundation, siding and roofing, insulation, plumbing, electrical and interior finishes are not included.' );
 	return array(
 		$scope,
-		'This is an estimate, not a quote. Final pricing is set after design.',
+		'This is an estimate, not a quote.',
 		'Pricing is based on your build site address. Sales tax is not included.',
 		'Permits, zoning and what you can build on your land: your local building department can tell you.',
 	);
@@ -173,6 +173,27 @@ function zkst_lead_breakdown_text( $lead ) {
 		$out[] = $lead['product_name'] . ': priced for your project';
 	}
 	return $out;
+}
+
+/**
+ * "From: <brand name> <address>". The address is the "Send emails from"
+ * setting, or WordPress's usual wordpress@<site> when blank. An SMTP plugin
+ * may still replace the address with its own.
+ */
+function zkst_lead_from( $pub ) {
+	$from = zkst_settings()['from_email'];
+	if ( '' === $from ) {
+		$host = strtolower( (string) wp_parse_url( network_home_url(), PHP_URL_HOST ) );
+		$from = 'wordpress@' . preg_replace( '/^www\./', '', $host );
+	}
+	$name = str_replace( array( '"', "\r", "\n" ), '', $pub['brand']['name'] );
+	return 'From: "' . $name . '" <' . $from . '>';
+}
+
+/** UTM tags for the sales email, or "none". */
+function zkst_lead_utm_text( $u ) {
+	$t = array_filter( array( $u['utm_source'], $u['utm_medium'], $u['utm_campaign'] ), 'strlen' );
+	return $t ? implode( ' / ', $t ) : 'none';
 }
 
 function zkst_lead_email_sales( $pub, $lead ) {
@@ -195,12 +216,12 @@ function zkst_lead_email_sales( $pub, $lead ) {
 		zkst_lead_breakdown_text( $lead ),
 		array(
 			'',
-			'UTM: ' . $lead['utm']['utm_source'] . ' / ' . $lead['utm']['utm_medium'] . ' / ' . $lead['utm']['utm_campaign'],
+			'UTM: ' . zkst_lead_utm_text( $lead['utm'] ),
 			'First landing page: ' . $lead['utm']['landing_page'],
 			'Sent from: ' . $lead['utm']['page'],
 		)
 	);
-	$headers = array( 'Reply-To: ' . ( $c['name'] ? $c['name'] : $c['email'] ) . ' <' . $c['email'] . '>' );
+	$headers = array( zkst_lead_from( $pub ), 'Reply-To: ' . ( $c['name'] ? $c['name'] : $c['email'] ) . ' <' . $c['email'] . '>' );
 	return (bool) wp_mail( $to, $sub, implode( "\n", $lines ), $headers );
 }
 
@@ -212,10 +233,10 @@ function zkst_lead_email_customer( $pub, $lead ) {
 		array( 'Hi ' . $first . ',', '', 'Thanks for pricing your project with ' . $pub['brand']['name'] . '. Here is your breakdown:', '' ),
 		zkst_lead_breakdown_text( $lead ),
 		array( '' ),
-		$lead['estimate'] ? zkst_fine_print( $type ) : array(),
+		$lead['estimate'] ? zkst_fine_print( $type, $pub ) : array(),
 		array( '', 'Someone from our team will reach out to talk it through. Questions? ' . $pub['brand']['phone'] . ' or ' . $pub['brand']['email'] . '.' )
 	);
-	$headers = array( 'Reply-To: ' . $pub['brand']['name'] . ' <' . $pub['brand']['email'] . '>' );
+	$headers = array( zkst_lead_from( $pub ), 'Reply-To: ' . $pub['brand']['name'] . ' <' . $pub['brand']['email'] . '>' );
 	return (bool) wp_mail( $c['email'], 'Your ' . $lead['product_name'] . ' estimate from ' . $pub['brand']['name'], implode( "\n", $lines ), $headers );
 }
 

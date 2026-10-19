@@ -6,11 +6,14 @@
                   "name":  "Mountain Valley Prefab",
                   "phone":  "208-970-6904",
                   "email":  "sales@mountainvalleyprefab.com",
-                  "logo":  "images/mvp-logo.png",
+                  "logo":  "images/mvp-logo-ridgeline.svg",
                   "colors":  {
                                  "main":  "#2f5d4a",
                                  "dark":  "#1f3f32"
                              }
+              },
+    "scope":  {
+                  "modular":  "Each unit is built complete in our Idaho Falls factory and set on your foundation by our crew. You provide the crane and handle site prep, the foundation and utility hookups."
               },
     "needs_price":  true,
     "availability":  {
@@ -91,7 +94,7 @@
                          "size":  "840 sq ft",
                          "tag":  null,
                          "photo":  "photos/cards/ridgeline.jpg",
-                         "photo_label":  null,
+                         "photo_label":  "Rendering",
                          "building_units":  null,
                          "start_price":  null
                      },
@@ -99,11 +102,11 @@
                          "id":  "dakota",
                          "type":  "modular",
                          "name":  "Dakota",
-                         "sqft":  840,
-                         "size":  "840 sq ft per module",
+                         "sqft":  null,
+                         "size":  "From 341 sq ft per unit",
                          "tag":  "Multifamily only",
                          "photo":  "photos/cards/dakota1.jpg",
-                         "photo_label":  null,
+                         "photo_label":  "Rendering",
                          "building_units":  [
                                                 2,
                                                 3
@@ -118,7 +121,7 @@
                          "size":  "497 sq ft",
                          "tag":  null,
                          "photo":  "photos/cards/gallatin.jpg",
-                         "photo_label":  null,
+                         "photo_label":  "Rendering",
                          "building_units":  null,
                          "start_price":  null
                      },
@@ -130,7 +133,7 @@
                          "size":  "620 sq ft",
                          "tag":  null,
                          "photo":  "photos/cards/gallatin-ii.jpg",
-                         "photo_label":  null,
+                         "photo_label":  "Rendering",
                          "building_units":  null,
                          "start_price":  null
                      },
@@ -139,11 +142,13 @@
                          "type":  "modular",
                          "name":  "McKinley",
                          "sqft":  null,
-                         "size":  "971 sq ft per live/work unit",
+                         "size":  "971 sq ft per live/work unit, 4 units per building",
                          "tag":  null,
                          "photo":  null,
                          "photo_label":  null,
-                         "building_units":  null,
+                         "building_units":  [
+                                                4
+                                            ],
                          "start_price":  null
                      },
                      {
@@ -151,7 +156,7 @@
                          "type":  "modular",
                          "name":  "Westley",
                          "sqft":  null,
-                         "size":  "5-unit, 2-story building",
+                         "size":  "5-unit, 2-story building, 2,772 sq ft",
                          "tag":  "Multifamily only",
                          "photo":  null,
                          "photo_label":  null,
@@ -164,8 +169,8 @@
                          "id":  "sierra",
                          "type":  "modular",
                          "name":  "Sierra",
-                         "sqft":  806,
-                         "size":  "806 sq ft",
+                         "sqft":  null,
+                         "size":  "620 sq ft",
                          "tag":  null,
                          "photo":  "photos/cards/sierra.jpg",
                          "photo_label":  "Rendering",

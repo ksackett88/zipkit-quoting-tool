@@ -19,7 +19,7 @@
     modular: 'A complete modular home arrives finished inside. Site prep, foundation, setting it on site and utility hookups are not included.',
     kit: 'Kits are the shell only. Foundation, siding and roofing, insulation, plumbing, electrical and interior finishes are not included.'
   };
-  var FINE = ['This is an estimate, not a quote. Final pricing is set after design.',
+  var FINE = ['This is an estimate, not a quote.',
     'Pricing is based on your build site address. Sales tax is not included.',
     'Permits, zoning and what you can build on your land: your local building department can tell you.'];
 
@@ -245,7 +245,8 @@
       if(k === 'bunits') h += select('bunits', s.map(function(n){ return n + '-unit'; }).join(' or ') + ' building?', 'Select building size', s.map(function(n){ return [n, n + '-unit building']; }), state.bunits);
       if(k === 'buildings') h += select('buildings', 'How many buildings?', 'Select number of buildings', blds, state.buildings)
         + '<p class="zp-help zp-bsum" id="zp-bsum">' + esc(buildingSum()) + '</p>'
-        + '<p class="zp-help">The ' + esc(p.name) + ' is multifamily only' + (s.length === 1 ? ': ' + plural(s[0], 'unit') + ' per building.' : '.') + '</p>';
+        + '<p class="zp-help">' + (p.tag === 'Multifamily only' ? 'The ' + esc(p.name) + ' is multifamily only' + (s.length === 1 ? ': ' + plural(s[0], 'unit') + ' per building.' : '.')
+          : 'The ' + esc(p.name) + ' comes as a building of ' + plural(s[0], 'unit') + '.') + '</p>';
       if(k === 'snow') h += select('snow', 'How much snow do you get?', 'Select a snow load', cat.snow_choices.map(function(s){ return [s.id, s.label]; }), state.snow)
         + '<ul class="zp-help zp-snowlist">' + cat.snow_choices.map(function(s){ return '<li><b>' + esc(s.label) + ':</b> ' + esc(s.help) + '</li>'; }).join('') + '</ul>'
         + '<p class="zp-help">Not sure? Your local building department can tell you the snow load where you\'re building.</p>';
@@ -305,15 +306,16 @@
   }
   function breakdownTable(e){
     return '<table class="zp-table"><tbody>' + e.lines.map(function(l){ return '<tr><td>' + esc(l[0]) + '</td><td>' + esc(l[1]) + '</td></tr>'; }).join('')
-      + '<tr class="zp-total"><td>Starting at</td><td>' + (e.start != null ? money(e.start) : 'Coming soon') + '</td></tr></tbody></table>'
+      + (e.start != null ? '<tr class="zp-total"><td>Starting at</td><td>' + money(e.start) + '</td></tr>' : '') + '</tbody></table>'
       + '<ul class="zp-fine">' + e.notes.map(function(n){ return '<li>' + esc(n) + '</li>'; }).join('') + '</ul>';
   }
-  function scopeNote(){ return state.type === 'modular' ? SCOPE.modular : SCOPE.kit; }
+  // A brand can word its own scope (MVP: its crew sets the home).
+  function scopeNote(){ var k = state.type === 'modular' ? 'modular' : 'kit'; return cat.scope && cat.scope[state.type] || SCOPE[k]; }
 
   function render(focus){
     if(!cat) return;
     var body = { account: renderAccount, where: renderWhere, pick: renderPick, choose: renderChoose, done: renderDone }[state.step]();
-    app.innerHTML = '<div class="zp-wrap">' + header() + '<main class="zp-main">' + body + '</main></div>';
+    app.innerHTML = '<div class="zp-wrap">' + header() + '<div class="zp-main">' + body + '</div></div>';
     if(focus){
       var h = $('.zp-title'); if(h) h.focus({ preventScroll: true });
       var top = app.getBoundingClientRect().top + (root.pageYOffset || 0);
@@ -422,7 +424,7 @@
     if(!w){ state.errors = { send: 'Your browser blocked the new window. Allow pop-ups for this site, then try again.' }; return; }
     var p = product(), e = state.result.estimate, b = cat.brand, abs = function(u){ return new URL(ZK.url(u), root.location.href).href; };
     var rows = e.lines.map(function(l){ return '<tr><td>' + esc(l[0]) + '</td><td style="text-align:right">' + esc(l[1]) + '</td></tr>'; }).join('');
-    var html = '<!DOCTYPE html><html><head><meta charset="utf-8"><title>' + esc(p.name) + ' estimate · ' + esc(b.name) + '</title>'
+    var html = '<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>' + esc(p.name) + ' estimate · ' + esc(b.name) + '</title>'
       + '<style>body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;color:#2d2a22;max-width:720px;margin:32px auto;padding:0 20px;line-height:1.5}'
       + 'h1{font-size:26px;margin:18px 0 4px}table{width:100%;border-collapse:collapse;margin:18px 0}td{padding:10px 0;border-bottom:1px solid #e6e2d6;vertical-align:top}'
       + '.t td{font-weight:700;font-size:20px;border-bottom:2px solid #17150f}.s{color:#6a6459;font-size:13px}img.h{width:100%;border-radius:10px;margin-top:12px}'
@@ -430,7 +432,7 @@
       + '<img src="' + esc(abs(b.logo)) + '" alt="' + esc(b.name) + '" style="height:40px">'
       + '<h1>Your ' + esc(p.name) + ' estimate</h1><div class="s">For ' + esc(state.user.name || state.user.email) + ' · Building in ' + esc(stateName(state.st)) + (state.zip ? ' ' + esc(state.zip) : '') + ' · ' + esc(new Date().toLocaleDateString('en-US')) + '</div>'
       + (p.photo ? '<img class="h" src="' + esc(abs(p.photo)) + '" alt="">' + (p.photo_label ? '<div class="s">' + esc(p.photo_label) + '</div>' : '') : '')
-      + '<table>' + rows + '<tr class="t"><td>Starting at</td><td style="text-align:right">' + (e.start != null ? money(e.start) : 'Coming soon') + '</td></tr></table>'
+      + '<table>' + rows + (e.start != null ? '<tr class="t"><td>Starting at</td><td style="text-align:right">' + money(e.start) + '</td></tr>' : '') + '</table>'
       + '<ul class="s">' + e.notes.map(function(n){ return '<li>' + esc(n) + '</li>'; }).join('') + '</ul>'
       + '<p class="s">' + esc(scopeNote()) + '</p><ul class="s">' + FINE.map(function(f){ return '<li>' + esc(f) + '</li>'; }).join('') + '</ul>'
       + '<p class="s">Questions? ' + esc(b.phone) + ' · ' + esc(b.email) + '</p>'
@@ -498,7 +500,7 @@
       })
       .catch(function(e){
         console.error(e);
-        app.innerHTML = '<div class="zp-wrap"><main class="zp-main"><h1 class="zp-title">Sorry, this isn\'t loading right now.</h1><p class="zp-lead">Please try again in a minute, or give us a call.</p></main></div>';
+        app.innerHTML = '<div class="zp-wrap"><div class="zp-main"><h1 class="zp-title">Sorry, this isn\'t loading right now.</h1><p class="zp-lead">Please try again in a minute, or give us a call.</p></div></div>';
       });
   }
 

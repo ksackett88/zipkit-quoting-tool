@@ -95,7 +95,7 @@ foreach ($bp in $pub.brands.PSObject.Properties) {
       if ($m.from_product) { $src = $c.products | Where-Object { $_.id -eq $m.from_product }; if (-not $src) { throw "Model $($m.id): no catalog product $($m.from_product)" } }
       [pscustomobject]@{
         id = $m.id; type = $(if ($src) { $src.type } else { $pb.types[0] }); name = $(if ($m.name) { $m.name } else { $src.name })
-        sqft = $(if ($src) { $src.sqft } else { $null }); sqft_label = $(if ($m.size) { $null } elseif ($src) { $src.sqft_label } else { $null })
+        sqft = $(if ($src -and -not $m.size) { $src.sqft } else { $null }); sqft_label = $(if ($m.size) { $null } elseif ($src) { $src.sqft_label } else { $null })
         dimensions = $(if ($m.size) { $m.size } elseif ($src) { $src.dimensions } else { $null }); photo = $(if ($src) { $src.photo } else { $null })
         barndominium = $false; multifamily = [bool]$m.multifamily_only; building_units = $m.building_units; brands = $(if ($src) { $src.brands } else { @() }); pricing = $(if ($src) { $src.pricing } else { $null })
       }
@@ -145,7 +145,8 @@ foreach ($bp in $pub.brands.PSObject.Properties) {
   $out = [ordered]@{
     generated       = 'Made by data/build-public-catalog.ps1 from data/catalog.json. Do not edit by hand.'
     catalog_updated = $c.updated
-    brand           = [ordered]@{ key = $key; name = $b.name; phone = $b.phone.Replace([string][char]0x00B7, '-'); email = $b.email; logo = $b.logo; colors = [ordered]@{ main = $b.colors.main; dark = $b.colors.dark } }
+    brand           = [ordered]@{ key = $key; name = $b.name; phone = $b.phone.Replace([string][char]0x00B7, '-'); email = $b.email; logo = $(if ($pb.logo) { $pb.logo } else { $b.logo }); colors = [ordered]@{ main = $b.colors.main; dark = $b.colors.dark } }
+    scope           = $(if ($pb.scope) { $pb.scope } else { $null })
     needs_price     = $needsPrice
     availability    = $avail
     types           = [object[]]$types

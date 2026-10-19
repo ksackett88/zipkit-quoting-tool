@@ -33,6 +33,7 @@ function zkst_settings() {
 			'customer_supabase_key' => '',
 			'save_leads'   => false,
 			'test_signin'  => false,
+			'from_email'   => '',
 		)
 	);
 }
@@ -95,6 +96,8 @@ function zkst_sanitize_settings( $in ) {
 	$out['customer_supabase_key'] = $ckey;
 	$out['save_leads'] = ! empty( $in['save_leads'] );
 	$out['test_signin'] = ! empty( $in['test_signin'] );
+	$from              = isset( $in['from_email'] ) ? sanitize_email( $in['from_email'] ) : '';
+	$out['from_email'] = is_email( $from ) ? $from : '';
 	return $out;
 }
 
@@ -136,6 +139,10 @@ add_action(
 		add_settings_field( 'lead_email', __( 'Send leads to', 'zipkit-sales-tools' ), function () {
 			printf( '<input type="email" class="regular-text" name="%1$s[lead_email]" id="zkst-lead_email" value="%2$s" placeholder="%3$s">', esc_attr( ZKST_OPTION ), esc_attr( zkst_settings()['lead_email'] ), esc_attr__( 'Blank: the brand\'s sales email', 'zipkit-sales-tools' ) );
 		}, 'zkst', 'zkst_leads', array( 'label_for' => 'zkst-lead_email' ) );
+		add_settings_field( 'from_email', __( 'Send emails from', 'zipkit-sales-tools' ), function () {
+			printf( '<input type="email" class="regular-text" name="%1$s[from_email]" id="zkst-from_email" value="%2$s" placeholder="%3$s">', esc_attr( ZKST_OPTION ), esc_attr( zkst_settings()['from_email'] ), esc_attr__( 'Blank: WordPress\'s usual address', 'zipkit-sales-tools' ) );
+			echo '<p class="description">' . esc_html__( 'Lead emails and customer copies come from the brand name at this address. Use an address on this site\'s domain (for example website@mountainvalleyprefab.com) so mail isn\'t marked as spam.', 'zipkit-sales-tools' ) . '</p>';
+		}, 'zkst', 'zkst_leads', array( 'label_for' => 'zkst-from_email' ) );
 		add_settings_field( 'save_leads', __( 'Save quotes to Supabase', 'zipkit-sales-tools' ), function () {
 			printf( '<label><input type="checkbox" name="%1$s[save_leads]" value="1" %2$s> %3$s</label>', esc_attr( ZKST_OPTION ), checked( zkst_settings()['save_leads'], true, false ), esc_html__( 'Also save each sent quote to the customer\'s account (customer_quotes)', 'zipkit-sales-tools' ) );
 		}, 'zkst', 'zkst_leads' );

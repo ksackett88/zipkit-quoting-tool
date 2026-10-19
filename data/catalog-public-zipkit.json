@@ -12,6 +12,7 @@
                                  "dark":  "#993c1d"
                              }
               },
+    "scope":  null,
     "needs_price":  false,
     "availability":  {
                          "wood_kits":  [

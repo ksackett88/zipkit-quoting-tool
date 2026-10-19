@@ -51,7 +51,7 @@
     var priced = types.filter(function(t){ return !t.lead_only; }).map(function(t){ return t.id; });
     var list = pb.models ? pb.models.map(function(m){
         var s = m.from_product ? Cat.product(m.from_product) : null;
-        return { id: m.id, type: s ? s.type : pb.types[0], name: m.name || s.name, sqft: s ? s.sqft : null, sqft_label: m.size ? null : (s ? s.sqft_label : null),
+        return { id: m.id, type: s ? s.type : pb.types[0], name: m.name || s.name, sqft: s && !m.size ? s.sqft : null, sqft_label: m.size ? null : (s ? s.sqft_label : null),
           dimensions: m.size || (s ? s.dimensions : null), photo: s ? s.photo : null, multifamily: !!m.multifamily_only, building_units: m.building_units || null, src: s };
       })
       : full.products.filter(function(p){ return p.status === 'active' && p.brands.some(function(x){ return pb.catalog_brands.indexOf(x) !== -1; }); });
@@ -61,13 +61,13 @@
         photo: p.photo ? 'photos/cards/' + p.photo.replace(/^.*\//, '').replace(/\.[^.]+$/, '') + '.jpg' : null,
         photo_label: pb.photo_labels && pb.photo_labels[p.id] || null, building_units: p.building_units || null, start_price: needs ? null : Cat.startingPrice(p.src || p) };
     });
-    var expect = { catalog_updated: full.updated, brand: { key: key, name: b.name, phone: b.phone.replace(/·/g, '-'), email: b.email, logo: b.logo, colors: { main: b.colors.main, dark: b.colors.dark } },
-      needs_price: needs, availability: avail, types: types, snow_choices: P.snow_choices.map(function(s){ return { id: s.id, label: s.label, help: s.help }; }), timelines: P.timelines, max_homes: P.max_homes, products: products };
+    var expect = { catalog_updated: full.updated, brand: { key: key, name: b.name, phone: b.phone.replace(/·/g, '-'), email: b.email, logo: pb.logo || b.logo, colors: { main: b.colors.main, dark: b.colors.dark } },
+      scope: pb.scope || null, needs_price: needs, availability: avail, types: types, snow_choices: P.snow_choices.map(function(s){ return { id: s.id, label: s.label, help: s.help }; }), timelines: P.timelines, max_homes: P.max_homes, products: products };
     var got = Object.assign({}, pubs[key]); delete got.generated;
     rec(key + ': catalog-public-' + key + '.json is up to date with catalog.json', same(got, expect), Object.keys(expect).filter(function(k){ return !same(got[k], expect[k]); }));
 
     // 2. Only public fields; no internal amounts.
-    var TOP = ['generated', 'catalog_updated', 'brand', 'needs_price', 'availability', 'types', 'snow_choices', 'timelines', 'max_homes', 'products'];
+    var TOP = ['generated', 'catalog_updated', 'brand', 'scope', 'needs_price', 'availability', 'types', 'snow_choices', 'timelines', 'max_homes', 'products'];
     var PK = ['id', 'type', 'name', 'sqft', 'size', 'tag', 'photo', 'photo_label', 'building_units', 'start_price'];
     var s = JSON.stringify(pubs[key]);
     var extra = Object.keys(pubs[key]).filter(function(k){ return TOP.indexOf(k) === -1; }).concat([].concat.apply([], pubs[key].products.map(function(p){ return Object.keys(p).filter(function(k){ return PK.indexOf(k) === -1; }); })));
@@ -111,7 +111,7 @@
   async function settle(){ for(var i = 0; i < 30; i++) await tick(); }
   function where(st, zip){ if(W.ZK.Public.state().step !== 'where') W.ZK.Public.go('where'); setVal(q('#zp-st'), st); setVal(q('#zp-zip'), zip); q('[data-go="pick"]').click(); }
   estimateReply = function(b){ return { ok: true, needs_price: false, product: 'Alpine', units: b.homes, each: 199380, start: 199380 * b.homes, shipping: null, zone: null,
-    lines: [['Alpine (2,372 sq ft)', b.homes > 1 ? b.homes + ' homes × $199,380' : '$199,380'], ['Snow load: heavy snow', 'Priced in your quote'], ['Shipping to your build site', 'Quoted separately']],
+    lines: [['Alpine (2,372 sq ft)', b.homes > 1 ? b.homes + ' homes × $199,380' : '$199,380'], ['Snow load (heavy)', 'Priced in your quote'], ['Shipping to your build site', 'Quoted separately']],
     notes: ['Design starts at $2,500.', 'Final pricing is set after design.'] }; };
 
   // Zip Kit, with UTM tags on the landing URL.
@@ -160,11 +160,20 @@
   estimateReply = function(b){ return { ok: true, needs_price: true, product: 'Sierra', units: 1, each: null, start: null, shipping: null, zone: null, lines: [['Sierra (806 sq ft)', 'Price coming soon'], ['Shipping to your build site', 'Quoted separately']], notes: ['Final pricing is set after design.'] }; };
   await open('mvp'); grab();
   var accent = W.getComputedStyle(q('[data-zk-app]')).getPropertyValue('--accent').trim();
-  rec('MVP uses its own logo and color', /mvp-logo\.png/.test(q('.zp-logo').src) && accent === pubs.mvp.brand.colors.main, { logo: q('.zp-logo').src, accent: accent });
+  rec('MVP uses its own logo and color', /mvp-logo-ridgeline\.svg/.test(q('.zp-logo').src) && accent === pubs.mvp.brand.colors.main, { logo: q('.zp-logo').src, accent: accent });
   rec('Still signed in from before (same browser): MVP opens at "Where are you building?"', W.ZK.Public.state().step === 'where', W.ZK.Public.state().step);
   where('ID', '83401'); grab();
   rec('MVP in Idaho: its 7 models (Ridgeline, Dakota, Gallatin I, Gallatin II, McKinley, Westley, Sierra), "Price coming soon", Sierra labeled "Rendering"',
     qa('.zp-model').map(function(b){ return b.getAttribute('data-product'); }).join(',') === 'ridgeline,dakota,gallatin-i,gallatin-ii,mckinley,westley,sierra' && qa('.zp-mprice').every(function(e){ return e.textContent === 'Price coming soon'; }) && /Rendering/.test(q('[data-product="sierra"]').innerText) && !q('.zp-note'), q('.zp-main').innerText);
+  rec('MVP sizes from the MVP site: Sierra 620, Dakota "From 341 sq ft per unit", Westley 2,772 sq ft',
+    /620 sq ft/.test(q('[data-product="sierra"]').innerText) && !/806/.test(q('.zp-main').innerText) && /From 341 sq ft per unit/.test(q('[data-product="dakota"]').innerText) && /2,772 sq ft/.test(q('[data-product="westley"]').innerText), q('.zp-main').innerText);
+  rec('Ridgeline, Dakota, Gallatin I and II and Sierra photos are labeled "Rendering"', ['ridgeline', 'dakota', 'gallatin-i', 'gallatin-ii', 'sierra'].every(function(id){ return /Rendering/.test(q('[data-product="' + id + '"]').innerText); }), 'labels');
+  rec('The tool adds no <main> of its own (the theme has one)', !W.document.querySelector('[data-zk-app] main'), 'main');
+  q('[data-product="mckinley"]').click();
+  rec('McKinley asks "How many buildings?" (4 live/work units each), not homes', !q('#zp-homes') && !q('#zp-bunits') && !!q('#zp-buildings') && /comes as a building of 4 units/.test(q('.zp-main').innerText), q('.zp-main').innerText);
+  setVal(q('#zp-buildings'), '2'); await settle();
+  rec('McKinley shows "2 buildings × 4 units = 8 units."', q('#zp-bsum').textContent === '2 buildings × 4 units = 8 units.', q('#zp-bsum').textContent);
+  q('[data-go="pick"]').click();
   rec('Dakota and Westley are tagged "Multifamily only"', /Multifamily only/.test(q('[data-product="dakota"]').innerText) && /Multifamily only/.test(q('[data-product="westley"]').innerText) && !/Multifamily/.test(q('[data-product="sierra"]').innerText), 'tags');
   q('[data-product="dakota"]').click();
   var sizesOpt = qa('#zp-bunits option').map(function(o){ return o.value + ':' + o.textContent; }), bOpt = qa('#zp-buildings option').map(function(o){ return o.value; });

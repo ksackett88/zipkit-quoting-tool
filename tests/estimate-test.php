@@ -51,6 +51,7 @@ rec( 'Design line and "final pricing is set after design" are in the notes', in_
 
 // 3. MVP pilot: no prices anywhere, and never another brand's rates.
 $m = zkst_estimate( $cat, $mvp, 'mvp', array( 'product_id' => 'sierra', 'homes' => 1, 'snow' => 'standard', 'state' => 'ID', 'zip' => '83401' ), $zips );
+rec( 'Snow line reads "Snow load (normal): Included" (one colon)', in_array( array( 'Snow load (normal)', 'Included' ), $m['lines'], true ), $m['lines'] );
 rec( 'MVP Sierra: needs_price, no number anywhere, "Price coming soon", shipping quoted separately',
 	$m['needs_price'] && null === $m['start'] && null === $m['each'] && null === $m['shipping'] && ! preg_match( '/\$\d/', json_encode( $m ) ) && 'Price coming soon' === $m['lines'][0][1], $m );
 $priced = $mvp; $priced['needs_price'] = false; foreach ( $priced['products'] as &$pp ) { $pp['start_price'] = 100000; } unset( $pp );
