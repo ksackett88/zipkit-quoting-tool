@@ -39,6 +39,20 @@ function zkst_est_money( $n ) {
 	return '$' . number_format( (float) $n );
 }
 
+/**
+ * A public catalog with its placeholder test prices removed when $show is
+ * false (production sites): those models read "Price coming soon".
+ */
+function zkst_public_test_prices( $data, $show ) {
+	foreach ( (array) $data['products'] as $i => $p ) {
+		if ( ! empty( $p['placeholder'] ) && ! $show ) {
+			$data['products'][ $i ]['start_price'] = null;
+			$data['products'][ $i ]['placeholder'] = false;
+		}
+	}
+	return $data;
+}
+
 /** "2 buildings × 3 units = 6 units" (the public quoter shows the same). */
 function zkst_est_buildings( $buildings, $per ) {
 	$n = $buildings * $per;
@@ -182,6 +196,10 @@ function zkst_estimate( $cat, $public, $brand, $in, $zipdata = null, $city = nul
 	}
 	$word   = array( 'home' => 'home', 'garage' => 'garage', 'hangar' => 'hangar' );
 	$unit   = $sizes ? 'unit' : ( isset( $word[ $type['per'] ] ) ? $word[ $type['per'] ] : 'home' );
+	// A brand can say "unit" where others say "home" (MVP).
+	if ( 'home' === $unit && ! empty( $public['brand']['unit_word'] ) ) {
+		$unit = $public['brand']['unit_word'];
+	}
 	$units_word = $units . ' ' . $unit . ( 1 === $units ? '' : 's' );
 
 	$res = array(
@@ -192,6 +210,7 @@ function zkst_estimate( $cat, $public, $brand, $in, $zipdata = null, $city = nul
 		'buildings'   => $buildings,
 		'building_units' => $per_bldg,
 		'each'        => null,
+		'placeholder' => ! empty( $pub['placeholder'] ) && null !== $pub['start_price'],
 		'zone'        => null,
 		'shipping'    => null,
 		'start'       => null,
@@ -267,5 +286,8 @@ function zkst_estimate( $cat, $public, $brand, $in, $zipdata = null, $city = nul
 		$res['start'] = $res['each'] * $units + ( null !== $ship ? $ship : 0 ) + $extra;
 	}
 	$res['notes'][] = 'Final pricing is set after design.';
+	if ( $res['placeholder'] ) {
+		$res['notes'][] = 'TEST PRICE: a placeholder for testing, not a real price.';
+	}
 	return $res;
 }

@@ -49,6 +49,11 @@ foreach ($bp in $pub.brands.PSObject.Properties) {
   $b = $c.brands.$key
   if ($pb.confirm) { [void]$confirm.Add($b.name + ': ' + $pb.confirm_note) }
   $needsPrice = ($pb.prices -eq 'needs_price')
+  # "placeholder": each model's own test price ("price", "placeholder": true).
+  # The plugin strips them on production sites; the rep tool never reads them.
+  # Design lines stay off until a brand has real prices.
+  $testPrices = ($pb.prices -eq 'placeholder')
+  $noDesign = $needsPrice -or $testPrices
 
   # Where each line is sold, with this brand's overrides.
   $avail = [ordered]@{}
@@ -67,12 +72,12 @@ foreach ($bp in $pub.brands.PSObject.Properties) {
     if ($t.design_line) {
       if ($t.design_line -match '\{amount\}') {
         $amt = Resolve-Ref $t.design_from
-        if ((Is-Number $amt) -and -not $needsPrice) { $design = $t.design_line.Replace('{amount}', (Money $amt)) }
-      } elseif (-not $needsPrice) { $design = $t.design_line }
+        if ((Is-Number $amt) -and -not $noDesign) { $design = $t.design_line.Replace('{amount}', (Money $amt)) }
+      } elseif (-not $noDesign) { $design = $t.design_line }
     }
     [void]$types.Add([ordered]@{
       id           = $id
-      label        = $t.label
+      label        = $(if ($pb.type_labels -and $pb.type_labels.$id) { $pb.type_labels.$id } else { $t.label })
       line         = $t.line
       per          = $t.per
       lead_only    = [bool]$t.lead_only
@@ -96,8 +101,8 @@ foreach ($bp in $pub.brands.PSObject.Properties) {
       [pscustomobject]@{
         id = $m.id; type = $(if ($src) { $src.type } else { $pb.types[0] }); name = $(if ($m.name) { $m.name } else { $src.name })
         sqft = $(if ($src -and -not $m.size) { $src.sqft } else { $null }); sqft_label = $(if ($m.size) { $null } elseif ($src) { $src.sqft_label } else { $null })
-        dimensions = $(if ($m.size) { $m.size } elseif ($src) { $src.dimensions } else { $null }); photo = $(if ($src) { $src.photo } else { $null })
-        barndominium = $false; multifamily = [bool]$m.multifamily_only; building_units = $m.building_units; brands = $(if ($src) { $src.brands } else { @() }); pricing = $(if ($src) { $src.pricing } else { $null })
+        dimensions = $(if ($m.size) { $m.size } elseif ($src) { $src.dimensions } else { $null }); photo = $(if ($m.photo) { $m.photo } elseif ($src) { $src.photo } else { $null }); photo_focus = $m.photo_focus
+        barndominium = $false; multifamily = [bool]$m.multifamily_only; building_units = $m.building_units; price = $m.price; placeholder = [bool]$m.placeholder; brands = $(if ($src) { $src.brands } else { @() }); pricing = $(if ($src) { $src.pricing } else { $null })
       }
     })
   } else {
@@ -107,7 +112,10 @@ foreach ($bp in $pub.brands.PSObject.Properties) {
   foreach ($p in $list) {
     if ($priced -notcontains $p.type) { continue }
     $start = $null
-    if (-not $needsPrice) {
+    $isTest = $false
+    if ($testPrices) {
+      if ($p.price -gt 0) { $start = $p.price; $isTest = [bool]$p.placeholder }
+    } elseif (-not $needsPrice) {
       if (-not $p.pricing) { throw "Model $($p.id) has no catalog prices; mark the brand needs_price" }
       $z = $p.pricing.($p.brands[0])
       switch ($p.type) {
@@ -135,17 +143,19 @@ foreach ($bp in $pub.brands.PSObject.Properties) {
       tag         = $(if ($p.multifamily) { 'Multifamily only' } elseif ($p.barndominium) { 'Barndominium' } else { $null })
       photo       = $photo
       photo_label = $label
+      photo_focus = $(if ($p.photo_focus) { $p.photo_focus } else { $null })
       # Multifamily buildings: the units per building the customer picks from
       # (Dakota 2 or 3, Westley 5). The tool asks how many buildings.
       building_units = $bu
       start_price = $start
+      placeholder = $isTest
     })
   }
 
   $out = [ordered]@{
     generated       = 'Made by data/build-public-catalog.ps1 from data/catalog.json. Do not edit by hand.'
     catalog_updated = $c.updated
-    brand           = [ordered]@{ key = $key; name = $b.name; phone = $b.phone.Replace([string][char]0x00B7, '-'); email = $b.email; logo = $(if ($pb.logo) { $pb.logo } else { $b.logo }); colors = [ordered]@{ main = $b.colors.main; dark = $b.colors.dark } }
+    brand           = [ordered]@{ key = $key; name = $b.name; phone = $b.phone.Replace([string][char]0x00B7, '-'); email = $b.email; logo = $(if ($pb.logo) { $pb.logo } else { $b.logo }); unit_word = $(if ($pb.unit_word) { $pb.unit_word } else { $null }); colors = [ordered]@{ main = $b.colors.main; dark = $b.colors.dark } }
     scope           = $(if ($pb.scope) { $pb.scope } else { $null })
     needs_price     = $needsPrice
     availability    = $avail
@@ -157,7 +167,7 @@ foreach ($bp in $pub.brands.PSObject.Properties) {
   }
   $file = Join-Path $dataDir ('catalog-public-' + $key + '.json')
   [IO.File]::WriteAllText($file, ($out | ConvertTo-Json -Depth 10) + "`n", $utf8)
-  "catalog-public-$key.json: $($products.Count) models, $($types.Count) product types" + $(if ($needsPrice) { ' (needs prices: none shown)' } else { '' })
+  "catalog-public-$key.json: $($products.Count) models, $($types.Count) product types" + $(if ($needsPrice) { ' (needs prices: none shown)' } elseif ($testPrices) { ' (TEST PRICES: placeholders, hidden on production sites)' } else { '' })
 }
 
 # The CONFIRM list stays out of the public files (it can mention internal

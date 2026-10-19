@@ -291,18 +291,22 @@
         "catalog_brands": ["mvp"],
         "types": ["modular"],
         "models": [
-          { "id": "ridgeline", "from_product": "ridgeline" },
-          { "id": "dakota", "from_product": "dakota", "multifamily_only": true, "size": "From 341 sq ft per unit", "building_units": [2, 3], "source": "2-unit or 3-unit buildings (Kelsey 2026-10-14). Size as the MVP site card: 341 sq ft per unit in the 3-unit building, about 530 in the 2-unit (D62, D72)." },
-          { "id": "gallatin-i", "from_product": "gallatin", "name": "Gallatin I" },
-          { "id": "gallatin-ii", "from_product": "gallatin-ii" },
-          { "id": "mckinley", "name": "McKinley", "size": "971 sq ft per live/work unit, 4 units per building", "building_units": [4], "source": "MVP site facts (Kelsey D103): a two-story building of 4 side-by-side live/work units, each a 538 sq ft home over 433 sq ft commercial." },
-          { "id": "westley", "name": "Westley", "multifamily_only": true, "size": "5-unit, 2-story building, 2,772 sq ft", "building_units": [5], "source": "5-unit, 2-story building (Kelsey 2026-10-14); 2,772 sq ft per building (MVP site, Kelsey D47). Photo not on file yet." },
-          { "id": "sierra", "from_product": "sierra", "size": "620 sq ft", "source": "620 sq ft (Kelsey 2026-10-06, MVP site). The rep catalog product still says 806." }
+          { "id": "ridgeline", "from_product": "ridgeline", "price": 130000, "placeholder": true, "photo": "photos/westgroup-phase4-stacked.jpg", "photo_focus": "50% 82%", "photo_source": "MVP site image #85 (Westgroup Phase 4, Ridgelines stacked on Dakotas; in progress, never called completed). Kelsey 2026-10-19." },
+          { "id": "dakota", "from_product": "dakota", "price": 140000, "placeholder": true, "multifamily_only": true, "photo": "photos/westgroup-phase4-main-level.jpg", "photo_focus": "50% 85%", "size": "From 341 sq ft per unit", "building_units": [2, 3], "source": "2-unit or 3-unit buildings (Kelsey 2026-10-14). Size as the MVP site card: 341 sq ft per unit in the 3-unit building, about 530 in the 2-unit (D62, D72)." },
+          { "id": "gallatin", "from_product": "gallatin", "price": 110000, "placeholder": true, "name": "Gallatin", "source": "Named as on the MVP site (Kelsey 2026-10-19)." },
+          { "id": "gallatin-ii", "from_product": "gallatin-ii", "price": 120000, "placeholder": true },
+          { "id": "mckinley", "name": "McKinley", "price": 160000, "placeholder": true, "size": "971 sq ft per live/work unit, 4 units per building", "building_units": [4], "source": "MVP site facts (Kelsey D103): a two-story building of 4 side-by-side live/work units, each a 538 sq ft home over 433 sq ft commercial." },
+          { "id": "westley", "name": "Westley", "price": 150000, "placeholder": true, "multifamily_only": true, "size": "5-unit, 2-story building, 2,772 sq ft", "building_units": [5], "source": "5-unit, 2-story building (Kelsey 2026-10-14); 2,772 sq ft per building (MVP site, Kelsey D47). Photo not on file yet." },
+          { "id": "sierra", "from_product": "sierra", "price": 100000, "placeholder": true, "size": "620 sq ft", "source": "620 sq ft (Kelsey 2026-10-06, MVP site). The rep catalog product still says 806." }
         ],
-        "prices": "needs_price",
+        "prices": "placeholder",
+        "prices_note": "Placeholder test prices per unit (Kelsey 2026-10-19), never real: each model's \"price\" with \"placeholder\": true. They show only on local, development or staging WordPress sites, tagged TEST PRICE; production shows \"Price coming soon\". To go live with a real price: change the number and set placeholder to false. The rep tool never reads these.",
         "availability": { "complete_modular": { "states_from": "brands.mvp.service_states" } },
-        "photo_labels": { "ridgeline": "Rendering", "dakota": "Rendering", "gallatin-i": "Rendering", "gallatin-ii": "Rendering", "sierra": "Rendering" },
+        "photo_labels": { "ridgeline": "Photo: Westgroup Phase 4, Victor, Idaho", "dakota": "Photo: Westgroup Phase 4, Victor, Idaho", "gallatin": "Rendering", "gallatin-ii": "Rendering", "sierra": "Rendering" },
         "logo": "images/mvp-logo-ridgeline.svg",
+        "unit_word": "unit",
+        "type_labels": { "modular": "Finished modular units" },
+        "words_note": "MVP says units, never homes (Kelsey 2026-10-19). \"Finished modular\" is the MVP site's name for its one package.",
         "logo_note": "The current Ridgeline logo (MVP BRAND.md, full color for light backgrounds). The rep tool keeps brands.mvp.logo.",
         "scope": { "modular": "Each unit is built complete in our Idaho Falls factory and set on your foundation by our crew. You provide the crane and handle site prep, the foundation and utility hookups." },
         "scope_note": "From MVP site facts (MVP CLAUDE.md section 8). Kelsey to confirm the wording.",
@@ -310,7 +314,7 @@
         "shipping": "quoted_separately",
         "shipping_note": "MVP customers see \"Quoted separately\" for shipping until Sven sends MVP rates (Kelsey 2026-10-19). The parked per-mile numbers on the MVP products are for the rep tool only and are never used here.",
         "confirm": true,
-        "confirm_note": "MVP pilot (Kelsey 2026-10-14): lineup Ridgeline, Dakota, Gallatin I, Gallatin II, McKinley, Westley, Sierra; UT, ID, MT, WY only; Dakota and Westley multifamily only (Dakota 2-unit or 3-unit buildings, Westley 5-unit 2-story buildings; customers pick buildings, the tool counts units); ships from Idaho Falls 83401. Every price, shipping rate and the Westley size and photo still come from Sven: until then MVP shows no prices."
+        "confirm_note": "MVP pilot (Kelsey 2026-10-14): lineup Ridgeline, Dakota, Gallatin, Gallatin II, McKinley, Westley, Sierra; UT, ID, MT, WY only; Dakota and Westley multifamily only (Dakota 2-unit or 3-unit buildings, Westley 5-unit 2-story buildings; customers pick buildings, the tool counts units); ships from Idaho Falls 83401. Real prices and shipping rates still come from Sven; until then MVP has placeholder TEST PRICES (test sites only) and shipping \"Quoted separately\". The Westley photo is still to come."
       }
     },
     "location": {

@@ -12,6 +12,12 @@ function add_filter() {}
 function zkst_settings() { return array( 'from_email' => $GLOBALS['t_from'] ); }
 function network_home_url() { return 'https://www.mountainvalleyprefab.com/'; }
 function wp_parse_url( $u, $c ) { return parse_url( $u, $c ); }
+$GLOBALS['t_env'] = 'production';
+function wp_get_environment_type() { return $GLOBALS['t_env']; }
+// The plugin's private folder, as the build makes it (guard line + JSON).
+define( 'ZKST_DIR', sys_get_temp_dir() . '/zkst-lead-test/' );
+@mkdir( ZKST_DIR . 'private', 0777, true );
+file_put_contents( ZKST_DIR . 'private/catalog-public-mvp.json.php', "<?php defined( 'ABSPATH' ) || exit; ?>\n" . file_get_contents( dirname( __DIR__ ) . '/data/catalog-public-mvp.json' ) );
 require dirname( __DIR__ ) . '/wp-plugin/zipkit-sales-tools/includes/leads.php';
 
 $results = array();
@@ -31,6 +37,17 @@ rec( 'MVP fine print uses MVP\'s scope (our crew sets it; you provide the crane)
 $fz = zkst_fine_print( 'modular', $zk );
 rec( 'Zip Kit fine print keeps its own modular wording', 0 === strpos( $fz[0], 'A complete modular home arrives finished inside.' ), $fz[0] );
 rec( '"Final pricing is set after design" is not repeated in the fine print', ! preg_grep( '/Final pricing/', $fp ), $fp );
+
+// Placeholder test prices: only test sites (local, development, staging).
+$GLOBALS['t_env'] = 'production';
+$prod = zkst_public_catalog( 'mvp' );
+rec( 'Production site: the plugin serves MVP with no test prices ("Price coming soon")', $prod && ! array_filter( $prod['products'], function ( $p ) { return null !== $p['start_price'] || $p['placeholder']; } ), $prod ? $prod['products'][0] : null );
+foreach ( array( 'local', 'development', 'staging' ) as $env ) {
+	$GLOBALS['t_env'] = $env;
+	$t = zkst_public_catalog( 'mvp' );
+	rec( ucfirst( $env ) . ' site: test prices shown, each marked placeholder', $t && 130000 === $t['products'][0]['start_price'] && true === $t['products'][0]['placeholder'], $t ? $t['products'][0] : null );
+}
+rec( 'Unknown brand is refused', null === zkst_public_catalog( '../catalog' ), null );
 
 $ok = 0;
 foreach ( $results as $r ) { echo ( $r[1] ? 'PASS  ' : 'FAIL  ' ) . $r[0] . "\n"; $ok += $r[1] ? 1 : 0; }

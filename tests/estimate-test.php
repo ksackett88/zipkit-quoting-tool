@@ -18,7 +18,10 @@ require $root . '/wp-plugin/zipkit-sales-tools/includes/estimate-engine.php';
 function load( $p ) { return json_decode( file_get_contents( $p ), true ); }
 $cat = load( $root . '/data/catalog.json' );
 $zk  = load( $root . '/data/catalog-public-zipkit.json' );
-$mvp = load( $root . '/data/catalog-public-mvp.json' );
+// MVP as a production site serves it (placeholder test prices removed), and
+// as a test site serves it (placeholders kept, tagged TEST PRICE).
+$mvp_test = load( $root . '/data/catalog-public-mvp.json' );
+$mvp      = zkst_public_test_prices( $mvp_test, false );
 
 $results = array();
 function rec( $name, $pass, $detail = null ) {
@@ -95,6 +98,23 @@ rec( 'City-cost hook adds its line and amount', $c['start'] === $alpine['start_p
 // 6. Homes are capped and products must exist in the brand's public catalog.
 $h = zkst_estimate( $cat, $zk, 'zipkit', array( 'product_id' => 'alpine', 'homes' => 500, 'state' => 'UT' ) );
 rec( 'Homes are capped at the public maximum', $h['units'] === $zk['max_homes'], $h['units'] );
+// Placeholder test prices (Kelsey 2026-10-19), per unit.
+$tp = array( 'sierra' => 100000, 'gallatin' => 110000, 'gallatin-ii' => 120000, 'ridgeline' => 130000, 'dakota' => 140000, 'westley' => 150000, 'mckinley' => 160000 );
+$ok = true;
+foreach ( $mvp_test['products'] as $p ) { $ok = $ok && $tp[ $p['id'] ] === $p['start_price'] && true === $p['placeholder']; }
+rec( 'MVP placeholder prices are Kelsey\'s 7 test numbers, every one marked placeholder', $ok && 7 === count( $mvp_test['products'] ), $mvp_test['products'] );
+$prod_ok = true;
+foreach ( $mvp['products'] as $p ) { $prod_ok = $prod_ok && null === $p['start_price'] && false === $p['placeholder']; }
+rec( 'Production sites: every MVP placeholder price is removed ("Price coming soon")', $prod_ok, $mvp['products'] );
+$ts = zkst_estimate( $cat, $mvp_test, 'mvp', array( 'product_id' => 'sierra', 'homes' => 1, 'snow' => 'standard', 'state' => 'ID', 'zip' => '83401' ), $zips );
+rec( 'Test site: Sierra $100,000, marked placeholder, with the TEST PRICE note, shipping quoted separately',
+	$ts['placeholder'] && 100000 === $ts['start'] && in_array( 'TEST PRICE: a placeholder for testing, not a real price.', $ts['notes'], true ) && null === $ts['shipping'], $ts );
+$td = zkst_estimate( $cat, $mvp_test, 'mvp', array( 'product_id' => 'dakota', 'buildings' => 2, 'building_units' => 3, 'snow' => 'standard', 'state' => 'UT', 'zip' => '84101' ), $zips );
+rec( 'Test site: Dakota 2 buildings × 3 units = 6 units × $140,000 = $840,000', 840000 === $td['start'] && '6 units × $140,000' === $td['lines'][0][1], $td );
+$tr = zkst_estimate( $cat, $mvp_test, 'mvp', array( 'product_id' => 'ridgeline', 'homes' => 2, 'snow' => 'standard', 'state' => 'ID', 'zip' => '83401' ), $zips );
+rec( 'MVP says "units", never "homes": 2 Ridgelines read "2 units × $130,000"', '2 units × $130,000' === $tr['lines'][0][1] && ! preg_match( '/\bhomes?\b/i', json_encode( $tr ) ), $tr['lines'] );
+rec( 'Zip Kit has no placeholder prices', ! array_filter( $zk['products'], function ( $p ) { return ! empty( $p['placeholder'] ); } ), null );
+
 rec( 'A model from another brand is refused', false === zkst_estimate( $cat, $zk, 'zipkit', array( 'product_id' => 'sierra' ) )['ok'], null );
 
 $fail = 0;

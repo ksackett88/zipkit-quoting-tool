@@ -23,6 +23,9 @@ add_action(
 	function () {
 		register_rest_route( 'zipkit/v1', '/estimate', array( 'methods' => 'POST', 'permission_callback' => '__return_true', 'callback' => 'zkst_estimate_endpoint' ) );
 		register_rest_route( 'zipkit/v1', '/lead', array( 'methods' => 'POST', 'permission_callback' => '__return_true', 'callback' => 'zkst_lead_endpoint' ) );
+		// The public catalog for this site's brand (models, sizes, photos and
+		// starting prices; placeholder test prices only on test sites).
+		register_rest_route( 'zipkit/v1', '/public-catalog', array( 'methods' => 'GET', 'permission_callback' => '__return_true', 'callback' => 'zkst_public_catalog_endpoint' ) );
 	}
 );
 
@@ -34,9 +37,34 @@ function zkst_public_brand() {
 
 /** The brand's public catalog (what the page shows). */
 function zkst_public_catalog( $brand ) {
-	$file = ZKST_DIR . 'app/data/catalog-public-' . $brand . '.json';
-	$data = is_readable( $file ) ? json_decode( (string) file_get_contents( $file ), true ) : null; // phpcs:ignore
-	return is_array( $data ) ? $data : null;
+	if ( ! in_array( $brand, array( 'mvp', 'zipkit' ), true ) ) {
+		return null;
+	}
+	$file = ZKST_DIR . 'private/catalog-public-' . $brand . '.json.php';
+	$raw  = is_readable( $file ) ? (string) file_get_contents( $file ) : ''; // phpcs:ignore
+	$pos  = strpos( $raw, '?>' );
+	$data = false === $pos ? null : json_decode( ltrim( substr( $raw, $pos + 2 ) ), true );
+	return is_array( $data ) ? zkst_public_test_prices( $data, zkst_show_test_prices() ) : null;
+}
+
+/**
+ * Placeholder test prices ("placeholder": true) show only on test sites:
+ * WordPress in local, development or staging mode. Anywhere else they become
+ * "Price coming soon", so a test price never reaches a real customer.
+ */
+function zkst_show_test_prices() {
+	$env = function_exists( 'wp_get_environment_type' ) ? wp_get_environment_type() : 'production';
+	return in_array( $env, array( 'local', 'development', 'staging' ), true );
+}
+
+function zkst_public_catalog_endpoint() {
+	$data = zkst_public_catalog( zkst_public_brand() );
+	if ( ! $data ) {
+		return new WP_Error( 'zkst_catalog', 'Catalog not found.', array( 'status' => 500 ) );
+	}
+	$res = new WP_REST_Response( $data );
+	$res->header( 'Cache-Control', 'no-store' );
+	return $res;
 }
 
 /** Zip code centers ({"84101": [lat, lon], ...}), once a data file is added. */
@@ -201,7 +229,7 @@ function zkst_lead_email_sales( $pub, $lead ) {
 	$to  = '' !== $s['lead_email'] ? $s['lead_email'] : $pub['brand']['email'];
 	$c   = $lead['customer'];
 	$ch  = $lead['choices'];
-	$sub = sprintf( 'New quote lead: %s, %s, %s', $c['name'] ? $c['name'] : $c['email'], $lead['product_name'], $ch['state'] );
+	$sub = ( ! empty( $lead['estimate']['placeholder'] ) ? '[TEST PRICE] ' : '' ) . sprintf( 'New quote lead: %s, %s, %s', $c['name'] ? $c['name'] : $c['email'], $lead['product_name'], $ch['state'] );
 	$lines = array_merge(
 		array(
 			'A customer used "Quote your own project" (' . $pub['brand']['name'] . '). Vet before quoting.',
@@ -237,7 +265,7 @@ function zkst_lead_email_customer( $pub, $lead ) {
 		array( '', 'Someone from our team will reach out to talk it through. Questions? ' . $pub['brand']['phone'] . ' or ' . $pub['brand']['email'] . '.' )
 	);
 	$headers = array( zkst_lead_from( $pub ), 'Reply-To: ' . $pub['brand']['name'] . ' <' . $pub['brand']['email'] . '>' );
-	return (bool) wp_mail( $c['email'], 'Your ' . $lead['product_name'] . ' estimate from ' . $pub['brand']['name'], implode( "\n", $lines ), $headers );
+	return (bool) wp_mail( $c['email'], ( ! empty( $lead['estimate']['placeholder'] ) ? '[TEST PRICE] ' : '' ) . 'Your ' . $lead['product_name'] . ' estimate from ' . $pub['brand']['name'], implode( "\n", $lines ), $headers );
 }
 
 /** Save to the customer's own account (customer_quotes), as the customer. */

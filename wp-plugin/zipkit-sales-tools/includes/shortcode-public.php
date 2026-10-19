@@ -2,7 +2,7 @@
 /**
  * [zipkit_quote_public]: "Quote your own project" for customers.
  *
- * Loads only the public catalog (app/data/catalog-public-<brand>.json) and posts
+ * Loads only the public catalog (GET /wp-json/zipkit/v1/public-catalog) and posts
  * leads to the plugin's own endpoint (includes/leads.php). No payments.
  */
 
@@ -29,7 +29,7 @@ function zkst_enqueue_public() {
 	$config = array(
 		'base'             => ZKST_URL . 'app/',
 		'brand'            => zkst_public_brand(),
-		'publicCatalogUrl' => zkst_app_url( 'data/catalog-public-' . zkst_public_brand() . '.json' ),
+		'publicCatalogUrl' => rest_url( 'zipkit/v1/public-catalog' ),
 		'estimateUrl'      => rest_url( 'zipkit/v1/estimate' ),
 		'leadUrl'          => rest_url( 'zipkit/v1/lead' ),
 		'accounts'         => zkst_test_signin() ? 'stub' : 'supabase',

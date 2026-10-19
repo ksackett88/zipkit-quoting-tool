@@ -81,7 +81,12 @@ What you can change in the `"public"` section:
 - **`availability`**: which states get wood kits, steel kits and assembly. Complete modular uses `product_types.modular.service_states`, the same list as the rep tool.
 - **`types`**: which product types customers can pick, and which questions each one asks: homes, snow, assembly. Set `"show": false` to hide a type.
 - **`snow_choices`**: the wording of the snow-load choices. There are no prices here; snow never changes the customer's number.
-- **`brands`**: which product types and models each brand offers, its factory ZIP for shipping, and `"prices": "needs_price"` to show no prices at all (MVP until Sven sends numbers).
+- **`brands`**: which product types and models each brand offers, its factory ZIP for shipping, and `"prices": "needs_price"` to show no prices at all.
+- **Placeholder test prices** (MVP today: `"prices": "placeholder"`): each model has `"price"` (per unit) and `"placeholder": true`.
+  - They show only on WordPress sites in local, development or staging mode, always tagged **TEST PRICE**.
+  - On a production site the customer sees "Price coming soon".
+  - The rep tool never reads them.
+  - **To confirm a real price:** change the model's `"price"` to the real number, then set `"placeholder"` to `false`. Do it one model at a time; each one is a deliberate change.
 - **`location`**: price zones per brand (`{"pct": 5}` or `{"flat": 2500}` per home, or `needs_price`), the road factor, and the ZIP data. These are used only by the WordPress server, never sent to the page.
 - **`confirm: true`**: marks a rule Kelsey still needs to OK. The build lists them every time it runs. They never go into the public file.
 

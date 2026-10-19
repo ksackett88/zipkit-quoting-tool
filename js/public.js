@@ -14,7 +14,10 @@
   var C = ZK.config || {};
 
   var STATES = [['AL','Alabama'],['AK','Alaska'],['AZ','Arizona'],['AR','Arkansas'],['CA','California'],['CO','Colorado'],['CT','Connecticut'],['DE','Delaware'],['DC','District of Columbia'],['FL','Florida'],['GA','Georgia'],['HI','Hawaii'],['ID','Idaho'],['IL','Illinois'],['IN','Indiana'],['IA','Iowa'],['KS','Kansas'],['KY','Kentucky'],['LA','Louisiana'],['ME','Maine'],['MD','Maryland'],['MA','Massachusetts'],['MI','Michigan'],['MN','Minnesota'],['MS','Mississippi'],['MO','Missouri'],['MT','Montana'],['NE','Nebraska'],['NV','Nevada'],['NH','New Hampshire'],['NJ','New Jersey'],['NM','New Mexico'],['NY','New York'],['NC','North Carolina'],['ND','North Dakota'],['OH','Ohio'],['OK','Oklahoma'],['OR','Oregon'],['PA','Pennsylvania'],['RI','Rhode Island'],['SC','South Carolina'],['SD','South Dakota'],['TN','Tennessee'],['TX','Texas'],['UT','Utah'],['VT','Vermont'],['VA','Virginia'],['WA','Washington'],['WV','West Virginia'],['WI','Wisconsin'],['WY','Wyoming']];
-  var STEPS = ['account', 'where', 'pick', 'choose'];
+  // Browse first (Kelsey 2026-10-19): the account comes only when the visitor
+  // asks to see the estimate or send it, and isn't counted as a step.
+  var STEPS = ['where', 'pick', 'choose'];
+  var DRAFT_KEY = 'zk-public-draft', DRAFT_FIELDS = ['st', 'zip', 'type', 'productId', 'homes', 'bunits', 'buildings', 'snow', 'assembly', 'back'];
   var SCOPE = {
     modular: 'A complete modular home arrives finished inside. Site prep, foundation, setting it on site and utility hookups are not included.',
     kit: 'Kits are the shell only. Foundation, siding and roofing, insulation, plumbing, electrical and interior finishes are not included.'
@@ -26,7 +29,7 @@
   var cat = null, app = null, accounts = null;
   var state = freshState();
   function freshState(){
-    return { step: 'account', user: null, mode: 'new', sentTo: '', st: '', zip: '', type: '', productId: '',
+    return { step: 'where', back: '', user: null, mode: 'new', sentTo: '', st: '', zip: '', type: '', productId: '',
       homes: '', bunits: '', buildings: '', snow: '', assembly: '', timeline: '', est: null, estFor: '', estErr: '', busy: false, errors: {}, result: null };
   }
 
@@ -116,6 +119,7 @@
   function buildingSum(){ var b = +state.buildings, u = perBuilding(); return b && u ? plural(b, 'building') + ' × ' + plural(u, 'unit') + ' = ' + plural(b * u, 'unit') + '.' : ''; }
   function unitWord(t, n){
     var w = sizes() ? 'unit' : ({ home: 'home', garage: 'garage', hangar: 'hangar' }[t.per] || 'home');
+    if(w === 'home' && cat.brand.unit_word) w = cat.brand.unit_word;   // MVP says "unit", never "home"
     return n === 1 ? w : w + 's';
   }
 
@@ -138,7 +142,8 @@
     var i = STEPS.indexOf(state.step), b = cat.brand;
     return '<div class="zp-top"><img class="zp-logo" src="' + esc(ZK.url(b.logo)) + '" alt="' + esc(b.name) + '">'
       + '<span class="zp-progress">' + (i >= 0 ? 'Step ' + (i + 1) + ' of ' + STEPS.length : '')
-      + (state.user ? ' <button type="button" class="zp-link small" data-signout="1">Sign out</button>' : '') + '</span></div>';
+      + (state.user ? ' <button type="button" class="zp-link small" data-signout="1">Sign out</button>'
+        : (accounts && state.step !== 'account' ? ' <button type="button" class="zp-link small" data-signin="1">Sign in</button>' : '')) + '</span></div>';
   }
 
   function field(key, label, typeAttr, value, extra){
@@ -168,9 +173,10 @@
         + (accounts._verify && C.testSignin ? '<p class="zp-note zp-testmode">Test sign-in is on (local site only). No email is sent. <button type="button" class="zp-btn" data-test-verify="1">Act as if I clicked the email link</button></p>' : '');
     }
     var returning = state.mode === 'returning';
-    return '<h1 class="zp-title" tabindex="-1">' + (returning ? 'Welcome back' : 'First, make your free account') + '</h1>'
+    return '<h1 class="zp-title" tabindex="-1">' + (returning ? 'Welcome back' : 'Make your free account') + '</h1>'
       + '<p class="zp-lead">' + (returning ? 'Enter your email and we\'ll send you a link to sign in.'
-        : 'We\'ll email you a link to confirm it\'s you. Then you can price your project and keep your estimates.') + '</p>'
+        : 'We\'ll email you a link to confirm it\'s you. Then you can see your estimate, send it to our team and keep it.')
+      + (state.back ? ' <button type="button" class="zp-link" data-go="' + esc(state.back) + '">Go back</button>' : '') + '</p>'
       + '<form class="zp-card zp-form" id="zp-account" novalidate>'
       + (returning ? '' : field('name', 'Your name', 'text', '', ' autocomplete="name"'))
       + field('email', 'Email', 'email', '', ' autocomplete="email"')
@@ -199,7 +205,7 @@
     var h = '<h1 class="zp-title" tabindex="-1">What would you like to build?</h1>'
       + '<p class="zp-lead">Here\'s what we offer in ' + esc(name) + '. <button type="button" class="zp-link" data-go="where">Change location</button></p>';
     if(!types.length){
-      return h.replace('Here\'s what we offer in ' + esc(name) + '.', 'We don\'t offer homes in ' + esc(name) + ' yet.')
+      return h.replace('Here\'s what we offer in ' + esc(name) + '.', 'We don\'t offer ' + esc((cat.brand.unit_word || 'home') + 's') + ' in ' + esc(name) + ' yet.')
         + '<p class="zp-note">Give us a call at ' + esc(cat.brand.phone) + ' and we\'ll tell you what\'s coming.</p>';
     }
     if(hasAssemblyTypes()){
@@ -220,11 +226,11 @@
       var list = cat.products.filter(function(p){ return p.type === t.id; });
       if(t.id === 'shell') list = list.slice().sort(function(a, b){ return (a.sqft || 0) - (b.sqft || 0); });
       h += '<div class="zp-grid">' + list.map(function(p){
-        return '<button type="button" class="zp-model" data-product="' + esc(p.id) + '">'
-          + '<span class="zp-ph">' + (p.photo ? '<img src="' + esc(ZK.url(p.photo)) + '" alt="" loading="lazy">' : '') + (p.photo_label ? '<span class="zp-plabel">' + esc(p.photo_label) + '</span>' : '') + '</span>'
+        return '<button type="button" class="zp-model' + (p.photo ? '' : ' nophoto') + '" data-product="' + esc(p.id) + '">'
+          + (p.photo ? '<span class="zp-ph"><img src="' + esc(ZK.url(p.photo)) + '" alt="" loading="lazy"' + focusStyle(p) + '>' + (p.photo_label ? '<span class="zp-plabel">' + esc(p.photo_label) + '</span>' : '') + '</span>' : '')
           + '<span class="zp-mb"><span class="zp-mname">' + esc(p.name) + (p.tag ? ' <span class="zp-tag">' + esc(p.tag) + '</span>' : '') + '</span>'
           + '<span class="zp-msize">' + esc(p.size || '') + '</span>'
-          + '<span class="zp-mprice">' + (p.start_price != null ? 'Starting at ' + money(p.start_price) : 'Price coming soon') + '</span></span></button>';
+          + '<span class="zp-mprice">' + (p.start_price != null ? 'Starting at ' + money(p.start_price) + testTag(p.placeholder) : 'Price coming soon') + '</span></span></button>';
       }).join('') + '</div>';
     }
     return h;
@@ -237,11 +243,11 @@
       + '<p class="zp-lead">' + (p && p.size ? esc(p.size) + ' · ' : '') + esc(t.label) + ' · ' + esc(stateName(state.st)) + (state.zip ? ' ' + esc(state.zip) : '')
       + ' <button type="button" class="zp-link" data-go="pick">Pick a different model</button></p>'
       + '<div class="zp-split"><div class="zp-card zp-form">'
-      + (p && p.photo ? '<div class="zp-herowrap"><img class="zp-hero" src="' + esc(ZK.url(p.photo)) + '" alt="' + esc(p.name) + '">' + (p.photo_label ? '<span class="zp-plabel">' + esc(p.photo_label) + '</span>' : '') + '</div>' : '');
+      + (p && p.photo ? '<div class="zp-herowrap"><img class="zp-hero" src="' + esc(ZK.url(p.photo)) + '" alt="' + esc(p.name) + '"' + focusStyle(p) + '>' + (p.photo_label ? '<span class="zp-plabel">' + esc(p.photo_label) + '</span>' : '') + '</div>' : '');
     var homes = [], blds = [], s = sizes();
     for(var i = 1; i <= cat.max_homes; i++){ homes.push([i, plural(i, unitWord(t, 1))]); blds.push([i, plural(i, 'building')]); }
     questions().forEach(function(k){
-      if(k === 'homes') h += select('homes', 'How many homes?', 'Select number of homes', homes, state.homes);
+      if(k === 'homes') h += select('homes', 'How many ' + unitWord(t, 2) + '?', 'Select number of ' + unitWord(t, 2), homes, state.homes);
       if(k === 'bunits') h += select('bunits', s.map(function(n){ return n + '-unit'; }).join(' or ') + ' building?', 'Select building size', s.map(function(n){ return [n, n + '-unit building']; }), state.bunits);
       if(k === 'buildings') h += select('buildings', 'How many buildings?', 'Select number of buildings', blds, state.buildings)
         + '<p class="zp-help zp-bsum" id="zp-bsum">' + esc(buildingSum()) + '</p>'
@@ -262,21 +268,36 @@
   function estimateHTML(){
     var t = type(), e = state.est;
     var send = sendHTML();
+    if(t.lead_only && !state.user) return needAccountHTML(t);
     if(t.lead_only) return '<div class="zp-est-k">Your price</div><div class="zp-est-s">Priced for your project. We\'ll put it together for you.</div>' + send;
-    if(!answered()) return '<div class="zp-est-k">Your estimate</div><div class="zp-est-s">Answer the questions to see your estimate.</div>';
+    if(!t.lead_only && !answered()) return '<div class="zp-est-k">Your estimate</div><div class="zp-est-s">Answer the questions to see your estimate.</div>';
+    if(!state.user) return needAccountHTML(t);
     if(state.estErr) return '<div class="zp-est-k">Your estimate</div><div class="zp-err">' + esc(state.estErr) + '</div>';
     if(!e || state.estFor !== choiceKey()) return '<div class="zp-est-k">Your estimate</div><div class="zp-est-s">Figuring your price…</div>';
     var top = e.needs_price
       ? '<div class="zp-est-v small">We\'ll send your price</div><div class="zp-est-s">Pricing for this model is coming soon. Send this to our team and we\'ll get back to you.</div>'
-      : '<div class="zp-est-v">Starting at ' + money(e.start) + '</div><div class="zp-est-s">' + (e.units > 1 ? e.units + ' ' + unitWord(t, e.units) + ' at ' + money(e.each) + ' each' : 'for one ' + unitWord(t, 1)) + (e.shipping != null ? ', with shipping' : '') + '</div>';
+      : '<div class="zp-est-v">Starting at ' + money(e.start) + testTag(e.placeholder) + '</div><div class="zp-est-s">' + (e.units > 1 ? e.units + ' ' + unitWord(t, e.units) + ' at ' + money(e.each) + ' each' : 'for one ' + unitWord(t, 1)) + (e.shipping != null ? ', with shipping' : '') + '</div>';
     return '<div class="zp-est-k">Your estimate</div>' + top
       + '<ul class="zp-est-l">' + e.lines.slice(1).map(function(l){ return '<li>' + esc(l[0]) + ': ' + esc(l[1]) + '</li>'; }).join('')
       + e.notes.map(function(n){ return '<li>' + esc(n) + '</li>'; }).join('') + '</ul>' + send;
   }
 
+  // Not signed in: the estimate and sending need a free account.
+  function needAccountHTML(t){
+    if(!accounts) return '<div class="zp-est-k">' + (t.lead_only ? 'Your price' : 'Your estimate') + '</div><div class="zp-est-s">Pricing online is coming soon. Give us a call at '
+      + esc(cat.brand.phone) + ' or email ' + esc(cat.brand.email) + '.</div>';
+    return '<div class="zp-est-k">' + (t.lead_only ? 'Your price' : 'Your estimate') + '</div>'
+      + '<div class="zp-est-s">' + (t.lead_only ? 'Make a free account to send this to our team.' : 'Make a free account to see your estimate and send it to our team.') + '</div>'
+      + '<button type="button" class="zp-btn primary wide" data-need-account="1">' + (t.lead_only ? 'Make my free account' : 'See my estimate') + '</button>'
+      + '<p class="zp-help"><button type="button" class="zp-link" data-signin="1">Already have an account? Sign in</button></p>';
+  }
+  // Placeholder prices (test sites only) always wear a tag.
+  function testTag(on){ return on ? ' <span class="zp-testprice">TEST PRICE</span>' : ''; }
+  function focusStyle(p){ return p.photo_focus ? ' style="object-position:' + esc(p.photo_focus) + '"' : ''; }
+
   function barHTML(){
     var e = state.est, t = type();
-    var v = t.lead_only ? 'Priced for your project' : (!answered() ? 'Answer the questions' : (!e || state.estFor !== choiceKey() ? 'Figuring your price…' : (e.needs_price ? 'Price coming soon' : 'Starting at <b>' + money(e.start) + '</b>')));
+    var v = (!state.user && (t.lead_only || answered())) ? 'Make a free account to see your estimate' : t.lead_only ? 'Priced for your project' : (!answered() ? 'Answer the questions' : (!e || state.estFor !== choiceKey() ? 'Figuring your price…' : (e.needs_price ? 'Price coming soon' : 'Starting at <b>' + money(e.start) + '</b>' + testTag(e.placeholder))));
     return '<span class="zp-bar-v">' + v + '</span><button type="button" class="zp-btn primary" data-to-est="1">' + (t.lead_only ? 'Send' : 'See estimate') + '</button>';
   }
 
@@ -306,7 +327,7 @@
   }
   function breakdownTable(e){
     return '<table class="zp-table"><tbody>' + e.lines.map(function(l){ return '<tr><td>' + esc(l[0]) + '</td><td>' + esc(l[1]) + '</td></tr>'; }).join('')
-      + (e.start != null ? '<tr class="zp-total"><td>Starting at</td><td>' + money(e.start) + '</td></tr>' : '') + '</tbody></table>'
+      + (e.start != null ? '<tr class="zp-total"><td>Starting at</td><td>' + money(e.start) + testTag(e.placeholder) + '</td></tr>' : '') + '</tbody></table>'
       + '<ul class="zp-fine">' + e.notes.map(function(n){ return '<li>' + esc(n) + '</li>'; }).join('') + '</ul>';
   }
   // A brand can word its own scope (MVP: its crew sets the home).
@@ -340,7 +361,7 @@
       assembly: state.assembly || null, state: state.st, zip: state.zip };
   }
   function fetchEstimate(){
-    if(!answered() || type().lead_only) return refreshEstimate();
+    if(!answered() || type().lead_only || !state.user) return refreshEstimate();
     var key = choiceKey();
     if(state.est && state.estFor === key) return refreshEstimate();
     state.estErr = ''; refreshEstimate();
@@ -369,6 +390,17 @@
     if(step === 'choose') fetchEstimate();
   }
 
+  function saveDraft(){
+    try { var d = { at: Date.now() }; DRAFT_FIELDS.forEach(function(k){ d[k] = state[k]; }); root.localStorage.setItem(DRAFT_KEY, JSON.stringify(d)); } catch(e){}
+  }
+  function takeDraft(){
+    try {
+      var d = JSON.parse(root.localStorage.getItem(DRAFT_KEY) || 'null'); root.localStorage.removeItem(DRAFT_KEY);
+      return d && Date.now() - d.at < 86400000 ? d : null;
+    } catch(e){ return null; }
+  }
+  function toAccount(mode){ state.back = state.step === 'account' ? state.back : state.step; state.mode = mode; state.errors = {}; state.step = 'account'; render(true); }
+
   function startAccount(form){
     var v = function(k){ var el = form.querySelector('[data-zf="' + k + '"]'); return el ? el.value.trim() : ''; };
     if(form.querySelector('#zp-website').value) { state.mode = 'check'; state.sentTo = v('email'); return render(true); }   // spam trap: act normal
@@ -382,6 +414,7 @@
     if(Object.keys(e).length){ state.errors = e; render(); keepValues(form, p); var f = app.querySelector('.invalid input'); if(f) f.focus(); return; }
     state.busy = true; state.errors = {}; render(); keepValues(app.querySelector('#zp-account'), p);
     state.pending = p;
+    saveDraft();
     accounts.start(p).then(function(){ state.busy = false; state.mode = 'check'; state.sentTo = p.email; render(true); })
       .catch(function(err){
         state.busy = false;
@@ -414,9 +447,21 @@
     var first = !state.user;
     state.user = u;
     if(first){ accounts.saveProfile(u); if(!state.zip) state.zip = u.zip || ''; }
-    if(state.step === 'account'){ state.step = 'where'; render(true); }
+    // Back to where they were: this tab, or a new one opened from the email link.
+    var d = takeDraft();
+    if(d && first && state.step === 'where' && !state.productId) DRAFT_FIELDS.forEach(function(k){ if(d[k] != null) state[k] = d[k]; });
+    if(state.step === 'account' || (d && first)){
+      state.step = state.back && (state.back !== 'choose' || product() || (type() && type().lead_only)) ? state.back : (state.st ? 'pick' : 'where');
+      state.back = ''; render(true);
+    }
+    if(state.step === 'choose') fetchEstimate(); else if(state.step !== 'account') refreshEstimate();
   }
-  function signedOut(){ var keep = { st: state.st, zip: state.zip }; state = freshState(); state.st = keep.st; state.zip = keep.zip; render(true); }
+  // Signing out keeps what they were looking at; only the estimate goes.
+  function signedOut(){
+    var keep = {}; DRAFT_FIELDS.forEach(function(k){ keep[k] = state[k]; }); keep.step = state.step === 'done' || state.step === 'account' ? 'pick' : state.step;
+    state = freshState(); Object.keys(keep).forEach(function(k){ state[k] = keep[k]; }); if(!state.st) state.step = 'where';
+    render(true);
+  }
 
   // A printable page the customer can save as a PDF.
   function pdf(){
@@ -432,7 +477,7 @@
       + '<img src="' + esc(abs(b.logo)) + '" alt="' + esc(b.name) + '" style="height:40px">'
       + '<h1>Your ' + esc(p.name) + ' estimate</h1><div class="s">For ' + esc(state.user.name || state.user.email) + ' · Building in ' + esc(stateName(state.st)) + (state.zip ? ' ' + esc(state.zip) : '') + ' · ' + esc(new Date().toLocaleDateString('en-US')) + '</div>'
       + (p.photo ? '<img class="h" src="' + esc(abs(p.photo)) + '" alt="">' + (p.photo_label ? '<div class="s">' + esc(p.photo_label) + '</div>' : '') : '')
-      + '<table>' + rows + (e.start != null ? '<tr class="t"><td>Starting at</td><td style="text-align:right">' + money(e.start) + '</td></tr>' : '') + '</table>'
+      + '<table>' + rows + (e.start != null ? '<tr class="t"><td>Starting at</td><td style="text-align:right">' + money(e.start) + (e.placeholder ? ' <span style="font-size:11px;border:1px solid #a63f27;color:#a63f27;padding:1px 5px;vertical-align:middle">TEST PRICE</span>' : '') + '</td></tr>' : '') + '</table>'
       + '<ul class="s">' + e.notes.map(function(n){ return '<li>' + esc(n) + '</li>'; }).join('') + '</ul>'
       + '<p class="s">' + esc(scopeNote()) + '</p><ul class="s">' + FINE.map(function(f){ return '<li>' + esc(f) + '</li>'; }).join('') + '</ul>'
       + '<p class="s">Questions? ' + esc(b.phone) + ' · ' + esc(b.email) + '</p>'
@@ -445,8 +490,10 @@
     var t = ev.target.closest('button');
     if(!t || !app.contains(t)) return;
     if(t.hasAttribute('data-go')) return go(t.getAttribute('data-go'));
-    if(t.hasAttribute('data-mode')){ state.mode = t.getAttribute('data-mode'); state.errors = {}; return render(true); }
+    if(t.hasAttribute('data-mode')){ state.mode = t.getAttribute('data-mode'); state.errors = {}; if(state.mode !== 'check') state.step = 'account'; return render(true); }
     if(t.hasAttribute('data-test-verify') && accounts._verify){ accounts._verify(); return; }
+    if(t.hasAttribute('data-need-account')) return toAccount('new');
+    if(t.hasAttribute('data-signin')) return toAccount('returning');
     if(t.hasAttribute('data-resend')){ if(state.pending) accounts.start(state.pending); t.textContent = 'Sent again'; t.disabled = true; return; }
     if(t.hasAttribute('data-signout')){ accounts.signOut().then(signedOut); return; }
     if(t.hasAttribute('data-type')){ state.type = t.getAttribute('data-type'); state.productId = ''; render(); return; }

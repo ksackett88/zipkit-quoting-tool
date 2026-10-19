@@ -7,6 +7,7 @@
                   "phone":  "(435) 340-1171",
                   "email":  "sales@zipkithomes.com",
                   "logo":  "images/zk-logo.png",
+                  "unit_word":  null,
                   "colors":  {
                                  "main":  "#d85a30",
                                  "dark":  "#993c1d"
@@ -137,8 +138,10 @@
                          "tag":  null,
                          "photo":  "photos/cards/bigsky.jpg",
                          "photo_label":  null,
+                         "photo_focus":  null,
                          "building_units":  null,
-                         "start_price":  51875
+                         "start_price":  51875,
+                         "placeholder":  false
                      },
                      {
                          "id":  "bridger",
@@ -149,8 +152,10 @@
                          "tag":  null,
                          "photo":  "photos/cards/bridger.jpg",
                          "photo_label":  null,
+                         "photo_focus":  null,
                          "building_units":  null,
-                         "start_price":  71288
+                         "start_price":  71288,
+                         "placeholder":  false
                      },
                      {
                          "id":  "tahoe",
@@ -161,8 +166,10 @@
                          "tag":  null,
                          "photo":  "photos/cards/tahoe.jpg",
                          "photo_label":  null,
+                         "photo_focus":  null,
                          "building_units":  null,
-                         "start_price":  67145
+                         "start_price":  67145,
+                         "placeholder":  false
                      },
                      {
                          "id":  "sequoia",
@@ -173,8 +180,10 @@
                          "tag":  null,
                          "photo":  "photos/cards/sequoia.jpg",
                          "photo_label":  null,
+                         "photo_focus":  null,
                          "building_units":  null,
-                         "start_price":  87100
+                         "start_price":  87100,
+                         "placeholder":  false
                      },
                      {
                          "id":  "frontier",
@@ -185,8 +194,10 @@
                          "tag":  null,
                          "photo":  "photos/cards/frontier.jpg",
                          "photo_label":  null,
+                         "photo_focus":  null,
                          "building_units":  null,
-                         "start_price":  74225
+                         "start_price":  74225,
+                         "placeholder":  false
                      },
                      {
                          "id":  "clyde",
@@ -197,8 +208,10 @@
                          "tag":  null,
                          "photo":  "photos/cards/clyde1.jpg",
                          "photo_label":  null,
+                         "photo_focus":  null,
                          "building_units":  null,
-                         "start_price":  82260
+                         "start_price":  82260,
+                         "placeholder":  false
                      },
                      {
                          "id":  "birch",
@@ -209,8 +222,10 @@
                          "tag":  null,
                          "photo":  "photos/cards/birch1.jpg",
                          "photo_label":  null,
+                         "photo_focus":  null,
                          "building_units":  null,
-                         "start_price":  102595
+                         "start_price":  102595,
+                         "placeholder":  false
                      },
                      {
                          "id":  "willow",
@@ -221,8 +236,10 @@
                          "tag":  null,
                          "photo":  "photos/cards/willow3.jpg",
                          "photo_label":  null,
+                         "photo_focus":  null,
                          "building_units":  null,
-                         "start_price":  72850
+                         "start_price":  72850,
+                         "placeholder":  false
                      },
                      {
                          "id":  "bozeman",
@@ -233,8 +250,10 @@
                          "tag":  null,
                          "photo":  "photos/cards/bozeman1.jpg",
                          "photo_label":  null,
+                         "photo_focus":  null,
                          "building_units":  null,
-                         "start_price":  103600
+                         "start_price":  103600,
+                         "placeholder":  false
                      },
                      {
                          "id":  "sunstone",
@@ -245,8 +264,10 @@
                          "tag":  null,
                          "photo":  "photos/cards/sunstone1.jpg",
                          "photo_label":  null,
+                         "photo_focus":  null,
                          "building_units":  null,
-                         "start_price":  89550
+                         "start_price":  89550,
+                         "placeholder":  false
                      },
                      {
                          "id":  "bluebell",
@@ -257,8 +278,10 @@
                          "tag":  null,
                          "photo":  "photos/cards/bluebell2.jpg",
                          "photo_label":  null,
+                         "photo_focus":  null,
                          "building_units":  null,
-                         "start_price":  134120
+                         "start_price":  134120,
+                         "placeholder":  false
                      },
                      {
                          "id":  "oakley",
@@ -269,8 +292,10 @@
                          "tag":  null,
                          "photo":  "photos/cards/shasta.jpg",
                          "photo_label":  null,
+                         "photo_focus":  null,
                          "building_units":  null,
-                         "start_price":  96225
+                         "start_price":  96225,
+                         "placeholder":  false
                      },
                      {
                          "id":  "ozark",
@@ -281,8 +306,10 @@
                          "tag":  null,
                          "photo":  "photos/cards/summit.jpg",
                          "photo_label":  null,
+                         "photo_focus":  null,
                          "building_units":  null,
-                         "start_price":  102900
+                         "start_price":  102900,
+                         "placeholder":  false
                      },
                      {
                          "id":  "jasper",
@@ -293,8 +320,10 @@
                          "tag":  null,
                          "photo":  "photos/cards/jasper.jpg",
                          "photo_label":  null,
+                         "photo_focus":  null,
                          "building_units":  null,
-                         "start_price":  124765
+                         "start_price":  124765,
+                         "placeholder":  false
                      },
                      {
                          "id":  "mesa",
@@ -305,8 +334,10 @@
                          "tag":  null,
                          "photo":  "photos/cards/mesa.jpg",
                          "photo_label":  null,
+                         "photo_focus":  null,
                          "building_units":  null,
-                         "start_price":  127435
+                         "start_price":  127435,
+                         "placeholder":  false
                      },
                      {
                          "id":  "koda",
@@ -317,8 +348,10 @@
                          "tag":  null,
                          "photo":  "photos/cards/koda.jpg",
                          "photo_label":  null,
+                         "photo_focus":  null,
                          "building_units":  null,
-                         "start_price":  131475
+                         "start_price":  131475,
+                         "placeholder":  false
                      },
                      {
                          "id":  "hayden",
@@ -329,8 +362,10 @@
                          "tag":  null,
                          "photo":  "photos/cards/hayden.jpg",
                          "photo_label":  null,
+                         "photo_focus":  null,
                          "building_units":  null,
-                         "start_price":  127435
+                         "start_price":  127435,
+                         "placeholder":  false
                      },
                      {
                          "id":  "cedar",
@@ -341,8 +376,10 @@
                          "tag":  null,
                          "photo":  "photos/cards/cedar1.jpg",
                          "photo_label":  null,
+                         "photo_focus":  null,
                          "building_units":  null,
-                         "start_price":  152157
+                         "start_price":  152157,
+                         "placeholder":  false
                      },
                      {
                          "id":  "timberline",
@@ -353,8 +390,10 @@
                          "tag":  null,
                          "photo":  "photos/cards/timberline1.jpg",
                          "photo_label":  null,
+                         "photo_focus":  null,
                          "building_units":  null,
-                         "start_price":  134120
+                         "start_price":  134120,
+                         "placeholder":  false
                      },
                      {
                          "id":  "apache",
@@ -365,8 +404,10 @@
                          "tag":  "Barndominium",
                          "photo":  "photos/cards/apache4.jpg",
                          "photo_label":  null,
+                         "photo_focus":  null,
                          "building_units":  null,
-                         "start_price":  108475
+                         "start_price":  108475,
+                         "placeholder":  false
                      },
                      {
                          "id":  "juniper",
@@ -377,8 +418,10 @@
                          "tag":  "Barndominium",
                          "photo":  "photos/cards/juniper.jpg",
                          "photo_label":  null,
+                         "photo_focus":  null,
                          "building_units":  null,
-                         "start_price":  235850
+                         "start_price":  235850,
+                         "placeholder":  false
                      },
                      {
                          "id":  "zion",
@@ -389,8 +432,10 @@
                          "tag":  null,
                          "photo":  "photos/cards/zion.jpg",
                          "photo_label":  null,
+                         "photo_focus":  null,
                          "building_units":  null,
-                         "start_price":  115225
+                         "start_price":  115225,
+                         "placeholder":  false
                      },
                      {
                          "id":  "columbia",
@@ -401,8 +446,10 @@
                          "tag":  null,
                          "photo":  "photos/cards/columbia.jpg",
                          "photo_label":  null,
+                         "photo_focus":  null,
                          "building_units":  null,
-                         "start_price":  163540
+                         "start_price":  163540,
+                         "placeholder":  false
                      },
                      {
                          "id":  "alpine",
@@ -413,8 +460,10 @@
                          "tag":  null,
                          "photo":  "photos/cards/alpine.jpg",
                          "photo_label":  null,
+                         "photo_focus":  null,
                          "building_units":  null,
-                         "start_price":  199380
+                         "start_price":  199380,
+                         "placeholder":  false
                      },
                      {
                          "id":  "moab",
@@ -425,8 +474,10 @@
                          "tag":  null,
                          "photo":  "photos/cards/moab1.jpg",
                          "photo_label":  null,
+                         "photo_focus":  null,
                          "building_units":  null,
-                         "start_price":  166280
+                         "start_price":  166280,
+                         "placeholder":  false
                      },
                      {
                          "id":  "meadow",
@@ -437,8 +488,10 @@
                          "tag":  null,
                          "photo":  "photos/cards/meadow.1.jpg",
                          "photo_label":  null,
+                         "photo_focus":  null,
                          "building_units":  null,
-                         "start_price":  185580
+                         "start_price":  185580,
+                         "placeholder":  false
                      },
                      {
                          "id":  "kolob",
@@ -449,8 +502,10 @@
                          "tag":  null,
                          "photo":  "photos/cards/solitude.jpg",
                          "photo_label":  null,
+                         "photo_focus":  null,
                          "building_units":  null,
-                         "start_price":  179550
+                         "start_price":  179550,
+                         "placeholder":  false
                      },
                      {
                          "id":  "olympic",
@@ -461,8 +516,10 @@
                          "tag":  null,
                          "photo":  "photos/cards/olympic.jpg",
                          "photo_label":  null,
+                         "photo_focus":  null,
                          "building_units":  null,
-                         "start_price":  209850
+                         "start_price":  209850,
+                         "placeholder":  false
                      },
                      {
                          "id":  "teton",
@@ -473,8 +530,10 @@
                          "tag":  null,
                          "photo":  "photos/cards/teton.jpg",
                          "photo_label":  null,
+                         "photo_focus":  null,
                          "building_units":  null,
-                         "start_price":  119600
+                         "start_price":  119600,
+                         "placeholder":  false
                      },
                      {
                          "id":  "xl-470",
@@ -485,8 +544,10 @@
                          "tag":  null,
                          "photo":  "photos/cards/xl470.jpg",
                          "photo_label":  null,
+                         "photo_focus":  null,
                          "building_units":  null,
-                         "start_price":  126500
+                         "start_price":  126500,
+                         "placeholder":  false
                      },
                      {
                          "id":  "yellowstone",
@@ -497,8 +558,10 @@
                          "tag":  null,
                          "photo":  "photos/cards/yellowstone.jpg",
                          "photo_label":  null,
+                         "photo_focus":  null,
                          "building_units":  null,
-                         "start_price":  176900
+                         "start_price":  176900,
+                         "placeholder":  false
                      },
                      {
                          "id":  "gallatin",
@@ -509,8 +572,10 @@
                          "tag":  null,
                          "photo":  "photos/cards/gallatin.jpg",
                          "photo_label":  null,
+                         "photo_focus":  null,
                          "building_units":  null,
-                         "start_price":  123790
+                         "start_price":  123790,
+                         "placeholder":  false
                      },
                      {
                          "id":  "gallatin-ii",
@@ -521,8 +586,10 @@
                          "tag":  null,
                          "photo":  "photos/cards/gallatin-ii.jpg",
                          "photo_label":  null,
+                         "photo_focus":  null,
                          "building_units":  null,
-                         "start_price":  153740
+                         "start_price":  153740,
+                         "placeholder":  false
                      },
                      {
                          "id":  "garage-1-car",
@@ -533,8 +600,10 @@
                          "tag":  null,
                          "photo":  "photos/cards/1car-garage.jpg",
                          "photo_label":  null,
+                         "photo_focus":  null,
                          "building_units":  null,
-                         "start_price":  14520
+                         "start_price":  14520,
+                         "placeholder":  false
                      },
                      {
                          "id":  "garage-2-car",
@@ -545,8 +614,10 @@
                          "tag":  null,
                          "photo":  "photos/cards/2car-garage.jpg",
                          "photo_label":  null,
+                         "photo_focus":  null,
                          "building_units":  null,
-                         "start_price":  19640
+                         "start_price":  19640,
+                         "placeholder":  false
                      },
                      {
                          "id":  "garage-3-car",
@@ -557,8 +628,10 @@
                          "tag":  null,
                          "photo":  "photos/cards/3car-garage.jpg",
                          "photo_label":  null,
+                         "photo_focus":  null,
                          "building_units":  null,
-                         "start_price":  23720
+                         "start_price":  23720,
+                         "placeholder":  false
                      },
                      {
                          "id":  "garage-4-car",
@@ -569,8 +642,10 @@
                          "tag":  null,
                          "photo":  "photos/cards/4car-garage.jpg",
                          "photo_label":  null,
+                         "photo_focus":  null,
                          "building_units":  null,
-                         "start_price":  27440
+                         "start_price":  27440,
+                         "placeholder":  false
                      },
                      {
                          "id":  "hangar-64-x-50",
@@ -581,8 +656,10 @@
                          "tag":  null,
                          "photo":  "photos/cards/6450hangar.jpg",
                          "photo_label":  null,
+                         "photo_focus":  null,
                          "building_units":  null,
-                         "start_price":  158700
+                         "start_price":  158700,
+                         "placeholder":  false
                      },
                      {
                          "id":  "hangar-80-x-60",
@@ -593,8 +670,10 @@
                          "tag":  null,
                          "photo":  "photos/cards/8060hangar.jpg",
                          "photo_label":  null,
+                         "photo_focus":  null,
                          "building_units":  null,
-                         "start_price":  179400
+                         "start_price":  179400,
+                         "placeholder":  false
                      }
                  ]
 }

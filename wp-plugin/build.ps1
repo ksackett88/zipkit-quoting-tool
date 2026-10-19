@@ -13,6 +13,8 @@
     app\images, app\photos        logos and model photos (full size + cards\)
     private\catalog.json.php      the full price list, readable only through
                                   the plugin's reps-only endpoint
+    private\catalog-public-*.json.php  the customer catalogs, served by
+                                  /wp-json/zipkit/v1/public-catalog
 
   Works in Windows PowerShell 5.1 and PowerShell 7 (Mac/Linux too).
 #>
@@ -59,8 +61,6 @@ $app = Join-Path $stage 'app'
 Copy-Into (Join-Path $repo 'js')     (Join-Path $app 'js')     @('*.js')
 Copy-Into (Join-Path $repo 'lib')    (Join-Path $app 'lib')    @('supabase.js')
 Copy-Into (Join-Path $repo 'css')    (Join-Path $app 'css')    @('tool.css', 'public.css')
-# Public catalog only. The full one goes to private/ below.
-Copy-Into (Join-Path $repo 'data')   (Join-Path $app 'data')   @('catalog-public-*.json')
 Copy-Into (Join-Path $repo 'images') (Join-Path $app 'images') @('*.png', '*.jpg', '*.svg')
 # Photos: web-size copies for documents (photos/web) and card copies. The
 # full-size originals stay in the repo only (Kelsey 2026-10-13: web-sized
@@ -72,6 +72,12 @@ Copy-Into (Join-Path (Join-Path $repo 'photos') 'cards') (Join-Path (Join-Path $
 $private = Join-Path $stage 'private'
 New-Item -ItemType Directory -Force $private | Out-Null
 [IO.File]::WriteAllText((Join-Path $private 'catalog.json.php'), "<?php defined( 'ABSPATH' ) || exit; ?>`n" + $catalogText, $utf8)
+# The public catalogs, also behind the guard: the page gets them from
+# /wp-json/zipkit/v1/public-catalog, which drops placeholder test prices on
+# production sites (includes/leads.php).
+Get-ChildItem (Join-Path $repo 'data') -Filter 'catalog-public-*.json' | ForEach-Object {
+  [IO.File]::WriteAllText((Join-Path $private ($_.Name + '.php')), "<?php defined( 'ABSPATH' ) || exit; ?>`n" + [IO.File]::ReadAllText($_.FullName, $utf8), $utf8)
+}
 # Zip code centers for shipping math
 # (data/zips.json: {"84101": [lat, lon], ...}, Census 2025 ZCTA Gazetteer).
 $zips = Join-Path (Join-Path $repo 'data') 'zips.json'

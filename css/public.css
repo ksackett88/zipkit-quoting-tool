@@ -126,3 +126,5 @@
 .zk-tool.zk-tool #zp-send-form { margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--line-soft); }
 .zk-tool.zk-tool .zp-snowlist { margin: -6px 0 0; padding: 0 0 0 16px; list-style: disc; }
 .zk-tool.zk-tool .zp-snowlist li { margin: 2px 0; }
+/* Placeholder prices on test sites: never mistaken for real pricing. */
+.zk-tool.zk-tool .zp-testprice { display: inline-block; margin-left: 6px; padding: 1px 6px; border: 1px solid #a63f27; color: #a63f27; background: #fff; font-size: 11px; font-weight: 700; letter-spacing: .04em; line-height: 1.4; vertical-align: middle; white-space: nowrap; }

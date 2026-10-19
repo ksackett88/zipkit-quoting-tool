@@ -7,6 +7,7 @@
                   "phone":  "208-970-6904",
                   "email":  "sales@mountainvalleyprefab.com",
                   "logo":  "images/mvp-logo-ridgeline.svg",
+                  "unit_word":  "unit",
                   "colors":  {
                                  "main":  "#2f5d4a",
                                  "dark":  "#1f3f32"
@@ -15,7 +16,7 @@
     "scope":  {
                   "modular":  "Each unit is built complete in our Idaho Falls factory and set on your foundation by our crew. You provide the crane and handle site prep, the foundation and utility hookups."
               },
-    "needs_price":  true,
+    "needs_price":  false,
     "availability":  {
                          "wood_kits":  [
                                            "UT",
@@ -50,7 +51,7 @@
     "types":  [
                   {
                       "id":  "modular",
-                      "label":  "Complete modular homes",
+                      "label":  "Finished modular units",
                       "line":  "complete_modular",
                       "per":  "home",
                       "lead_only":  false,
@@ -93,10 +94,12 @@
                          "sqft":  840,
                          "size":  "840 sq ft",
                          "tag":  null,
-                         "photo":  "photos/cards/ridgeline.jpg",
-                         "photo_label":  "Rendering",
+                         "photo":  "photos/cards/westgroup-phase4-stacked.jpg",
+                         "photo_label":  "Photo: Westgroup Phase 4, Victor, Idaho",
+                         "photo_focus":  "50% 82%",
                          "building_units":  null,
-                         "start_price":  null
+                         "start_price":  130000,
+                         "placeholder":  true
                      },
                      {
                          "id":  "dakota",
@@ -105,25 +108,29 @@
                          "sqft":  null,
                          "size":  "From 341 sq ft per unit",
                          "tag":  "Multifamily only",
-                         "photo":  "photos/cards/dakota1.jpg",
-                         "photo_label":  "Rendering",
+                         "photo":  "photos/cards/westgroup-phase4-main-level.jpg",
+                         "photo_label":  "Photo: Westgroup Phase 4, Victor, Idaho",
+                         "photo_focus":  "50% 85%",
                          "building_units":  [
                                                 2,
                                                 3
                                             ],
-                         "start_price":  null
+                         "start_price":  140000,
+                         "placeholder":  true
                      },
                      {
-                         "id":  "gallatin-i",
+                         "id":  "gallatin",
                          "type":  "modular",
-                         "name":  "Gallatin I",
+                         "name":  "Gallatin",
                          "sqft":  497,
                          "size":  "497 sq ft",
                          "tag":  null,
                          "photo":  "photos/cards/gallatin.jpg",
                          "photo_label":  "Rendering",
+                         "photo_focus":  null,
                          "building_units":  null,
-                         "start_price":  null
+                         "start_price":  110000,
+                         "placeholder":  true
                      },
                      {
                          "id":  "gallatin-ii",
@@ -134,8 +141,10 @@
                          "tag":  null,
                          "photo":  "photos/cards/gallatin-ii.jpg",
                          "photo_label":  "Rendering",
+                         "photo_focus":  null,
                          "building_units":  null,
-                         "start_price":  null
+                         "start_price":  120000,
+                         "placeholder":  true
                      },
                      {
                          "id":  "mckinley",
@@ -146,10 +155,12 @@
                          "tag":  null,
                          "photo":  null,
                          "photo_label":  null,
+                         "photo_focus":  null,
                          "building_units":  [
                                                 4
                                             ],
-                         "start_price":  null
+                         "start_price":  160000,
+                         "placeholder":  true
                      },
                      {
                          "id":  "westley",
@@ -160,10 +171,12 @@
                          "tag":  "Multifamily only",
                          "photo":  null,
                          "photo_label":  null,
+                         "photo_focus":  null,
                          "building_units":  [
                                                 5
                                             ],
-                         "start_price":  null
+                         "start_price":  150000,
+                         "placeholder":  true
                      },
                      {
                          "id":  "sierra",
@@ -174,8 +187,10 @@
                          "tag":  null,
                          "photo":  "photos/cards/sierra.jpg",
                          "photo_label":  "Rendering",
+                         "photo_focus":  null,
                          "building_units":  null,
-                         "start_price":  null
+                         "start_price":  100000,
+                         "placeholder":  true
                      }
                  ]
 }
