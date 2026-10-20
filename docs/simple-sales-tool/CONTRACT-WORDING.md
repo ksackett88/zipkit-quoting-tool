@@ -2,6 +2,8 @@
 
 Branch `simple-sales-tool`. Nothing here is built yet. Prices and payment math don't change.
 
+**MVP note (Kelsey 2026-10-20):** MVP is getting its own independent contracts later, built separately. Leave this tool's MVP branding as it is and put no more work into it. MVP-branded contracts simply get the same Seller wording as Zip Kit's.
+
 **Legend:** ~~struck~~ = removed. **[NEW]** = added. Everything else is word for word from today's contract.
 
 ## How the schedule prints (all contracts)
@@ -62,11 +64,17 @@ Under the table, word for word and unchanged:
 
 ### 1c. Section 4. Delivery, Site Access, Unloading, and Risk of Loss (site access clause)
 
-Kit and Custom Home (garage, hangar and steel included). Paragraph a. stays word for word. Your clause goes in right after it, under the same letter, so b. to e. keep their letters:
+This applies to Kit and Custom Home, which includes garage, hangar and steel (Kelsey 2026-10-20).
+- The clause text is added to the end of paragraph a., with no separate "Site access." label.
+- Letters b. to e. stay the same.
+
+**Before:**
 
 > **a. Site Access.** Buyer warrants that the project site is accessible to a standard tractor-trailer and that the delivery route, driveway, and laydown area are passable and of adequate load-bearing capacity at the scheduled delivery time. Seller's driver has sole discretion to decline to enter any site the driver reasonably judges to be unsafe or impassable. Seller is not responsible for damage to driveways, landscaping, curbs, utilities, septic systems, or other site improvements resulting from delivery access requested or directed by Buyer.
->
-> **[NEW]** Site access. Freight pricing assumes our delivery truck can reach the site and the unloading area safely on a standard route. If the site can't be reached by our truck (for example, because of narrow or steep roads, soft ground, low clearance, weight limits, or snow), Buyer is responsible for any additional freight charges, including smaller trucks, transfer loads, pilot cars, extra trips, or wait time. Zip Kit will let Buyer know about these charges before delivery whenever possible.
+
+**After (final):**
+
+> **a. Site Access.** Buyer warrants that the project site is accessible to a standard tractor-trailer and that the delivery route, driveway, and laydown area are passable and of adequate load-bearing capacity at the scheduled delivery time. Seller's driver has sole discretion to decline to enter any site the driver reasonably judges to be unsafe or impassable. Seller is not responsible for damage to driveways, landscaping, curbs, utilities, septic systems, or other site improvements resulting from delivery access requested or directed by Buyer. **[NEW]** Freight pricing assumes Seller's delivery truck can reach the site and the unloading area safely on a standard route. If the site can't be reached by Seller's truck (for example, because of narrow or steep roads, soft ground, low clearance, weight limits, or snow), Buyer is responsible for any additional freight charges, including smaller trucks, transfer loads, pilot cars, extra trips, or wait time. Seller will let Buyer know about these charges before delivery whenever possible.
 >
 > **b. Unloading.** … (unchanged) … **e. Inspections.** … (unchanged)
 
@@ -120,11 +128,19 @@ Kit and Custom Home (garage, hangar and steel included). Paragraph a. stays word
 
 ### 2c. Section 8. Material Storage, Shipment, and Additional Orders (site access clause)
 
-Your clause goes in right after the first paragraph, word for word:
+Its own "Site access." paragraph, right after the first paragraph (Kelsey 2026-10-20). This includes MVP-branded modular contracts.
+
+**Before:**
 
 > Seller shall ship all materials and components as required by the contract documents, plus a reasonable industry-standard waste factor.
 >
-> **[NEW]** Site access. Freight pricing assumes our delivery truck can reach the site and the unloading area safely on a standard route. If the site can't be reached by our truck (for example, because of narrow or steep roads, soft ground, low clearance, weight limits, or snow), Buyer is responsible for any additional freight charges, including smaller trucks, transfer loads, pilot cars, extra trips, or wait time. Zip Kit will let Buyer know about these charges before delivery whenever possible.
+> **Storage Fee.** …
+
+**After (final):**
+
+> Seller shall ship all materials and components as required by the contract documents, plus a reasonable industry-standard waste factor.
+>
+> **[NEW]** **Site access.** Freight pricing assumes Seller's delivery truck can reach the site and the unloading area safely on a standard route. If the site can't be reached by Seller's truck (for example, because of narrow or steep roads, soft ground, low clearance, weight limits, or snow), Buyer is responsible for any additional freight charges, including smaller trucks, transfer loads, pilot cars, extra trips, or wait time. Seller will let Buyer know about these charges before delivery whenever possible.
 >
 > **Storage Fee.** … *(unchanged, and so is the rest of Section 8)*
 
@@ -159,7 +175,5 @@ Units split into a first half and a last half. With an odd count, the first half
   - If it's due at signing instead, the buyer pays 35% at signing. Tell me which, and whether this 5% is non-refundable.
 - **B. Modular final 5% trigger:** today's legal paragraph says "on the final day Seller's crew is present … upon completion of Seller's On-Site Finish Work". Your multi-unit order says "after the mods are set". Keep the legal wording, or change it to "after set"?
 - **C. "Plus change orders" on the multi-unit final payment:** Section 5 (Change Orders) says change orders are paid in full **before** the changed work starts. Should the final row read "5% of the Purchase Price, plus any approved change orders not yet paid"? Or should Section 5 stand, so nothing is added to the final row?
-- **D. Site access clause on MVP-branded modular contracts:** the clause says "Zip Kit will let Buyer know". The contract generator can still make an MVP-branded modular contract.
-  - My plan is word for word on every Zip Kit contract, and left off MVP ones.
-  - Or should MVP's say "Seller will let Buyer know"?
+- **D. Decided (Kelsey 2026-10-20):** the clause uses "Seller", so it goes on MVP-branded contracts too.
 - **E. Cover tables:** they get longer, because they now carry the full Section wording. Alternatively, the cover table could show just row names and amounts, with the wording only in the legal section. That is still one schedule.
