@@ -626,7 +626,7 @@
       "status": "active",
       "sqft": 1590,
       "sqft_label": "1,590",
-      "photo": "photos/shasta.jpg",
+      "photo": "photos/oakley.jpg",
       "legacy_index": {
         "shell": 11
       },
@@ -661,7 +661,7 @@
       "status": "active",
       "sqft": 1793,
       "sqft_label": "1,793",
-      "photo": "photos/summit.jpg",
+      "photo": "photos/ozark.jpg",
       "legacy_index": {
         "shell": 12
       },
@@ -1114,7 +1114,7 @@
       "status": "active",
       "sqft": 2955,
       "sqft_label": "2,955",
-      "photo": "photos/solitude.jpg",
+      "photo": "photos/kolob.jpg",
       "legacy_index": {
         "shell": 26
       },

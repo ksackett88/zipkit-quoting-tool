@@ -415,7 +415,7 @@
 <div id="zk-toast"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="lib/supabase.js?v=6"></script>
+<script src="lib/supabase.js?v=9"></script>
 <script>
 /* ============================================================================
    Sales Portal landing page. Renders all saved projects (quotes + contracts)
@@ -577,7 +577,7 @@ function filterProjects(list){
     }
     if(q){
       var repBits = p._rep ? ' ' + (p._rep.email || '') + ' ' + (p._rep.full_name || '') : '';
-      var haystack = ((p.buyer_name||'')+' '+(p.project_name||'')+' '+(p.model||'')+' '+(p.quote_number||'')+' '+(p.product_kind||'')+repBits).toLowerCase();
+      var haystack = ((p.buyer_name||'')+' '+(p.project_name||'')+' '+(p.model||'')+' '+(ZK.modelName(p.model)||'')+' '+(p.quote_number||'')+' '+(p.product_kind||'')+repBits).toLowerCase();
       if(haystack.indexOf(q) < 0) return false;
     }
     return true;
@@ -633,7 +633,7 @@ function renderProjects(){
     var updated = new Date(p.updated_at).toLocaleDateString('en-US');
     var buyer = _esc(p.buyer_name || '—');
     var project = p.project_name ? _esc(p.project_name) : '<span class="empty">(no project name)</span>';
-    var meta = _esc(kindLabel) + (p.model ? ' · ' + _esc(p.model) : '') + (p.units > 1 ? ' × ' + p.units : '') + ' · ' + _esc(p.quote_number || '');
+    var meta = _esc(kindLabel) + (p.model ? ' · ' + _esc(ZK.modelName(p.model)) : '') + (p.units > 1 ? ' × ' + p.units : '') + ' · ' + _esc(p.quote_number || '');
     var subLine = pmts > 0 ? '<div class="pc-num-sub">'+bal.pctPaid+'% · '+pmts+' pmt'+(pmts===1?'':'s')+'</div>' : '';
     // Rep chip — only when we're in admin/all-projects view and the row has
     // an enriched _rep from zkQuotes.listAll().
@@ -1168,7 +1168,7 @@ async function zkGenerateInvoicePdf(project, invoice){
   var projectName = project.project_name || '';
   var q = project.quote_data || {};
   var kind    = q.kind    || (project.product_kind === 'modular' ? 'Modular' : (project.product_kind === 'custom' ? 'Custom Home' : 'Shell Kit'));
-  var modelStr = (q.model || project.model || '') + ((q.units || project.units) > 1 ? ' ×' + (q.units || project.units) : '');
+  var modelStr = (ZK.modelName(q.model || project.model) || '') + ((q.units || project.units) > 1 ? ' ×' + (q.units || project.units) : '');
   var projectHead = [kind, modelStr].filter(function(x){return x;}).join(' · ');
 
   // Rep info: the invoice form's fields (filled from the rep's profile).
