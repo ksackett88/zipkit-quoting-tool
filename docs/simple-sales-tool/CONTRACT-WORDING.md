@@ -1,4 +1,4 @@
-# Contract wording: before and after (for Kelsey's approval)
+# Contract wording: before and after (final, except A waits on Sven)
 
 Branch `simple-sales-tool`. Nothing here is built yet. Prices and payment math don't change.
 
@@ -9,8 +9,9 @@ Branch `simple-sales-tool`. Nothing here is built yet. Prices and payment math d
 ## How the schedule prints (all contracts)
 
 - **One schedule only.** The payment schedule editor (rows, percent or fixed $, "when due" wording) is the single source.
-  - The cover-page "Estimated Timing & Payment Schedule" table and the legal-section table both print those same rows: same names, amounts and wording.
-  - The two tables can no longer disagree.
+  - **Cover page (Kelsey, answer E):** the "Estimated Timing & Payment Schedule" table prints the same rows in short form: short row name, percent and dollar amount. There is no "when due" wording there.
+  - **Legal payment section:** the full wording prints here only.
+  - Both come from the same rows, so they can't disagree.
 - **Paragraphs tied to a payment row.** Each legal paragraph that belongs to a payment is tied to that row (materials non-refundable, release for shipment, final payment). It prints word for word under the table.
   - **Numbering:** rows are numbered automatically ("Payment 1, 2, 3 … Final"). The paragraph names its row by that number, so the default contract reads exactly as below.
   - **Deleting a row:** if a rep deletes a row that has a legal paragraph, its paragraph drops too. The editor warns first, for example: "This removes the non-refundable materials clause from the contract."
@@ -31,8 +32,16 @@ Branch `simple-sales-tool`. Nothing here is built yet. Prices and payment math d
 | Payment 3 (45%) | 45% of remainder. Due before the kit ships, unless agreed otherwise in writing. *(Custom: "Due before the home ships.")* |
 | Final Payment (10%) | 10% of remainder. Due when framing and Zip Kit Homes scope of work is completed onsite. *(Custom: "Due when Zip Kit Homes scope of work is completed on-site.")* |
 
-**After:** the same four rows as the Section 5 table below, with the same names and wording.
-- "Due when framing and Zip Kit Homes scope of work is completed onsite" is gone. The final payment is due at Load Confirmation in both places.
+**After (final):** the same rows as Section 5, in short form.
+
+| Payment | Amount |
+|---|---|
+| Payment 1 — Engineering | $ (fixed) |
+| Payment 2 — Materials Procurement (45%) | $ |
+| Payment 3 — Pre-Shipment (45%) | $ |
+| Final Payment — Load Confirmation (10%) | $ |
+
+- "Due when framing and Zip Kit Homes scope of work is completed onsite" is gone. The final payment is due at Load Confirmation, as Section 5 says.
 - The italic line under the table stays: "Design retainer is separate and paid up front. Contract is billed engineering first, then 45% / 45% / 10% of the remainder. Sums to the contract total."
 - If a rep edits the rows, the second sentence becomes "The payments above sum to the contract total."
 
@@ -94,7 +103,15 @@ This applies to Kit and Custom Home, which includes garage, hangar and steel (Ke
 | Payment 4 — Factory Completion (30%) | Unit complete and ready for transport. |
 | Payment 5 — Set & Completion (5%) | After delivery and set on the foundation. |
 
-**After:** the same five rows as the Section 4 table below. The on-screen note that said 30/30/30/10 goes away.
+**After (final):** the same rows as Section 4, in short form. The on-screen note that said 30/30/30/10 goes away.
+
+| Payment | Amount |
+|---|---|
+| Payment 1 — Design & Engineering (5%) | $ |
+| Payment 2 — Materials Procurement (30%) | $ |
+| Payment 3 — Framing Completion (30%) | $ |
+| Payment 4 — Siding & Paint Completion (30%) | $ |
+| Payment 5 — Final, units set (5%) | $ |
 
 ### 2b. Section 4. Purchase Price and Payment Terms
 
@@ -104,15 +121,18 @@ This applies to Kit and Custom Home, which includes garage, hangar and steel (Ke
 
 | Payment | Amount | When due |
 |---|---|---|
-| Payment 1 — Design & Engineering (5%) | 5% | At project start — drafting, coordination, and project setup. *(see question A)* |
+| Payment 1 — Design & Engineering (5%) | 5% | Due upon execution of this Agreement, together with Payment 2. Non-refundable once design and engineering work starts. **WAITING ON SVEN** |
 | Payment 2 — Materials Procurement (30%) | 30% | Due upon execution of this Agreement. Non-refundable. |
 | Payment 3 — Framing Completion (30%) | 30% | Within ten (10) calendar days of Seller's written invoice at framing completion. |
 | Payment 4 — Exterior Siding and Interior Paint Completion (30%) | 30% | Within ten (10) calendar days of Seller's written invoice. Units are not released for shipment until paid. |
-| Payment 5 — Final Payment (5%) | 5% | On-site, on the final day Seller's crew is present. *(see question B)* |
+| Payment 5 — Final Payment (5%) | 5% | Due when the Modular Units are set on site. |
 
-**The paragraphs under the table.** They are today's paragraphs word for word, except the payment numbers move up one (a 5% design payment now comes first) and the final payment changes from 10% to 5%.
+**The paragraphs under the table.** They are today's paragraphs word for word, except for three changes:
+- the payment numbers move up one, because a 5% design payment now comes first;
+- the final payment changes from 10% to 5%;
+- the final payment is due when the units are set (answer B).
 
-> **[NEW] Payment 1 — Design and Engineering Payment: 5% of the Purchase Price**<br>Due at project start for drafting, coordination, and project setup. *(question A)*
+> **[NEW] Payment 1 — Design and Engineering Payment: 5% of the Purchase Price**<br>Due upon execution of this Agreement, together with Payment 2. Payment 1 is non-refundable once design and engineering work has started. **WAITING ON SVEN: Kelsey is confirming this with Sven. It won't be built until he confirms.**
 >
 > **Payment ~~1~~ 2 — Materials Procurement Payment: 30% of the Purchase Price**<br>Due upon execution of this Agreement unless otherwise agreed in writing by both Parties. Payment ~~1~~ 2 constitutes reimbursement for materials procured specifically for Buyer's Modular Home. Upon execution of this Agreement, Seller will immediately purchase lumber, structural components, hardware, and all other raw materials required to fabricate Buyer's Modular Home to Buyer's unique floor plan and specifications. These materials are custom-ordered and cut to specification and cannot be returned to suppliers, resold, or repurposed for another project.
 >
@@ -122,7 +142,11 @@ This applies to Kit and Custom Home, which includes garage, hangar and steel (Ke
 >
 > **Payment ~~3~~ 4 — Exterior Siding and Interior Paint Completion Payment: 30% of the Purchase Price**<br>Due upon completion of exterior siding and interior paint on the Modular Units. Seller shall provide Buyer with written notice and invoice when this milestone is complete. Buyer agrees to make Payment ~~3~~ 4 within ten (10) calendar days of receiving Seller's written invoice. Seller shall not release the Modular Units for shipment until Payment ~~3~~ 4 is received in full.
 >
-> **Payment ~~4~~ 5 — Final Payment: ~~10%~~ 5% of the Purchase Price**<br>Due and payable on-site on the final day Seller's crew is present at the project site, upon completion of Seller's On-Site Finish Work. … *(rest of the paragraph word for word, through "Payment and warranty obligations are independent of one another.")*
+> **Payment ~~4~~ 5 — Final Payment: ~~10%~~ 5% of the Purchase Price**<br>Due and payable on-site ~~on the final day Seller's crew is present at the project site, upon completion of Seller's On-Site Finish Work~~ **when the Modular Units are set on site**. Payment shall be made by wire transfer or check, payable to {Seller}, and delivered to Seller's crew leader ~~before the crew departs the project site~~ **on the day the Modular Units are set**. Before Seller's crew departs, Buyer or Buyer's general contractor shall conduct an on-site walkthrough with Seller's crew leader to confirm that Seller's scope of work has been completed. Buyer is required to schedule any required local jurisdictional inspections in a timely manner; failure to do so is solely the responsibility of Buyer. Final payment is not contingent upon the resolution of any outstanding warranty claims or punch list items. The existence of any warranty items or items requiring a return visit by Seller shall not delay, reduce, or offset Buyer's obligation to remit final payment in full. Seller acknowledges its warranty obligations and will schedule a return visit to address any valid warranty items submitted in writing by Buyer in accordance with Section 9. Payment and warranty obligations are independent of one another.
+>
+> *Notes on this paragraph:*
+> - *I also changed "before the crew departs the project site" to "on the day the Modular Units are set". Otherwise the payment would still wait for the crew's last day.*
+> - *The walkthrough sentence stays word for word. It no longer holds up the final payment.*
 >
 > All payments are due within the timeframes stated above. … *(unchanged)*
 
@@ -150,30 +174,33 @@ Its own "Site access." paragraph, right after the first paragraph (Kelsey 2026-1
 
 Units split into a first half and a last half. With an odd count, the first half gets the extra unit; for example, 5 units is Units 1–3 and Units 4–5. The contract prints the real unit numbers.
 
-**Table** (default rows; the cover table prints the same rows):
+**Table** (default rows). The cover table prints the same rows in short form: name, percent and $.
 
 | Payment | % | When due |
 |---|---|---|
-| Payment 1 — Design & Engineering | 5% | At project start — drafting, coordination, and project setup. |
+| Payment 1 — Design & Engineering | 5% | Due upon execution of this Agreement, together with Payment 2. Non-refundable once design and engineering work starts. **WAITING ON SVEN** |
 | Payment 2 — Materials Procurement | 30% | Due upon execution of this Agreement. Non-refundable. |
 | Payment 3 — Framing Completion, Units 1–3 | 15% | Within 10 days of invoice at framing completion of Units 1–3. |
 | Payment 4 — Framing Completion, Units 4–5 | 15% | Within 10 days of invoice at framing completion of Units 4–5. |
 | Payment 5 — Siding and Paint Completion, Units 1–3 | 15% | Within 10 days of invoice. Units 1–3 are not released for shipment until paid. |
 | Payment 6 — Siding and Paint Completion, Units 4–5 | 15% | Within 10 days of invoice. Units 4–5 are not released for shipment until paid. |
-| Payment 7 — Final Payment | 5% plus change orders | After the Modular Units are set. *(questions B and C)* |
+| Payment 7 — Final Payment | 5% | 5% plus any approved change orders or invoices not yet paid, after the units are set. |
 
 **Paragraphs:** the same as the one-unit contract above. The milestone paragraphs repeat once for each half, with the half named.
 - Example: "**Payment 3 — Framing Completion Payment, Units 1–3: 15% of the Purchase Price**<br>Due upon completion of framing of Modular Units 1–3. Seller shall provide Buyer with written notice and invoice when framing is complete. Buyer agrees to make Payment 3 within ten (10) calendar days of receiving Seller's written invoice."
+- **[NEW] Final payment heading:** "**Payment 7 — Final Payment: 5% of the Purchase Price, plus any approved change orders or invoices not yet paid**".
+  - It is due when the Modular Units are set on site. The paragraph is the same as the one-unit final above.
+  - Section 5's rule stands: change orders are paid in full before the work starts. The final row only catches anything still outstanding.
+  - The contract shows the 5% amount; change orders aren't known at signing.
 - **[NEW]** The release sentence for each half reads: "Seller shall not release **Modular Units 1–3** for shipment until Payment 5 is received in full." Today's wording is "the Modular Units".
 
 ---
 
-## Questions on this wording
+## Decisions (Kelsey 2026-10-20)
 
-- **A. Modular 5% design and engineering:** when is it due?
-  - My draft uses the cover table's "At project start", before the 30% at signing.
-  - If it's due at signing instead, the buyer pays 35% at signing. Tell me which, and whether this 5% is non-refundable.
-- **B. Modular final 5% trigger:** today's legal paragraph says "on the final day Seller's crew is present … upon completion of Seller's On-Site Finish Work". Your multi-unit order says "after the mods are set". Keep the legal wording, or change it to "after set"?
-- **C. "Plus change orders" on the multi-unit final payment:** Section 5 (Change Orders) says change orders are paid in full **before** the changed work starts. Should the final row read "5% of the Purchase Price, plus any approved change orders not yet paid"? Or should Section 5 stand, so nothing is added to the final row?
-- **D. Decided (Kelsey 2026-10-20):** the clause uses "Seller", so it goes on MVP-branded contracts too.
-- **E. Cover tables:** they get longer, because they now carry the full Section wording. Alternatively, the cover table could show just row names and amounts, with the wording only in the legal section. That is still one schedule.
+- **A. Modular 5% design and engineering:** due at signing, together with the 30%, so the buyer pays 35% at signing. It's non-refundable once design and engineering work starts.
+  - **WAITING ON SVEN:** Kelsey is confirming this with Sven. This paragraph and row won't be built until she says Sven agreed. Until then, the modular presets keep the 5% row with today's cover wording ("At project start").
+- **B. Modular final 5%:** due when the units are set on site.
+- **C. Multi-unit final row:** "5% plus any approved change orders or invoices not yet paid, after the units are set". The Change Orders rule (paid before the work starts) stays.
+- **D. Site access clause:** it uses "Seller", so it goes on MVP-branded contracts too.
+- **E. Cover tables:** short row names with percent and $. Full wording in the legal payment section only.
