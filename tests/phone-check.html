@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Phone check</title>
+<style>
+  :root { --ink:#17150f; --bg:#ffffff; --ok:#0e6b53; --bad:#a33526; }
+  @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) { --ink:#f2efe6; --bg:#17150f; } }
+  :root[data-theme="dark"] { --ink:#f2efe6; --bg:#17150f; }
+  html, body { margin:0; background:var(--bg); color:var(--ink); font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif; }
+  #report { padding:16px; font-size:14px; line-height:1.5; }
+  #report .ok { color:var(--ok); } #report .bad { color:var(--bad); }
+  #report code { font-size:12px; word-break:break-all; }
+  #box { display:block; height:900px; border:0; }
+  body.frame #report { display:none; }
+</style>
+</head>
+<body>
+<!-- Phone check. Every step of the new-rep run, at a true phone width
+     (the page sits in a frame exactly that wide, because desktop Chrome
+     won't draw a window narrower than about 500px).
+       ?                      check every step at 390 and 360; PASS/FAIL in the title
+       ?w=390&src=<page>      just show <page> in a frame w px wide (for screenshots)
+     A step fails if ANY element reaches past the screen edge, hidden or
+     clipped ones included. -->
+<div id="report">Running…</div>
+<iframe id="box" title="Phone"></iframe>
+<script>
+(function(){
+  'use strict';
+  var params = new URLSearchParams(location.search), box = document.getElementById('box');
+  if(params.get('src')){
+    document.body.classList.add('frame');
+    box.style.width = (parseInt(params.get('w'), 10) || 390) + 'px';
+    box.style.height = (parseInt(params.get('h'), 10) || 4200) + 'px';
+    box.onload = function(){
+      // new-rep-run pages say READY when they reach the step.
+      var t0 = Date.now();
+      (function poll(){
+        var t = ''; try { t = box.contentDocument.title; } catch(e){}
+        if(t === 'READY' || t === 'ERROR' || Date.now() - t0 > 30000 || !/new-rep-run/.test(params.get('src'))){ setTimeout(function(){ document.title = t === 'ERROR' ? 'ERROR' : 'READY'; }, 300); return; }
+        setTimeout(poll, 100);
+      })();
+    };
+    box.src = params.get('src');
+    return;
+  }
+
+  var STEPS = [
+    ['kit','customer'], ['kit','product'], ['kit','options'], ['kit','review'], ['kit','contract'], ['kit','send'],
+    ['modular','options'], ['modular','contract'], ['modular','send'],
+    ['multi','options'], ['multi','contract'], ['multi','send'],
+    ['steel','product'], ['steel','options'], ['steel','contract'],
+    ['garage','options'], ['garage','send']
+  ];
+  var PAGES = [['guide','../docs/how-to-quote.html'], ['portal','../index.html']];
+  var WIDTHS = [390, 360], results = [];
+  function wait(ms){ return new Promise(function(r){ setTimeout(r, ms); }); }
+  function load(url){ return new Promise(function(res){ box.onload = function(){ res(); }; box.src = url; }); }
+  async function until(fn, ms){ var t = Date.now(); while(Date.now() - t < (ms || 40000)){ try { var v = fn(); if(v) return v; } catch(e){} await wait(80); } throw new Error('Timed out'); }
+
+  function label(el){
+    var s = el.tagName.toLowerCase();
+    if(el.id) s += '#' + el.id;
+    if(typeof el.className === 'string' && el.className.trim()) s += '.' + el.className.trim().split(/\s+/).slice(0, 2).join('.');
+    var txt = (el.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 30);
+    return s + (txt ? ' "' + txt + '"' : '');
+  }
+  // Every element whose box reaches past the left or right edge, hidden or not.
+  // Elements with no box at all (display:none) can't be seen, so they're skipped;
+  // clipped and overflow-hidden ones count.
+  function offenders(doc, w){
+    var out = [];
+    Array.prototype.forEach.call(doc.querySelectorAll('body *'), function(el){
+      var r = el.getBoundingClientRect();
+      if(r.width === 0 && r.height === 0) return;
+      // Screen-reader-only text (1px, clipped) is not on screen.
+      if(r.width <= 1 && r.height <= 1) return;
+      if(r.right > w + 0.5 || r.left < -0.5) out.push(label(el) + ' ' + Math.round(r.left) + '→' + Math.round(r.right));
+    });
+    var sw = doc.documentElement.scrollWidth;
+    if(sw > w) out.unshift('page is ' + sw + 'px wide');
+    return out;
+  }
+  // The deepest page the rep sees: new-rep-run hosts the tool in #app; on the
+  // Send page the contract itself sits in #mk-frame.
+  function docs(){
+    var out = [], top = box.contentDocument, app = top.getElementById('app');
+    var d = app ? app.contentDocument : top;
+    out.push(['page', d]);
+    var mk = d.getElementById('mk-frame');
+    if(mk && mk.contentDocument && mk.offsetParent) out.push(['contract', mk.contentDocument, mk.getBoundingClientRect().width]);
+    return out;
+  }
+
+  async function run(){
+    for(var wi = 0; wi < WIDTHS.length; wi++){
+      var w = WIDTHS[wi];
+      box.style.width = w + 'px';
+      for(var i = 0; i < STEPS.length; i++){
+        var c = STEPS[i][0], at = STEPS[i][1], name = c + ' ' + at + ' @' + w;
+        try {
+          await load('new-rep-run.html?shot=' + c + '&at=' + at);
+          await until(function(){ var t = box.contentDocument.title; if(t === 'ERROR') throw new Error('run error'); return t === 'READY'; });
+          await wait(300);
+          var bad = [];
+          docs().forEach(function(d){ var o = offenders(d[1], d[2] || w); if(o.length) bad.push(d[0] + ': ' + o.slice(0, 8).join(' | ') + (o.length > 8 ? ' (+' + (o.length - 8) + ' more)' : '')); });
+          results.push({ name: name, pass: !bad.length, detail: bad.join(' ;; ') });
+        } catch(e){ results.push({ name: name, pass: false, detail: String(e && e.message || e) }); }
+      }
+      for(var p = 0; p < PAGES.length; p++){
+        var nm = PAGES[p][0] + ' @' + w;
+        try {
+          await load(PAGES[p][1]); await wait(1500);
+          var o = offenders(box.contentDocument, w);
+          results.push({ name: nm, pass: !o.length, detail: o.slice(0, 8).join(' | ') });
+        } catch(e){ results.push({ name: nm, pass: false, detail: String(e) }); }
+      }
+    }
+    var failed = results.filter(function(r){ return !r.pass; });
+    document.title = (failed.length ? 'FAIL ' : 'PASS ') + (results.length - failed.length) + '/' + results.length;
+    window.ZK_PHONE_RESULT = results;
+    document.getElementById('report').innerHTML = '<b>' + document.title + '</b><ul>' + results.map(function(r){ return '<li class="' + (r.pass ? 'ok' : 'bad') + '">' + (r.pass ? '✓ ' : '✗ ') + r.name + (r.pass ? '' : ' <code>' + String(r.detail).replace(/</g, '&lt;') + '</code>') + '</li>'; }).join('') + '</ul>';
+  }
+  run().catch(function(e){ document.title = 'ERROR'; document.getElementById('report').textContent = String(e && e.stack || e); });
+})();
+</script>
+</body>
+</html>

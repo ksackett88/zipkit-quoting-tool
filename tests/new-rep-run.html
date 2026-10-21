@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>New rep run</title>
+<style>
+  :root { --ink:#17150f; --bg:#ffffff; --ok:#0e6b53; --bad:#a33526; }
+  @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) { --ink:#f2efe6; --bg:#17150f; } }
+  :root[data-theme="dark"] { --ink:#f2efe6; --bg:#17150f; }
+  html, body { margin:0; background:var(--bg); color:var(--ink); font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif; }
+  #report { padding:16px; font-size:14px; line-height:1.5; }
+  #report .ok { color:var(--ok); } #report .bad { color:var(--bad); }
+  #app { display:block; width:100%; height:100vh; border:0; }
+  body.shot #report { display:none; }
+</style>
+</head>
+<body>
+<!-- A brand-new rep's three contracts, clicked through the real screens:
+     one panelized kit, one modular, one multi-unit modular. Runs on a local
+     server only, with the local test store (lib/supabase.js), so nothing
+     reaches the real database and nothing is sent to anyone.
+       ?             run everything and report PASS/FAIL in the title
+       ?shot=kit&at=contract   stop at a step and show it (for screenshots);
+                               at = customer | product | options | review | contract | send -->
+<div id="report">Running…</div>
+<iframe id="app" title="Quote tool"></iframe>
+<script>
+(function(){
+  'use strict';
+  if(!/^(localhost|127\.0\.0\.1)$/.test(location.hostname)){ document.getElementById('report').textContent = 'Runs on a local server only.'; return; }
+  localStorage.setItem('zk-test-store', '1');
+  var params = new URLSearchParams(location.search), SHOT = params.get('shot'), AT = params.get('at') || 'send';
+  if(SHOT) document.body.classList.add('shot');
+  var frame = document.getElementById('app'), results = [];
+  function rec(name, pass, detail){ results.push({ name: name, pass: !!pass, detail: pass ? undefined : detail }); }
+  function W(){ return frame.contentWindow; }
+  function D(){ return frame.contentDocument; }
+  function q(sel){ return D().querySelector(sel); }
+  function wait(ms){ return new Promise(function(r){ setTimeout(r, ms); }); }
+  async function until(fn, ms){ var t = Date.now(); while(Date.now() - t < (ms || 15000)){ try { var v = fn(); if(v) return v; } catch(e){} await wait(60); } throw new Error('Timed out waiting: ' + fn); }
+  function fire(el, type){ el.dispatchEvent(new Event(type, { bubbles:true })); }
+  function type(el, v){ el.focus(); el.value = v; fire(el, 'input'); fire(el, 'change'); }
+  function click(sel){ var el = typeof sel === 'string' ? q(sel) : sel; if(!el) throw new Error('No element ' + sel); el.click(); return el; }
+  function load(url){ return new Promise(function(res){ frame.onload = function(){ res(); }; frame.src = url; }); }
+
+  var CASES = {
+    kit: { label:'Panelized kit: Kolob, Idaho, our assembly crew', type:'shell', product:'kolob',
+      customer:{ name:'Pat Rivera', email:'pat.rivera@example.test', phone:'208-555-0142', city:'Driggs', state:'ID' },
+      options:{ miles:'340', snow:'tier1', assembly:'add' },
+      contract:{ legalName:'Pat Rivera and Sam Rivera', mailing:'123 Example Lane, Driggs, ID 83422', site:'456 Sample Road, Driggs, ID 83422' } },
+    modular: { label:'Modular: Teton, one unit, Utah', type:'modular', product:'teton',
+      customer:{ name:'Jordan Lee', email:'jordan.lee@example.test', phone:'435-555-0187', city:'Kanab', state:'UT' },
+      options:{ miles:'120' },
+      contract:{ legalName:'Jordan Lee', mailing:'78 Example Street, Kanab, UT 84741', site:'Lot 12, Sample Ridge, Kanab, UT 84741' } },
+    multi: { label:'Modular, five units: Gallatin, Wyoming', type:'modular', product:'gallatin', units:5,
+      customer:{ name:'Canyon Ridge Housing LLC', email:'office@example.test', phone:'307-555-0110', city:'Pinedale', state:'WY' },
+      options:{ miles:'300' },
+      contract:{ legalName:'Canyon Ridge Housing LLC', mailing:'PO Box 100, Pinedale, WY 82941', site:'Sample Subdivision, Lots 1–5, Pinedale, WY 82941' } }
+,
+    garage: { label:"Garage, Utah (Custom Home contract)", type:"garage", product:"garage-3-car",
+      customer:{ name:"Lee Garage Test", email:"", phone:"", city:"St. George", state:"UT" },
+      options:{ miles:"60" },
+      contract:{ legalName:"Lee Garage Test", mailing:"1 Example Way, St. George, UT 84770", site:"1 Example Way, St. George, UT 84770" } },
+    steel: { label:"Steel kit, Texas, DIY (Custom Home contract)", type:"steel", project:{ projectName:"Shop building", buildCost:"148500", engineering:"5200", sqft:"2400" },
+      customer:{ name:"Taylor Steel Test", email:"", phone:"", city:"Amarillo", state:"TX" },
+      options:{ miles:"900" },
+      contract:{ legalName:"Taylor Steel Test", mailing:"9 Sample Rd, Amarillo, TX 79101", site:"9 Sample Rd, Amarillo, TX 79101" } }
+  };
+  var ORDER = ['customer', 'product', 'options', 'review', 'contract', 'send'];
+  function stop(at){ return SHOT && ORDER.indexOf(at) >= ORDER.indexOf(AT); }
+
+  // One rep, one quote, one contract, all through the screens.
+  async function drive(key){
+    var c = CASES[key];
+    await load('../quote.html');
+    await until(function(){ return W().ZK && W().ZK.Flow && q('[data-cust="name"]'); });
+    var F = W().ZK.Flow;
+    W().scrollTo(0, 0);
+    if(stop('customer')){ type(q('[data-cust="name"]'), c.customer.name); return; }
+    // 1 Customer
+    Object.keys(c.customer).forEach(function(k){ type(q('[data-cust="' + k + '"]'), c.customer[k]); });
+    click('[data-next="product"]'); await until(function(){ return F.state.step === 'product'; });
+    if(F.state.type !== c.type) click('[data-type="' + c.type + '"]');
+    if(c.project){
+      await until(function(){ return q('[data-key="buildCost"]'); });
+      Object.keys(c.project).forEach(function(k){ type(q('[data-key="' + k + '"]'), c.project[k]); });
+      if(stop('product')) return;
+      click('[data-next="options"]'); await until(function(){ return F.state.step === 'options'; });
+    } else {
+      await until(function(){ return q('[data-product="' + c.product + '"]'); });
+      if(stop('product')) return;
+      // 2 Model
+      click('[data-product="' + c.product + '"]'); await until(function(){ return F.state.step === 'options'; });
+    }
+    // 3 Options
+    if(c.units){ type(q('[data-key="units"]'), String(c.units)); }
+    Object.keys(c.options).forEach(function(k){
+      var els = D().querySelectorAll('[data-key="' + k + '"]');
+      if(els[0].getAttribute('data-kind') === 'choice'){ var r = Array.prototype.filter.call(els, function(e){ return e.value === c.options[k]; })[0]; r.checked = true; fire(r, 'change'); }
+      else type(els[0], c.options[k]);
+    });
+    await wait(100);
+    if(stop('options')) return;
+    click('[data-next="review"]'); await until(function(){ return F.state.step === 'review'; });
+    if(stop('review')) return;
+    // 4 Review -> 5 Contract
+    click('[data-contract]'); await until(function(){ return F.state.step === 'contract'; });
+    if(q('[data-rep-save]')){ type(q('#zk-rep-name'), 'Casey New'); type(q('#zk-rep-phone'), '435-555-0199'); click('[data-rep-save]'); await wait(100); }
+    Object.keys(c.contract).forEach(function(k){ type(q('[data-ct="' + k + '"]'), c.contract[k]); });
+    await wait(100);
+    if(stop('contract')) return;
+    // The proposal the buyer would get from this quote (same rows as the contract?).
+    var proposal = W().ZK.Documents.proposal(F.docData());
+    var made = await until(function(){ var b = q('[data-create-contract]'); return b && !b.disabled && b; });
+    made.click();
+    // 6 Send (the contract generator's Send page, same tab)
+    await until(function(){ return /ZipKit_Contract_Generator/.test(W().location.href) && q('#mk-status') && !/Preparing/.test(q('#mk-status').textContent); }, 30000);
+    await until(function(){ var f = q('#mk-frame'); return f && f.contentDocument && f.contentDocument.body && f.contentDocument.body.innerHTML.length > 1000; });
+    return { status: q('#mk-status').textContent, bad: q('#mk-status').classList.contains('bad'), doc: W().ZK_MAKE.docs.main, row: W().ZK_MAKE && W().ZK_MAKE.row, proposal: proposal };
+  }
+
+  function has(doc, s){ return doc.indexOf(s) !== -1; }
+  var SITE = 'Freight pricing assumes Seller' ;
+  async function runAll(){
+    localStorage.removeItem('zk-test-rows'); localStorage.removeItem('zk-test-profile'); localStorage.removeItem('zk-test-admin');
+    // ---- the panelized kit ----
+    var k = await drive('kit');
+    var built = W().ZK_MAKE;
+    rec('Kit: contract made and saved on the Send page', !k.bad && /saved for Pat Rivera and Sam Rivera/.test(k.status), k.status);
+    var quote = JSON.parse(localStorage.getItem('zk-test-rows')).filter(function(r){ return r.product_kind === 'shell'; })[0];
+    var amounts = quote.config.contract.amounts, P = quote.config.payment_schedule;
+    var ps = {}; P.forEach(function(s){ ps[s.key] = s.amount; });
+    rec('Kit: payments 2, 3 and Final equal the quote\'s 45/45/10 to the dollar',
+      amounts[1] === Math.round(ps.materials) && amounts[2] === Math.round(ps.preship) && amounts[3] === Math.round(ps.final), { amounts: amounts, quote: ps });
+    rec('Kit: Section 5 table, materials and Load Confirmation clauses, warranty line, one schedule',
+      has(k.doc, 'Payment 2 — Materials Procurement (45%)') && has(k.doc, 'Payment 2 constitutes reimbursement for materials procured specifically for Buyer\'s Kit')
+      && has(k.doc, 'Final Payment — Load Confirmation (10%)') && has(k.doc, 'The Final Payment is due upon Seller\'s issuance of Load Confirmation')
+      && !has(k.doc, 'framing and Zip Kit Homes scope') && has(k.doc, 'Payment and warranty obligations are independent of one another.'), 'kit wording');
+    rec('Kit: site access clause ends paragraph a., kit scope table prints, windows not included (no package)',
+      /requested or directed by Buyer\. Freight pricing assumes Seller's delivery truck/.test(k.doc) && has(k.doc, 'Kit scope') && /All windows &amp;amp; ext entry doors<\/td><td[^>]*>NOT INCLUDED|All windows &amp; ext entry doors<\/td><td[^>]*>NOT INCLUDED/.test(k.doc), 'site access / scope');
+    rec('Kit: one "Framed decks and stairs, when shown in the design" line on the contract and proposal; the old deck, covered deck and stairs lines are gone',
+      has(k.doc, 'Framed decks and stairs, when shown in the design') && !has(k.doc, 'Covered Rear Deck') && !has(k.doc, 'Standard Stairs') && !has(k.doc, 'Framed Deck Panels')
+      && has(k.proposal, 'Framed decks and stairs, when shown in the design') && !has(k.proposal, 'Standard interior stairs'), 'scope lines');
+    rec('Kit: the proposal shows the contract\'s payment rows, wording and amounts (no old "Final set" schedule)',
+      has(k.proposal, 'Payment 2 — Materials Procurement (45%)') && has(k.proposal, 'Final Payment — Load Confirmation (10%)') && has(k.proposal, 'Due upon Seller')
+      && !has(k.proposal, 'Final set') && !has(k.proposal, 'Pre-ship (45%)')
+      && amounts.every(function(a){ return a === 'PAID' || has(k.proposal, '$' + a.toLocaleString('en-US')); }), 'proposal schedule');
+    rec('Kit with our crew: proposal lists set-and-erect labor, says "billed on a separate assembly contract", never names an LLC',
+      has(k.proposal, 'Labor to set and erect panels') && has(k.proposal, 'billed on a separate assembly contract') && !has(k.proposal, 'Zip Kit Assembly'), 'assembly wording');
+    rec('Kit: assembly quote also makes the Set Services agreement', !!(built.docs.setServices && has(built.docs.setServices, 'Set Services Agreement')), 'no set services');
+    // Mark as sent, then signed
+    click('#mk-sent'); await until(function(){ return /Sent /.test(q('#mk-status').textContent); });
+    rec('Kit: Mark as sent stamps the date', /Sent \d/.test(q('#mk-status').textContent), q('#mk-status').textContent);
+    // Making it again updates the same contract (no copy)
+    var cid = W().ZK_MAKE.row.id;
+    await load('../quote.html?open=' + encodeURIComponent(quote.id) + '&step=contract');
+    await until(function(){ return W().ZK && W().ZK.Flow && W().ZK.Flow.state.step === 'contract' && q('[data-create-contract]'); });
+    click('[data-create-contract]');
+    await until(function(){ return /ZipKit_Contract_Generator/.test(W().location.href) && q('#mk-status') && !/Preparing/.test(q('#mk-status').textContent); }, 30000);
+    var contracts = JSON.parse(localStorage.getItem('zk-test-rows')).filter(function(r){ return r.product_kind === 'contract-shell'; });
+    rec('Kit: making the contract again updates it (one contract row), and it reads "not sent" again', contracts.length === 1 && contracts[0].id === cid && /updated/.test(q('#mk-status').textContent) && /Not sent yet/.test(q('#mk-status').textContent), { n: contracts.length, status: q('#mk-status').textContent });
+
+    // ---- the one-unit modular ----
+    var m = await drive('modular');
+    rec('Modular: contract made', !m.bad, m.status);
+    rec('Modular: Section 4 is 5/30/30/30/5 with the approved wording, no leftover 10% or crew-last-day trigger',
+      has(m.doc, 'Payment 1 — Design and Engineering Payment: 5% of the Purchase Price') && has(m.doc, 'Due at project start to begin design and engineering. Non-refundable once design and engineering work starts.') && !has(m.doc, 'drafting, coordination')
+      && has(m.doc, 'Payment 2 — Materials Procurement Payment: 30% of the Purchase Price')
+      && has(m.doc, 'Payment 4 — Exterior Siding and Interior Paint Completion Payment: 30% of the Purchase Price') && has(m.doc, 'Seller shall not release the Modular Units for shipment until Payment 4 is received in full.')
+      && has(m.doc, 'Payment 5 — Final Payment: 5% of the Purchase Price') && has(m.doc, 'Due and payable on-site when the last Modular Unit is set on site.')
+      && has(m.doc, 'on the day the last Modular Unit is set') && !has(m.doc, '10% of the Purchase Price') && !has(m.doc, 'on the final day Seller') && !has(m.doc, '{{'), 'modular wording');
+    rec('Modular: cover table uses the same payments (short names), and Section 8 has the site access paragraph',
+      has(m.doc, 'Payment 3 — Framing Completion (30%)') && has(m.doc, 'Payment 4 — Siding &amp; Paint Completion (30%)') && !has(m.doc, 'Construction Begins') && has(m.doc, '<b>Site access.</b> Freight pricing assumes Seller'), 'modular cover');
+    var mq = JSON.parse(localStorage.getItem('zk-test-rows')).filter(function(r){ return r.product_kind === 'modular'; })[0];
+    rec('Modular: the proposal shows the same five payments and wording, and the portal keys don\'t collide with the design retainer',
+      has(m.proposal, 'Payment 1 — Design &amp; Engineering (5%)') && has(m.proposal, 'Payment 5 — Final Payment (5%)') && has(m.proposal, 'Due when the last Modular Unit is set on site.')
+      && !has(m.proposal, 'Construction Begins') && mq.config.payment_schedule.every(function(s){ return s.key !== 'design'; }) && mq.config.payment_schedule[0].key === 'design-engineering', mq.config.payment_schedule.map(function(s){ return s.key; }));
+    var mps = mq.config.payment_schedule.map(function(s){ return Math.round(s.amount); });
+    rec('Modular: the five amounts equal the quote\'s 5/30/30/30/5 to the dollar', JSON.stringify(mq.config.contract.amounts) === JSON.stringify(mps), { contract: mq.config.contract.amounts, quote: mps });
+
+    // ---- five units ----
+    var u = await drive('multi');
+    rec('Multi-unit: contract made', !u.bad, u.status);
+    rec('Multi-unit: Sven\'s order, halves 1–3 and 4–5, last-unit final with change orders',
+      has(u.doc, 'Payment 3 — Framing Completion Payment, Units 1–3: 15% of the Purchase Price') && has(u.doc, 'Payment 4 — Framing Completion Payment, Units 4–5: 15% of the Purchase Price')
+      && has(u.doc, 'Payment 5 — Exterior Siding and Interior Paint Completion Payment, Units 1–3') && has(u.doc, 'Seller shall not release Modular Units 4–5 for shipment until Payment 6 is received in full.')
+      && has(u.doc, 'Payment 7 — Final Payment: 5% of the Purchase Price, plus any approved change orders or invoices not yet paid')
+      && has(u.doc, '5% plus any approved change orders or invoices not yet paid, after the last Modular Unit is set on site.'), 'multi wording');
+    var uq = JSON.parse(localStorage.getItem('zk-test-rows')).filter(function(r){ return r.product_kind === 'modular' && r.units === 5; })[0];
+    var sum = uq.config.contract.amounts.reduce(function(a, b){ return a + b; }, 0);
+    rec('Multi-unit: seven payments add up to the contract total exactly', uq.config.contract.amounts.length === 7 && sum === Math.round(uq.contract_amount), { amounts: uq.config.contract.amounts, total: uq.contract_amount });
+
+    // ---- garage and steel use the Custom Home contract, to the dollar ----
+    var g = await drive('garage');
+    rec('Garage (UT): Custom Home contract made, amounts match the quote', !g.bad && has(g.doc, 'Custom Home Purchase Agreement'), g.status);
+    rec('Garage with $0 engineering: no Engineering row on the contract or proposal; materials is Payment 1',
+      !has(g.doc, '— Engineering') && !has(g.doc, 'Engineered plans') && has(g.doc, 'Payment 1 — Materials Procurement (45%)') && !has(g.proposal, '— Engineering') && has(g.proposal, 'Payment 1 — Materials Procurement (45%)'), 'engineering row');
+    var s = await drive('steel');
+    rec('Steel kit (TX, DIY): sold outside the wood-kit states, Custom Home contract made, amounts match', !s.bad && has(s.doc, 'Freight pricing assumes Seller'), s.status);
+
+    // ---- sales rules on the screens ----
+    await load('../quote.html');
+    await until(function(){ return W().ZK && W().ZK.Flow && q('[data-cust="name"]'); });
+    type(q('[data-cust="name"]'), 'No State Test'); click('[data-next="product"]'); await wait(100);
+    rec('State is required: Next stays on Customer with the reason', W().ZK.Flow.state.step === 'customer' && /Pick the state/.test(q('[data-field="state"] .err').textContent), q('[data-field="state"] .err').textContent);
+    type(q('[data-cust="state"]'), 'TX'); click('[data-next="product"]'); await until(function(){ return W().ZK.Flow.state.step === 'product'; });
+    click('[data-product="alpine"]'); await until(function(){ return W().ZK.Flow.state.step === 'options'; });
+    var tiles = Array.prototype.map.call(D().querySelectorAll('[data-key="assembly"]'), function(e){ return e.closest('label') ? e.closest('label').textContent.replace(/\s+/g, ' ').trim() : e.value; });
+    rec('Site assembly: two choices, "Kit only (price as listed)" and "Add our assembly crew (+10%, separate contract)"; no curb credit',
+      tiles.length === 2 && /Kit only \(price as listed\)/.test(tiles[0]) && /Add our assembly crew \(\+10%, separate contract\)/.test(tiles[1]) && !/Curb/i.test(tiles.join(' ')), tiles);
+    var asmTip = (D().querySelector('[data-field="assembly"]') || D()).textContent;
+    click('[data-next="review"]'); await until(function(){ return W().ZK.Flow.state.step === 'review'; });
+    var wc = q('[data-contract]');
+    var kitOnly = W().ZK.Documents.proposal(W().ZK.Flow.docData());
+    rec('Kit only: the proposal doesn\'t list set-and-erect labor', !has(kitOnly, 'Labor to set and erect') && has(kitOnly, 'Zip Wall sheathing'), 'labor line');
+    rec('Wood kit in TX: "Write the contract" is off and says to quote a steel kit', wc.disabled && /Wood kits only ship to UT, ID, MT, WY, CO, AZ, NV, NM, CA, OR and WA\. Quote a steel kit instead\./.test(wc.title), wc.title);
+
+    // ---- the schedule editor refuses anything but 100% ----
+    await load('../quote.html?open=' + encodeURIComponent(mq.id) + '&step=contract');
+    await until(function(){ return W().ZK && W().ZK.Flow && W().ZK.Flow.state.step === 'contract' && q('#zk-srow-pct-1'); });
+    type(q('#zk-srow-pct-1'), '25'); await wait(50);
+    var off = { disabled: q('[data-create-contract]').disabled, total: q('#zk-sched-total').textContent };
+    type(q('#zk-srow-pct-1'), '30'); await wait(50);
+    rec('Editor: 95% keeps "Create the contract" off and says add 5%; back to 100% turns it on',
+      off.disabled && /95%/.test(off.total) && /Add 5%/.test(off.total) && !q('[data-create-contract]').disabled, off);
+    click('[data-srow-remove="1"]'); await wait(50);
+    rec('Editor: removing the materials payment warns that its clause goes too', /non-refundable materials clause/.test((q('.srow-confirm') || {}).textContent || ''), 'no warning');
+    click('[data-srow-remove-no]');
+
+    // ---- generator bugs ----
+    await load('../ZipKit_Contract_Generator.html');
+    await until(function(){ return W().zkSaveCurrentContract && W().ZK && W().ZK.Schedule; });
+    var G = W();
+    G.document.getElementById('c-promo-design-credit').checked = true; fire(G.document.getElementById('c-promo-design-credit'), 'change');
+    await load('../ZipKit_Contract_Generator.html'); await until(function(){ return W().zkSaveCurrentContract; });
+    rec('Promo credit starts off for the next contract (not remembered)', !q('#c-promo-design-credit').checked && localStorage.getItem('zk_promo_design_credit') === null, 'promo remembered');
+    G = W();
+    var before = JSON.parse(localStorage.getItem('zk-test-rows')).length;
+    await G.zkSaveCurrentContract(); await G.zkSaveCurrentContract();
+    var after = JSON.parse(localStorage.getItem('zk-test-rows')).length;
+    rec('Save Project twice saves one contract (the second save updates it)', after === before + 1, { before: before, after: after });
+    G.setContractMode('changeorder'); G.addCoDeduction();
+    var amt = G.document.querySelector('#co-changes .co-line-wrap:last-child [data-co="amt"]');
+    type(amt, '1500');
+    var ch = G.getCoChanges(); var last = ch[ch.length - 1];
+    rec('Change order: a deduction typed as 1500 comes off as −1500', last && last.amt === -1500 && amt.value === '-1500', { last: last, shown: amt.value });
+
+    // ---- portal ----
+    await load('../index.html');
+    await until(function(){ return q('#stat-contracted') && /\$/.test(q('#stat-contracted').textContent); }, 20000);
+    var cards = D().querySelectorAll('.project-card').length;
+    var signedBefore = q('#stat-contracted').textContent;
+    rec('Portal: unsigned contracts aren\'t contracted money; reps see no delete button',
+      signedBefore === '$0' && !q('.pc-actions .danger') && cards >= 4 && !!q('[onclick^="markSigned"]'), { contracted: signedBefore, cards: cards });
+    var kitCard = Array.prototype.filter.call(D().querySelectorAll('.project-card'), function(c){ return /Shell contract/.test(c.textContent); })[0];
+    rec('Portal: the kit contract shows as "Sent"', kitCard && /Sent|Contract, not sent/.test(kitCard.querySelector('.pc-stage').textContent), kitCard && kitCard.querySelector('.pc-stage').textContent);
+    kitCard.querySelector('[onclick^="markSigned"]').click();
+    await until(function(){ return q('#stat-contracted').textContent !== '$0'; });
+    var ct = JSON.parse(localStorage.getItem('zk-test-rows')).filter(function(r){ return r.product_kind === 'contract-shell'; })[0];
+    rec('Portal: Mark signed counts it as contracted, to the dollar', q('#stat-contracted').textContent === '$' + Math.round(ct.contract_amount).toLocaleString('en-US'), { shown: q('#stat-contracted').textContent, contract: ct.contract_amount });
+    var newQuote = q('a.btn.primary');
+    rec('Portal: "+ New quote" opens the new quote tool; the old tool isn\'t on the menu', /quote\.html$/.test(newQuote.getAttribute('href')) && !D().querySelector('a[href*="ZipKit_Quoting_Tool"]'), newQuote.getAttribute('href'));
+
+    var failed = results.filter(function(r){ return !r.pass; });
+    document.title = (failed.length ? 'FAIL ' : 'PASS ') + (results.length - failed.length) + '/' + results.length;
+    window.ZK_REP_RESULT = results;
+    document.getElementById('report').innerHTML = '<b>' + document.title + '</b><ul>' + results.map(function(r){ return '<li class="' + (r.pass ? 'ok' : 'bad') + '">' + (r.pass ? '✓ ' : '✗ ') + r.name + (r.pass ? '' : ' <code>' + JSON.stringify(r.detail).replace(/</g, '&lt;') + '</code>') + '</li>'; }).join('') + '</ul>';
+  }
+
+  var job = SHOT ? (async function(){
+      localStorage.removeItem('zk-test-rows'); localStorage.removeItem('zk-test-profile');
+      await drive(SHOT); await wait(400);
+      if(AT === 'send'){ var fr = q('#mk-frame'); if(fr) fr.style.height = '1400px'; }
+      document.title = 'READY';
+    })() : runAll();
+  job.catch(function(e){ document.title = 'ERROR'; document.getElementById('report').textContent = 'Could not run: ' + (e && e.stack || e); });
+})();
+</script>
+</body>
+</html>

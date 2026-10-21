@@ -1242,6 +1242,9 @@ async function generateGenericInvoice(){
 // Explicit map for photo files whose filename doesn't match the model name
 // (most files have number suffixes like "apache4.png" or "willow3.png").
 var MODEL_PHOTO_MAP = {
+  // Renamed models (Kelsey 2026-10-20): saved quotes and contracts with the
+  // old names still find the photo.
+  'Solitude':'kolob','Shasta':'oakley','Summit':'ozark',
   'Apache':'apache4','Birch':'birch1','Bluebell':'bluebell2','Bozeman':'bozeman1',
   'Cedar':'cedar1','Clyde':'clyde1','Dakota':'dakota1','Meadow':'meadow.1',
   'Moab':'moab1','Sunstone':'sunstone1','Timberline':'timberline1','Willow':'willow3',
@@ -1831,8 +1834,8 @@ var SHELL = [
   ["Bozeman","1,403",103600,9945,10775,21600,14,[11500,17250,19950,29550]],
   ["Sunstone","1,471",89550,6400,10884,21768,16,[6750,10250,12150,18450]],
   ["Bluebell","1,536",134120,10510,11410,18850,18,[7535,12055,13185,21328]],
-  ["Shasta","1,590",96225,8475,12400,24875,16,[10300,15100,17675,26550]],
-  ["Summit","1,793",102900,9560,10290,20580,16,[9100,13750,16300,24800],""],
+  ["Oakley","1,590",96225,8475,12400,24875,16,[10300,15100,17675,26550]],
+  ["Ozark","1,793",102900,9560,10290,20580,16,[9100,13750,16300,24800],""],
   ["Jasper","1,800",124765,11260,12895,28965,16,[8105,10805,13720,18374]],
   ["Mesa","1,823",127435,11645,12215,24428,16,[12300,17835,21075,31978]],
   ["Koda","1,864",131475,11670,12750,25965,16,[7670,11800,14075,21535]],
@@ -1846,7 +1849,7 @@ var SHELL = [
   ["Alpine","2,372",199380,14965,18938,37200,21,[17615,27830,30440,49235]],
   ["Moab","2,562",166280,13780,19200,29965,18,[14200,21900,26050,39785]],
   ["Meadow","2,617",185580,12850,18558,31116,20,[7930,12200,14500,22145]],
-  ["Solitude","2,955",179550,14275,17665,31325,20,[13200,20100,24275,37600]],
+  ["Kolob","2,955",179550,14275,17665,31325,20,[13200,20100,24275,37600]],
   ["Olympic","3,516",209850,13445,19750,28965,23,[14800,21150,26150,41500]]
 ];
 
@@ -1985,7 +1988,7 @@ function calcShell(){
 
   var flag=document.getElementById('s-flag');
   var flags=[];
-  // (No shell-kit models currently use the "ship-range" tag — Summit was locked at $16/mi.)
+  // (No shell-kit models currently use the "ship-range" tag — Ozark, formerly Summit, was locked at $16/mi.)
   if(tag==='ship-range') flags.push('This model uses a shipping range. Confirm the actual rate with the office before you send the quote.');
   if(flags.length){ flag.style.display='block'; flag.innerHTML=flags.join('<br>'); } else flag.style.display='none';
 

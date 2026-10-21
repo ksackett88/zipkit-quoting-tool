@@ -78,6 +78,9 @@
       z.addons.forEach(function(a, i){ config.addons['m-addon-' + i] = (cfg.addons || []).indexOf(a.id) !== -1; });
     }
     if(state.user && state.rep) config.buyer['rep-name'] = state.rep.name || '';
+    // The Contract step: legal name, addresses, payment schedule rows and the
+    // amounts the rep saw (the contract generator checks it prints the same).
+    if(state.contract) config.contract = JSON.parse(JSON.stringify(state.contract));
     return {
       product_kind: cfg.type,
       model: q.model,
@@ -110,7 +113,13 @@
 
   // ---------- rep profile ----------
   function client(){ return root.ZK.auth && root.ZK.auth.client; }
+  // The local test store keeps a practice rep's details in this browser only.
+  var TEST_PROFILE = 'zk-test-profile';
   function loadProfile(user){
+    if(root.ZK.TEST_STORE){
+      var tp = {}; try { tp = JSON.parse(localStorage.getItem(TEST_PROFILE) || '{}'); } catch(e){}
+      return Promise.resolve({ name: tp.name || '', phone: tp.phone || '', email: user ? user.email : '' });
+    }
     var c = client();
     if(!c || !user) return Promise.resolve({ name:'', phone:'', email: user ? user.email : '' });
     return c.from('profiles').select('full_name, phone').eq('id', user.id).maybeSingle().then(function(r){
@@ -119,6 +128,7 @@
     }, function(){ return { name:'', phone:'', email: user.email || '' }; });
   }
   function saveProfile(user, name, phone){
+    if(root.ZK.TEST_STORE){ try { localStorage.setItem(TEST_PROFILE, JSON.stringify({ name: name, phone: phone })); } catch(e){} return Promise.resolve(true); }
     var c = client();
     if(!c || !user) return Promise.reject(new Error('Not signed in.'));
     return c.from('profiles').update({ full_name: name, phone: phone }).eq('id', user.id).select('id').then(function(r){

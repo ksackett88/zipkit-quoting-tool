@@ -1,6 +1,6 @@
 /* Option forms for each product type. Each control maps to one key of the
    pricing config (see js/pricing.js). Visible controls are kept to the few a
-   rep needs on most quotes; the rest sit under "More options". */
+   rep needs on most quotes; the rest sit under "Advanced". */
 (function(root){
   'use strict';
   var fmt = function(n){ return root.ZK.Pricing.fmt(n); };
@@ -53,7 +53,7 @@
       return '<div class="field" data-field="' + c.key + '" role="radiogroup" aria-label="' + esc(c.label) + '">' + label(c)
         + '<div class="choices">' + opts.map(function(o){
           var on = String(cur) === String(o.value);
-          return '<label class="choice' + (on ? ' on' : '') + '"><input type="radio" name="r-' + c.key + '" data-key="' + c.key + '" data-kind="choice" value="' + esc(o.value) + '"' + (on ? ' checked' : '') + '>'
+          return '<label class="choice' + (on ? ' on' : '') + (o.disabled ? ' disabled' : '') + '"><input type="radio" name="r-' + c.key + '" data-key="' + c.key + '" data-kind="choice" value="' + esc(o.value) + '"' + (on ? ' checked' : '') + (o.disabled ? ' disabled' : '') + '>'
             + '<span class="c-title">' + esc(o.title) + '</span>' + (o.sub ? '<span class="c-sub">' + esc(o.sub) + '</span>' : '') + '</label>';
         }).join('') + '</div>' + helpLine(c, ctx) + errLine(c) + '</div>';
     },
@@ -130,17 +130,51 @@
     return h + '</div>';
   }
 
+  // ---------- where our assembly crew goes (Kelsey 2026-10-20) ----------
+  // The crew works in the brand's assembly states. Elsewhere "Add our crew" is
+  // blocked; the office can override it under Advanced with a typed reason,
+  // which prints nothing extra on the contract. Steel kits outside the
+  // wood-kit states are DIY only, with no override.
+  function listText(a){ return a.join(', ').replace(/, (\w+)$/, ' and $1'); }
+  function assemblyRule(ctx){
+    var st = ctx.customerState, t = ctx.catalog.type(ctx.type) || {}, b = ctx.catalog.brandFor(ctx.type);
+    var crew = b && b.assembly && b.assembly.states;
+    if(!st || !crew || crew.indexOf(st) !== -1) return { ok:true };
+    var wood = ctx.catalog.data.rules && ctx.catalog.data.rules.wood_kit_states;
+    if(t.frame === 'steel' && wood && wood.indexOf(st) === -1){
+      return { ok:false, overridable:false, text:'Steel kits in ' + st + ' are DIY only. Our assembly crew only works in ' + listText(crew) + '.' };
+    }
+    return { ok:false, overridable:true, text:'Our assembly crew works in ' + listText(crew) + ' only. This buyer is building in ' + st + '.' };
+  }
+  function assemblyAllowed(ctx){
+    var r = assemblyRule(ctx);
+    return r.ok || (r.overridable && !!ctx.cfg.assemblyOverride && String(ctx.cfg.assemblyOverrideReason || '').trim() !== '');
+  }
+  function overrideOffered(ctx){ var r = assemblyRule(ctx); return !r.ok && r.overridable; }
+  var overrideCtls = [
+    { key:'assemblyOverride', type:'check', section:'more', label:'Override: send our assembly crew outside its states',
+      sub:'Only with the office\'s OK. Managers see the reason; nothing extra prints on the contract.', showIf: overrideOffered },
+    { key:'assemblyOverrideReason', type:'text', section:'more', label:'Why the crew is going (required)', placeholder:'e.g. Sven approved: the crew is in Lubbock that month',
+      showIf: function(ctx){ return overrideOffered(ctx) && !!ctx.cfg.assemblyOverride; } }
+  ];
+
   // ---------- per-type definitions ----------
   function assemblyChoice(shareText){
     return { key:'assembly', type:'choices', label:'Site assembly',
-      tip:'Assembly is done by Zip Kit Assembly LLC, a separate company. "Add our crew" is billed on its own contract, so it isn\'t in the payment schedule.',
+      tip:'Listed prices never include assembly. Our crew is billed on a separate assembly contract, so it isn\'t in the payment schedule.',
       options: function(ctx){
-        var r = ctx.result, a = r && r.assemblyEach;
-        return [
-          { value:'none',   title:'Price as listed', sub:'No change' },
-          { value:'remove', title:'Curb delivery only', sub: a ? '−' + fmt(a) + shareText : 'Customer sets it' },
-          { value:'add',    title:'Add our assembly crew', sub: a ? '+' + fmt(a) + shareText + ', separate contract' : 'Separate contract' }
+        var r = ctx.result, a = r && r.assemblyEach, blocked = !assemblyAllowed(ctx);
+        var by = ctx.catalog && ctx.catalog.assemblyCompany ? ctx.catalog.assemblyCompany() : '';
+        var list = [
+          { value:'none',   title:'Kit only (price as listed)', sub:'The buyer arranges the set' },
+          { value:'add',    title:'Add our assembly crew (+10%, separate contract)', disabled: blocked && ctx.cfg.assembly !== 'add',
+            sub: blocked ? 'Not available in ' + ctx.customerState : (a ? '+' + fmt(a) + shareText : '') + (by ? (a ? ' · ' : '') + 'contract from ' + by : '') }
         ];
+        // The curb delivery credit is gone (Kelsey 2026-10-21: listed prices never
+        // include assembly). A quote saved with it still shows it, so it reopens
+        // at its saved price, and the rep can switch it off.
+        if(ctx.cfg.assembly === 'remove') list.push({ value:'remove', title:'Curb delivery credit (old quote, no longer offered)', sub: a ? '−' + fmt(a) + shareText : '' });
+        return list;
       } };
   }
   var linesCtl = { key:'customLines', type:'lines', label:'Add-ons and credits', section:'more' };
@@ -180,7 +214,7 @@
         milesCtl('Cedar City, UT'),
         snowChoice(),
         assemblyChoice(' per home'),
-        { key:'windows', type:'select', section:'more', label:'Windows & doors (optional, core states only)',
+        { key:'windows', type:'select', section:'more', label:'Windows & doors (optional)',
           tip:'Zip Kit is moving away from supplying windows and doors. Offer them only if the buyer asks.',
           options: function(ctx){
             var z = ctx.pricing, list = ctx.catalog.type('shell').window_packages;
@@ -302,7 +336,7 @@
         { key:'shipRate', type:'number', section:'more', label:'Shipping rate', prefix:'$', suffix:'per mile', min:0, step:'any' },
         { key:'scope', type:'textarea', section:'more', label:'What\'s included', placeholder:'One item per line. Shows on the proposal.', optional:true },
         promoCtl
-      ].concat(paidCtls(true)).concat([linesCtl, { key:'customSchedule', type:'schedule', section:'more', label:'Payment schedule' }]),
+      ].concat(paidCtls(true)).concat([linesCtl]),
       adjust: function(ctx){
         var t = ctx.catalog.type('custom'), tier = ctx.cfg.designTier === 'standard' ? 'standard' : 'custom';
         return [{ key:'design', title:'Design retainer', standard:'Standard ' + fmt(t.design_tiers[tier]) + ' · enter 0 to waive' }];
@@ -325,7 +359,7 @@
     var moreUsed = more.filter(function(c){ return visible(c, ctx) && isSet(c, ctx.cfg); }).length;
     var h = '<div class="fields">' + main.map(function(c){ return wrap(c, ctx); }).join('') + '</div>';
     if(more.length){
-      h += '<details class="more"' + (ctx.ui.moreOpen || moreUsed ? ' open' : '') + ' data-more="1"><summary>More options' + (moreUsed ? ' <span class="count">(' + moreUsed + ' in use)</span>' : '') + '</summary>'
+      h += '<details class="more"' + (ctx.ui.moreOpen || moreUsed ? ' open' : '') + ' data-more="1"><summary>Advanced' + (moreUsed ? ' <span class="count">(' + moreUsed + ' in use)</span>' : '') + '</summary>'
         + '<div class="fields">' + more.map(function(c){ return wrap(c, ctx); }).join('') + '</div></details>';
     }
     h += adjustBox(def.adjust(ctx), ctx);
@@ -360,8 +394,13 @@
     if(c.key === 'shipRate') return false;
     return v != null && v !== '';
   }
+  // Every type with an assembly choice gets the override controls under Advanced.
+  Object.keys(TYPES).forEach(function(t){
+    if(TYPES[t].controls.some(function(c){ return c.key === 'assembly'; })) TYPES[t].controls = TYPES[t].controls.concat(overrideCtls);
+  });
   function adjustItems(ctx){ return TYPES[ctx.type].adjust(ctx); }
   function hasProjectStep(t){ return !!(TYPES[t] && TYPES[t].project); }
 
-  (root.ZK = root.ZK || {}).Options = { renderOptions: renderOptions, patchOptions: patchOptions, renderProject: renderProject, adjustItems: adjustItems, hasProjectStep: hasProjectStep, esc: esc };
+  (root.ZK = root.ZK || {}).Options = { renderOptions: renderOptions, patchOptions: patchOptions, renderProject: renderProject, adjustItems: adjustItems, hasProjectStep: hasProjectStep, esc: esc,
+    assemblyRule: assemblyRule, assemblyAllowed: assemblyAllowed };
 })(window);

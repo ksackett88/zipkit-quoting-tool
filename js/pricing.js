@@ -60,7 +60,7 @@
     return items;
   }
 
-  // Site assembly (Zip Kit Assembly LLC): 10% of the per-unit shell figure.
+  // Site assembly (separate assembly contract; the company is catalog.json brands.zipkit.assembly.by): 10% of the per-unit shell figure.
   function assembly(cfg, shellPerUnit, units, rate){
     var mode = cfg.assembly === 'remove' ? 'remove' : (cfg.assembly === 'add' ? 'add' : 'none');
     var no = mode === 'remove', add = mode === 'add';
@@ -134,7 +134,7 @@
 
     var asm = assembly(cfg, shell, units, cat.brands.zipkit.assembly.rate);
     if(asm.no)  lines.push(credit('assembly', 'Assembly credit (curb delivery)', asm.total, '10% of shell · customer takes curb delivery, arranges own site set'));
-    if(asm.add) lines.push(charge('assembly', 'Site assembly', asm.total, '10% of shell · billed via separate Zip Kit Assembly LLC contract'));
+    if(asm.add) lines.push(charge('assembly', 'Site assembly', asm.total, '10% of shell · billed on a separate assembly contract'));
 
     var designAmt = designPaid ? 0 : effectiveDesign;
     var totalEng = eng + additionalEng;
@@ -204,7 +204,7 @@
     // the shell-only share (≈85% of base), as in the old tool.
     var asm = assembly(cfg, base * T.assembly_shell_fraction, units, cat.brands.zipkit.assembly.rate);
     if(asm.no)  lines.push(credit('assembly', 'Assembly credit (curb delivery)', asm.total, '10% of shell portion (≈85% of base) · customer arranges own site set'));
-    if(asm.add) lines.push(charge('assembly', 'Site assembly', asm.total, '10% of shell portion (≈85% of base) · billed via separate Zip Kit Assembly LLC contract'));
+    if(asm.add) lines.push(charge('assembly', 'Site assembly', asm.total, '10% of shell portion (≈85% of base) · billed on a separate assembly contract'));
 
     var contractBase = (base - discPer) * units + winCost * units + addonTotal * units + snow * units + shipPer * units + customTotal;
     var total = contractBase + asm.displayAdj;
@@ -251,7 +251,7 @@
     var asm = assembly(cfg, kit, units, cat.brands.zipkit.assembly.rate);
     // (The old tool showed this credit without a minus sign; it always subtracted.)
     if(asm.no)  lines.push(credit('assembly', 'Assembly credit (curb delivery)', asm.total, '10% of shell · customer arranges own site set'));
-    if(asm.add) lines.push(charge('assembly', 'Site assembly', asm.total, '10% of shell · billed via separate Zip Kit Assembly LLC contract'));
+    if(asm.add) lines.push(charge('assembly', 'Site assembly', asm.total, '10% of shell · billed on a separate assembly contract'));
 
     var designAmt = designPaid ? 0 : design;
     var total = kit * units + designAmt + shipPer * units + customTotal + asm.displayAdj;
@@ -305,7 +305,7 @@
 
     var asm = assembly(cfg, base, units, cat.brands.zksteel.assembly.rate);
     if(asm.no)  lines.push(credit('assembly', 'Assembly credit (curb delivery)', asm.total, '10% of shell · customer arranges own site set'));
-    if(asm.add) lines.push(charge('assembly', 'Site assembly', asm.total, '10% of shell · billed via separate Zip Kit Assembly LLC contract'));
+    if(asm.add) lines.push(charge('assembly', 'Site assembly', asm.total, '10% of shell · billed on a separate assembly contract'));
 
     var designAmt = designPaid ? 0 : eff;
     var total = (base - discPer) * units + designAmt + shipPer * units + customTotal + asm.displayAdj;
@@ -356,7 +356,7 @@
 
     var asm = assembly(cfg, build, 1, cat.brands.zksteel.assembly.rate);
     if(asm.no)  lines.push(credit('assembly', 'Assembly credit (curb delivery)', asm.total, '10% of frame package · customer arranges own site set'));
-    if(asm.add) lines.push(charge('assembly', 'Site assembly', asm.total, '10% of frame package · billed via separate Zip Kit Assembly LLC contract'));
+    if(asm.add) lines.push(charge('assembly', 'Site assembly', asm.total, '10% of frame package · billed on a separate assembly contract'));
 
     var designAmt = designPaid ? 0 : eff;
     var engAmt = engPaid ? 0 : eng;
@@ -413,7 +413,7 @@
 
     var asm = assembly(cfg, build, 1, cat.brands.zipkit.assembly.rate);
     if(asm.no)  lines.push(credit('assembly', 'Assembly credit (curb delivery)', asm.total, '10% of build · customer arranges own site set'));
-    if(asm.add) lines.push(charge('assembly', 'Site assembly', asm.total, '10% of build · billed via separate Zip Kit Assembly LLC contract'));
+    if(asm.add) lines.push(charge('assembly', 'Site assembly', asm.total, '10% of build · billed on a separate assembly contract'));
 
     var designAmt = designPaid ? 0 : eff;
     var engAmt = engPaid ? 0 : eng;

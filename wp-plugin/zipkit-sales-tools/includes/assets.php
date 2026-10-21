@@ -18,7 +18,7 @@ add_action(
 	'wp_enqueue_scripts',
 	function () {
 		// The Supabase client (sign-in, saved projects). Same build the GitHub Pages tool uses.
-		wp_register_script( 'zkst-supabase-js', 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2', array(), null, true );
+		wp_register_script( 'zkst-supabase-js', 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0', array(), null, true );
 
 		// Versions go in the URL (zkst_app_url), so WordPress adds none.
 		$js = array(
@@ -30,7 +30,8 @@ add_action(
 			'zkst-docs'     => array( 'js/documents.js', array( 'zkst-pricing' ) ),
 			'zkst-store'    => array( 'js/store.js', array( 'zkst-supabase' ) ),
 			'zkst-legacy'   => array( 'js/legacy-adapter.js', array( 'zkst-config' ) ),
-			'zkst-flow'     => array( 'js/flow.js', array( 'zkst-supabase', 'zkst-pricing', 'zkst-catalog', 'zkst-options', 'zkst-docs', 'zkst-store', 'zkst-legacy' ) ),
+			'zkst-schedule' => array( 'js/schedule.js', array( 'zkst-config' ) ),
+			'zkst-flow'     => array( 'js/flow.js', array( 'zkst-supabase', 'zkst-pricing', 'zkst-catalog', 'zkst-options', 'zkst-docs', 'zkst-store', 'zkst-legacy', 'zkst-schedule' ) ),
 		);
 		foreach ( $js as $handle => $j ) {
 			wp_register_script( $handle, zkst_app_url( $j[0] ), $j[1], null, true );

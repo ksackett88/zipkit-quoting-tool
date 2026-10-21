@@ -20,7 +20,7 @@ Lowercase, spaces → dashes, `.jpg`. Examples:
 
 ### Shell kits
 
-big-sky.jpg, bridger.jpg, tahoe.jpg, sequoia.jpg, frontier.jpg, clyde.jpg, birch.jpg, willow.jpg, bozeman.jpg, sunstone.jpg, bluebell.jpg, shasta.jpg, summit.jpg, jasper.jpg, mesa.jpg, koda.jpg, hayden.jpg, cedar.jpg, apache.jpg, juniper.jpg, zion.jpg, columbia.jpg, alpine.jpg, moab.jpg, meadow.jpg, solitude.jpg, olympic.jpg
+big-sky.jpg, bridger.jpg, tahoe.jpg, sequoia.jpg, frontier.jpg, clyde.jpg, birch.jpg, willow.jpg, bozeman.jpg, sunstone.jpg, bluebell.jpg, oakley.jpg, ozark.jpg, jasper.jpg, mesa.jpg, koda.jpg, hayden.jpg, cedar.jpg, apache.jpg, juniper.jpg, zion.jpg, columbia.jpg, alpine.jpg, moab.jpg, meadow.jpg, kolob.jpg, olympic.jpg
 
 ### Modular
 
