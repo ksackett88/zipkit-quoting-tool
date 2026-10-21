@@ -247,18 +247,42 @@
     rec('Change order: a deduction typed as 1500 comes off as −1500', last && last.amt === -1500 && amt.value === '-1500', { last: last, shown: amt.value });
 
     // ---- portal ----
+    // Two cards a rep may not delete: another rep's quote, and the rep's own quote with a payment logged.
+    var rows0 = JSON.parse(localStorage.getItem('zk-test-rows'));
+    var base0 = rows0.filter(function(r){ return r.product_kind === 'shell'; })[0];
+    function extra(id, num, who, pays){ var x = JSON.parse(JSON.stringify(base0)); x.id = id; x.quote_number = num; x.created_by = who; x.payments = pays; x.invoices = []; delete x.config.contract; return x; }
+    rows0.push(extra('test-other', 'ZK-TEST-OTHER', 'someone-else', []), extra('test-paid', 'ZK-TEST-PAID', 'test-rep', [{ id:'p1', amount:1000, date:'2026-10-21' }]));
+    localStorage.setItem('zk-test-rows', JSON.stringify(rows0));
     await load('../index.html');
     await until(function(){ return q('#stat-contracted') && /\$/.test(q('#stat-contracted').textContent); }, 20000);
     var cards = D().querySelectorAll('.project-card').length;
     var signedBefore = q('#stat-contracted').textContent;
-    rec('Portal: unsigned contracts aren\'t contracted money; reps see no delete button',
-      signedBefore === '$0' && !q('.pc-actions .danger') && cards >= 4 && !!q('[onclick^="markSigned"]'), { contracted: signedBefore, cards: cards });
+    function cardFor(num){ return Array.prototype.filter.call(D().querySelectorAll('.project-card'), function(c){ return c.textContent.indexOf(num) !== -1; })[0]; }
+    function hasX(card){ return !!(card && card.querySelector('.danger')); }
+    var own = Array.prototype.filter.call(D().querySelectorAll('.project-card'), function(c){ return !/ZK-TEST-(OTHER|PAID)/.test(c.textContent); });
+    rec('Portal: unsigned contracts aren\'t contracted money (the paid quote is), and Mark signed is there',
+      signedBefore !== '$0' && cards >= 6 && !!q('[onclick^="markSigned"]'), { contracted: signedBefore, cards: cards });
+    rec('Portal delete (rep): × on the rep\'s own unsigned cards with nothing logged; none on another rep\'s card or on a card with a payment',
+      own.length >= 4 && own.every(hasX) && !hasX(cardFor('ZK-TEST-OTHER')) && !hasX(cardFor('ZK-TEST-PAID')), { own: own.length, ownX: own.filter(hasX).length, other: hasX(cardFor('ZK-TEST-OTHER')), paid: hasX(cardFor('ZK-TEST-PAID')) });
     var kitCard = Array.prototype.filter.call(D().querySelectorAll('.project-card'), function(c){ return /Shell contract/.test(c.textContent); })[0];
     rec('Portal: the kit contract shows as "Sent"', kitCard && /Sent|Contract, not sent/.test(kitCard.querySelector('.pc-stage').textContent), kitCard && kitCard.querySelector('.pc-stage').textContent);
     kitCard.querySelector('[onclick^="markSigned"]').click();
-    await until(function(){ return q('#stat-contracted').textContent !== '$0'; });
+    await until(function(){ return q('#stat-contracted').textContent !== signedBefore; });
+    var kitAfter = Array.prototype.filter.call(D().querySelectorAll('.project-card'), function(c){ return /Shell contract/.test(c.textContent); })[0];
+    rec('Portal delete (rep): once the kit contract is marked signed, its × is gone', !hasX(kitAfter), 'x still there');
     var ct = JSON.parse(localStorage.getItem('zk-test-rows')).filter(function(r){ return r.product_kind === 'contract-shell'; })[0];
-    rec('Portal: Mark signed counts it as contracted, to the dollar', q('#stat-contracted').textContent === '$' + Math.round(ct.contract_amount).toLocaleString('en-US'), { shown: q('#stat-contracted').textContent, contract: ct.contract_amount });
+    var paidRow = JSON.parse(localStorage.getItem('zk-test-rows')).filter(function(r){ return r.id === 'test-paid'; })[0];
+    var want = Math.round(ct.contract_amount) + Math.round(paidRow.contract_amount || paidRow.total || 0);
+    rec('Portal: Mark signed counts it as contracted, to the dollar', q('#stat-contracted').textContent === '$' + want.toLocaleString('en-US'), { shown: q('#stat-contracted').textContent, want: want });
+    // The admin sees × on every card, signed or not.
+    localStorage.setItem('zk-test-admin', '1');
+    await load('../index.html');
+    await until(function(){ return q('#stat-contracted') && /\$/.test(q('#stat-contracted').textContent); }, 20000);
+    var allCards = D().querySelectorAll('.project-card');
+    rec('Portal delete (admin): × on every card, including signed, paid and other reps\' ones', allCards.length >= 6 && Array.prototype.every.call(allCards, hasX), { cards: allCards.length });
+    localStorage.removeItem('zk-test-admin');
+    await load('../index.html');
+    await until(function(){ return q('#stat-contracted') && /\$/.test(q('#stat-contracted').textContent); }, 20000);
     var newQuote = q('a.btn.primary');
     rec('Portal: "+ New quote" opens the new quote tool; the old tool isn\'t on the menu', /quote\.html$/.test(newQuote.getAttribute('href')) && !D().querySelector('a[href*="ZipKit_Quoting_Tool"]'), newQuote.getAttribute('href'));
     var at = q('#admin-tools'), rowLinks = Array.prototype.map.call(D().querySelectorAll('.actions-bar > a, .actions-bar > button'), function(e){ return e.textContent.trim(); });

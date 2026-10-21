@@ -487,6 +487,7 @@ function zkToast(msg, isError){
     document.body.style.overflow='hidden';
     // Clear any prior session state so a sign-out fully resets the UI.
     window.ZK_IS_ADMIN = false;
+    window.ZK_USER_ID = null;
     renderUserBadge('', false);
     setAdminUiVisible(false);
   }
@@ -494,6 +495,7 @@ function zkToast(msg, isError){
     overlay.style.display='none';
     document.body.style.overflow='';
     var email = (user && user.email) || '';
+    window.ZK_USER_ID = (user && user.id) || null;
     // Always resolve admin status fresh — a user's is_admin can be toggled
     // out-of-band and we don't want stale state carrying across sessions.
     try {
@@ -695,7 +697,7 @@ function renderProjects(){
       +'    <button class="success" onclick="zkShowPayments(\''+p.id+'\')">$ Payments</button>'
       +   (!isContract ? '<button onclick="continueToContract(\''+p.id+'\')" title="Write the contract from this quote">→ Contract</button>' : '')
       +   (canSign ? '<button onclick="markSigned(\''+p.id+'\')" title="The buyer signed it. It counts as contracted money from now on.">Mark signed</button>' : '')
-      +   (window.ZK_IS_ADMIN ? '<button class="danger" onclick="deleteProject(\''+p.id+'\', \''+_esc(p.quote_number||'')+'\')" title="Delete (admins only)">×</button>' : '')
+      +   (canDelete(p) ? '<button class="danger" onclick="deleteProject(\''+p.id+'\', \''+_esc(p.quote_number||'')+'\')" title="Delete">×</button>' : '')
       +'  </div>'
       +'  <div class="pc-footer">Updated '+updated+'</div>'
       +'</div>';
@@ -767,9 +769,18 @@ async function markSigned(id){
   }
 }
 
-// Only admins can delete projects (Kelsey 2026-10-20). Reps don't see the button.
+// Who can delete (Kelsey 2026-10-21; the database enforces the same rule,
+// sql/2026-10_admin_only_delete.sql): admins anything; a rep only a project
+// they created that isn't marked signed and has no payments or invoices.
+function canDelete(p){
+  if(window.ZK_IS_ADMIN) return true;
+  if(!p || !window.ZK_USER_ID || p.created_by !== window.ZK_USER_ID) return false;
+  if(p.config && p.config.signed_at) return false;
+  return !(Array.isArray(p.payments) && p.payments.length) && !(Array.isArray(p.invoices) && p.invoices.length);
+}
 async function deleteProject(id, num){
-  if(!window.ZK_IS_ADMIN){ zkToast('Only an admin can delete a project. Ask Kelsey or Sven.', true); return; }
+  var target = (_projects || []).filter(function(x){ return x.id === id; })[0];
+  if(!target || !canDelete(target)){ zkToast('You can delete only your own projects that aren\'t signed and have no payments or invoices. Ask Kelsey or Sven.', true); return; }
   if(!confirm('Delete project ' + num + '? This cannot be undone.')) return;
   try {
     await zkQuotes.remove(id);
