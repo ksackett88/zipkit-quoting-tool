@@ -54,7 +54,10 @@
     if(!els.length) return false;
     var kind = els[0].getAttribute('data-kind');
     if(kind === 'choice'){
-      var r = els.filter(function(e){ return e.value === String(v); })[0]; if(!r) return false;
+      var r = els.filter(function(e){ return e.value === String(v); })[0];
+      // The curb credit is only on quotes saved with it (Kelsey 2026-10-21): load it the way a saved quote does.
+      if(!r && key === 'assembly' && v === 'remove'){ W.ZK.Flow.state.cfg.assembly = 'remove'; W.ZK.Flow.go('options'); r = qa(W, '[data-key="assembly"]').filter(function(e){ return e.value === 'remove'; })[0]; }
+      if(!r) return false;
       r.checked = true; fire(r, 'change'); return true;
     }
     if(kind === 'bool'){ els[0].checked = !!v; fire(els[0], 'change'); return true; }

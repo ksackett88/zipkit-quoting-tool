@@ -104,7 +104,7 @@
         var actx = optionCtx(), rule = O.assemblyRule(actx);
         if(!O.assemblyAllowed(actx)){
           if(rule.overridable && cfg.assemblyOverride) e.assemblyOverrideReason = 'Say why the crew is going outside its states. Managers see this.';
-          else e.assembly = rule.text + (rule.overridable ? ' Pick another option, or turn on the override under Advanced and say why.' : ' Pick "Price as listed" or "Curb delivery only".');
+          else e.assembly = rule.text + (rule.overridable ? ' Pick another option, or turn on the override under Advanced and say why.' : ' Pick "Kit only (price as listed)".');
         }
       }
       if(cfg.type === 'custom' && cfg.customSchedule && cfg.customSchedule.length){
@@ -262,7 +262,7 @@
     var actx = optionCtx(), rule = O.assemblyRule(actx);
     if(rule.ok) return '';
     if(state.cfg.assembly === 'add' && O.assemblyAllowed(actx)) return '<div class="notice info"><b>Assembly override:</b> ' + esc(rule.text) + ' Reason: ' + esc(state.cfg.assemblyOverrideReason) + '</div>';
-    return '<div class="notice warn"><b>' + esc(rule.text) + '</b> ' + (rule.overridable ? '"Add our assembly crew" needs the office\'s OK (the override is under Advanced).' : 'Quote it as DIY: "Price as listed" or "Curb delivery only".') + '</div>';
+    return '<div class="notice warn"><b>' + esc(rule.text) + '</b> ' + (rule.overridable ? '"Add our assembly crew" needs the office\'s OK (the override is under Advanced).' : 'Quote it as DIY: "Kit only (price as listed)".') + '</div>';
   }
   function assemblyWarning(){ return '<div id="zk-assembly-warning">' + assemblyWarningHTML() + '</div>'; }
 
@@ -290,7 +290,7 @@
     var h = '<h3>Quote</h3><div class="s-model">' + esc(q.model) + (q.units > 1 ? ' × ' + q.units : '') + '</div>' + linesHTML(r);
     h += '<div class="total-row"><span class="t-label">Total</span><span class="t-value">' + fmt(r.total) + '</span></div>';
     if(r.perUnitText) h += '<div class="per-unit">' + esc(r.perUnitText) + '</div>';
-    if(q.assembly && q.assembly.mode === 'added') h += '<div class="help">Includes ' + fmt(q.assembly.amount) + ' site assembly, billed on a separate Zip Kit Assembly LLC contract.</div>';
+    if(q.assembly && q.assembly.mode === 'added') h += '<div class="help">Includes ' + fmt(q.assembly.amount) + ' site assembly, billed on a separate assembly contract.</div>';
     if(r.promoCredit > 0) h += '<div class="help">Promo: ' + fmt(r.promoCredit) + ' design-retainer credit comes off engineering. Proposal total ' + fmt(r.displayedTotal) + '.</div>';
     return h;
   }

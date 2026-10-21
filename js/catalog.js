@@ -22,6 +22,13 @@
     return Object.assign({ key: key }, b);
   };
 
+  // The company that issues the separate assembly contract: one setting,
+  // brands.zipkit.assembly.by in catalog.json (Kelsey 2026-10-21).
+  Catalog.prototype.assemblyCompany = function(){
+    var a = (this.data.brands.zipkit || {}).assembly || {};
+    return a.by || '';
+  };
+
   // Models a rep can pick: active, sold by an active brand.
   Catalog.prototype.products = function(t){
     var brands = this.data.brands;

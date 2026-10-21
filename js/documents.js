@@ -43,9 +43,15 @@
         notIncluded: ['Anything not specifically listed above','Site prep and foundation','Utility connections','Building permits and inspections','Sales tax'] };
     }
     var s = SCOPE[q.kind] || SCOPE['Shell Kit'];
-    // Stairs print only for kit models that have them (js/kit-scope.js), same as the contract.
-    if(s === SCOPE['Shell Kit'] && !(root.ZK.KitScope && root.ZK.KitScope.has(q.model, 'stairs'))){
-      s = { included: s.included.filter(function(t){ return t !== 'Standard interior stairs'; }), notIncluded: s.notIncluded };
+    // Stairs print only for kit models that have them (js/kit-scope.js), same as
+    // the contract. Set-and-erect labor is ours only when our crew is added.
+    if(s === SCOPE['Shell Kit']){
+      var stairs = !!(root.ZK.KitScope && root.ZK.KitScope.has(q.model, 'stairs')), crew = !!(q.assembly && q.assembly.mode === 'added');
+      s = { included: s.included.filter(function(t){
+          if(t === 'Standard interior stairs') return stairs;
+          if(t.indexOf('Labor to set and erect panels') === 0) return crew;
+          return true;
+        }), notIncluded: s.notIncluded };
     }
     if(q.dryin && DRYIN[q.kind]){
       return { included: s.included.concat(DRYIN[q.kind]),
@@ -84,9 +90,9 @@
       : ' (pre-framed panelized ' + (q.kind === 'Shell Kit' ? 'shell kit' : q.kind === 'Garage' ? 'garage' : q.kind === 'Hangar' ? 'hangar' : 'kit') + ')');
     var scope = scopeFor(q).included;
     var scopeCapped = scope.length > 8 ? scope.slice(0, 8) : scope;
-    var asmNote = (q.assembly && q.assembly.mode === 'added') ? 'Site assembly is included in this estimate range and will be billed via a separate Zip Kit Assembly LLC contract.'
+    var asmNote = (q.assembly && q.assembly.mode === 'added') ? 'Site assembly is included in this estimate range and will be billed on a separate assembly contract.'
       : (q.assembly && q.assembly.mode === 'removed') ? 'Site assembly is NOT included — customer takes curb delivery and arranges own site set.'
-      : 'Site assembly is optional and quoted separately by Zip Kit Assembly LLC. Ask your sales rep for the assembly range.';
+      : 'Site assembly is optional and quoted on a separate assembly contract. Ask your sales rep for the assembly range.';
     var location = [cust.city, cust.state].filter(Boolean).join(', ');
     var feesLine = isModular ? 'Design and engineering are included in the modular price.' : 'Design retainer and engineering fees are separate and paid up front.';
     var css = '@page{size:letter;margin:0.4in;}@media print{.noprint{display:none;} body{-webkit-print-color-adjust:exact; print-color-adjust:exact;}}';
@@ -209,7 +215,7 @@
       + (asmAdded
         ? '<div style="border-top:2px solid #1c1c1a; padding-top:12px; margin-bottom:30px; font-size:13px;">'
           + '<div style="display:flex; justify-content:space-between; padding:2px 0; color:#5f5e5a;"><span>Manufacturing subtotal <span style="font-size:11px; color:#888;">(billed by ' + esc(b.name) + ')</span></span><span style="font-family:menlo,consolas,monospace;">' + fmt(displayedTotal - q.assembly.amount) + '</span></div>'
-          + '<div style="display:flex; justify-content:space-between; padding:2px 0; color:#5f5e5a;"><span>Site assembly <span style="font-size:11px; color:#888;">(billed separately by Zip Kit Assembly LLC)</span></span><span style="font-family:menlo,consolas,monospace;">' + fmt(q.assembly.amount) + '</span></div>'
+          + '<div style="display:flex; justify-content:space-between; padding:2px 0; color:#5f5e5a;"><span>Site assembly <span style="font-size:11px; color:#888;">(billed on a separate assembly contract)</span></span><span style="font-family:menlo,consolas,monospace;">' + fmt(q.assembly.amount) + '</span></div>'
           + '<div style="display:flex; justify-content:space-between; padding:8px 0 0; margin-top:6px; border-top:1px solid #1c1c1a; font-size:15px; font-weight:700;"><span>Combined total <span style="font-size:11px; font-weight:400; color:#888;">(two contracts)</span></span><span style="color:' + c.main + '; font-size:22px;">' + fmt(displayedTotal) + '</span></div></div>'
         : '<div style="display:flex; justify-content:flex-end; border-top:2px solid #1c1c1a; padding-top:12px; margin-bottom:30px;"><div style="font-size:14px; color:#555; margin-right:18px; align-self:center;">Project total</div><div style="font-size:26px; font-weight:700; color:' + c.main + ';">' + fmt(displayedTotal) + '</div></div>')
       + '<div style="display:grid; grid-template-columns:1fr 1fr; gap:24px; margin-bottom:30px;">'
@@ -221,7 +227,7 @@
       + '<table style="width:100%; border-collapse:collapse; font-size:13px; page-break-inside:avoid; break-inside:avoid;"><tbody>' + schedRows
       + '<tr><td style="padding:10px 12px; font-weight:700;">Total</td><td style="padding:10px 12px; text-align:right; font-weight:700;">' + fmt(schedTotal) + '</td></tr></tbody></table>'
       + (asmAdded
-        ? '<div style="margin-top:14px; padding:12px 16px; background:#fff7e6; border-left:3px solid #d85a30; border-radius:4px; font-size:12px; color:#5f5e5a; line-height:1.6;"><b style="color:#993c1d;">Site assembly (' + fmt(q.assembly.amount) + ') is billed via a separate contract</b> from Zip Kit Assembly LLC and is <b>not included</b> in the schedule above. The manufacturing contract and payment schedule shown here cover our scope through curb delivery. Site set and assembly are covered by a separate assembly contract with its own scope, deliverables, and payment terms — you\'ll receive that contract alongside this one.</div>'
+        ? '<div style="margin-top:14px; padding:12px 16px; background:#fff7e6; border-left:3px solid #d85a30; border-radius:4px; font-size:12px; color:#5f5e5a; line-height:1.6;"><b style="color:#993c1d;">Site assembly (' + fmt(q.assembly.amount) + ') is billed on a separate assembly contract</b> and is <b>not included</b> in the schedule above. The manufacturing contract and payment schedule shown here cover our scope through curb delivery. Site set and assembly are covered by a separate assembly contract with its own scope, deliverables, and payment terms — you\'ll receive that contract alongside this one.</div>'
         : (asmRemoved ? '<div style="margin-top:14px; padding:12px 16px; background:#f5f3ec; border-left:3px solid #888; border-radius:4px; font-size:12px; color:#5f5e5a; line-height:1.6;"><b>Curb delivery only</b> — this proposal excludes site assembly. Our scope ends when the kit is delivered to the curb; the customer is responsible for site set and assembly.</div>' : ''))
       + '</div>'
       + '<div style="margin-top:30px; background:' + c.main + '; color:#fff; padding:22px 24px; border-radius:8px;">'

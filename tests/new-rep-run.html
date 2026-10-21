@@ -145,6 +145,8 @@
       has(k.proposal, 'Payment 2 — Materials Procurement (45%)') && has(k.proposal, 'Final Payment — Load Confirmation (10%)') && has(k.proposal, 'Due upon Seller')
       && !has(k.proposal, 'Final set') && !has(k.proposal, 'Pre-ship (45%)')
       && amounts.every(function(a){ return a === 'PAID' || has(k.proposal, '$' + a.toLocaleString('en-US')); }), 'proposal schedule');
+    rec('Kit with our crew: proposal lists set-and-erect labor, says "billed on a separate assembly contract", never names an LLC',
+      has(k.proposal, 'Labor to set and erect panels') && has(k.proposal, 'billed on a separate assembly contract') && !has(k.proposal, 'Zip Kit Assembly'), 'assembly wording');
     rec('Kit: assembly quote also makes the Set Services agreement', !!(built.docs.setServices && has(built.docs.setServices, 'Set Services Agreement')), 'no set services');
     // Mark as sent, then signed
     click('#mk-sent'); await until(function(){ return /Sent /.test(q('#mk-status').textContent); });
@@ -202,8 +204,14 @@
     rec('State is required: Next stays on Customer with the reason', W().ZK.Flow.state.step === 'customer' && /Pick the state/.test(q('[data-field="state"] .err').textContent), q('[data-field="state"] .err').textContent);
     type(q('[data-cust="state"]'), 'TX'); click('[data-next="product"]'); await until(function(){ return W().ZK.Flow.state.step === 'product'; });
     click('[data-product="alpine"]'); await until(function(){ return W().ZK.Flow.state.step === 'options'; });
+    var tiles = Array.prototype.map.call(D().querySelectorAll('[data-key="assembly"]'), function(e){ return e.closest('label') ? e.closest('label').textContent.replace(/\s+/g, ' ').trim() : e.value; });
+    rec('Site assembly: two choices, "Kit only (price as listed)" and "Add our assembly crew (+10%, separate contract)"; no curb credit',
+      tiles.length === 2 && /Kit only \(price as listed\)/.test(tiles[0]) && /Add our assembly crew \(\+10%, separate contract\)/.test(tiles[1]) && !/Curb/i.test(tiles.join(' ')), tiles);
+    var asmTip = (D().querySelector('[data-field="assembly"]') || D()).textContent;
     click('[data-next="review"]'); await until(function(){ return W().ZK.Flow.state.step === 'review'; });
     var wc = q('[data-contract]');
+    var kitOnly = W().ZK.Documents.proposal(W().ZK.Flow.docData());
+    rec('Kit only: the proposal doesn\'t list set-and-erect labor', !has(kitOnly, 'Labor to set and erect') && has(kitOnly, 'Zip Wall sheathing'), 'labor line');
     rec('Wood kit in TX: "Write the contract" is off and says to quote a steel kit', wc.disabled && /Wood kits only ship to UT, ID, MT, WY, CO, AZ, NV, NM, CA, OR and WA\. Quote a steel kit instead\./.test(wc.title), wc.title);
 
     // ---- the schedule editor refuses anything but 100% ----

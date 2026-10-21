@@ -69,6 +69,9 @@
   ];
 
   function compare(Wa, Wb){
+    // Only one frame can hold focus at a time, so focus rings would differ by
+    // which frame was focused last, not by the theme. Clear focus in both first.
+    [Wa, Wb].forEach(function(W){ var f = W.document.activeElement; if(f && f !== W.document.body && f.blur) f.blur(); });
     var a = els(Wa), b = els(Wb), diffs = [];
     if(a.length !== b.length) return ['element count differs: ' + a.length + ' vs ' + b.length];
     for(var i = 0; i < a.length; i++){

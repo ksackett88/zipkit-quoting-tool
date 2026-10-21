@@ -161,15 +161,20 @@
   // ---------- per-type definitions ----------
   function assemblyChoice(shareText){
     return { key:'assembly', type:'choices', label:'Site assembly',
-      tip:'Assembly is done by Zip Kit Assembly LLC, a separate company. "Add our crew" is billed on its own contract, so it isn\'t in the payment schedule.',
+      tip:'Listed prices never include assembly. Our crew is billed on a separate assembly contract, so it isn\'t in the payment schedule.',
       options: function(ctx){
         var r = ctx.result, a = r && r.assemblyEach, blocked = !assemblyAllowed(ctx);
-        return [
-          { value:'none',   title:'Price as listed', sub:'No change' },
-          { value:'remove', title:'Curb delivery only', sub: a ? '−' + fmt(a) + shareText : 'Customer sets it' },
-          { value:'add',    title:'Add our assembly crew', disabled: blocked && ctx.cfg.assembly !== 'add',
-            sub: blocked ? 'Not available in ' + ctx.customerState : (a ? '+' + fmt(a) + shareText + ', separate contract' : 'Separate contract') }
+        var by = ctx.catalog && ctx.catalog.assemblyCompany ? ctx.catalog.assemblyCompany() : '';
+        var list = [
+          { value:'none',   title:'Kit only (price as listed)', sub:'The buyer arranges the set' },
+          { value:'add',    title:'Add our assembly crew (+10%, separate contract)', disabled: blocked && ctx.cfg.assembly !== 'add',
+            sub: blocked ? 'Not available in ' + ctx.customerState : (a ? '+' + fmt(a) + shareText : '') + (by ? (a ? ' · ' : '') + 'contract from ' + by : '') }
         ];
+        // The curb delivery credit is gone (Kelsey 2026-10-21: listed prices never
+        // include assembly). A quote saved with it still shows it, so it reopens
+        // at its saved price, and the rep can switch it off.
+        if(ctx.cfg.assembly === 'remove') list.push({ value:'remove', title:'Curb delivery credit (old quote, no longer offered)', sub: a ? '−' + fmt(a) + shareText : '' });
+        return list;
       } };
   }
   var linesCtl = { key:'customLines', type:'lines', label:'Add-ons and credits', section:'more' };

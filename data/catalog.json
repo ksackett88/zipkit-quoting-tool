@@ -18,7 +18,8 @@
       "has_design_retainer": true,
       "assembly": {
         "offered": true,
-        "by": "Zip Kit Assembly LLC",
+        "by": "Zip Kit USA, LLC dba Zip Kit Homes",
+        "by_note": "The company that issues the separate assembly contract. The only place it's set: every screen reads it from here. Customer-facing notes just say \"billed on a separate assembly contract\" (Kelsey 2026-10-21).",
         "rate": 0.1,
         "states": ["UT", "ID", "WY", "MT", "CO", "AZ", "NV"]
       },
@@ -40,7 +41,6 @@
       "has_design_retainer": true,
       "assembly": {
         "offered": true,
-        "by": "Zip Kit Assembly LLC",
         "rate": 0.1,
         "states": ["UT", "ID", "WY", "MT", "CO", "AZ", "NV"]
       },
