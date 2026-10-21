@@ -31,8 +31,7 @@ add_action(
 			'zkst-store'    => array( 'js/store.js', array( 'zkst-supabase' ) ),
 			'zkst-legacy'   => array( 'js/legacy-adapter.js', array( 'zkst-config' ) ),
 			'zkst-schedule' => array( 'js/schedule.js', array( 'zkst-config' ) ),
-			'zkst-kit-scope' => array( 'js/kit-scope.js', array( 'zkst-config' ) ),
-			'zkst-flow'     => array( 'js/flow.js', array( 'zkst-supabase', 'zkst-pricing', 'zkst-catalog', 'zkst-options', 'zkst-docs', 'zkst-store', 'zkst-legacy', 'zkst-schedule', 'zkst-kit-scope' ) ),
+			'zkst-flow'     => array( 'js/flow.js', array( 'zkst-supabase', 'zkst-pricing', 'zkst-catalog', 'zkst-options', 'zkst-docs', 'zkst-store', 'zkst-legacy', 'zkst-schedule' ) ),
 		);
 		foreach ( $js as $handle => $j ) {
 			wp_register_script( $handle, zkst_app_url( $j[0] ), $j[1], null, true );

@@ -43,7 +43,7 @@
   // Modular 5/30/30/30/5. Payment 1 keeps "At project start" until Kelsey
   // confirms Sven's answer on question A.
   var MOD_DESIGN = { role:'design', pct:5, title:'Design & Engineering', short:'Design & Engineering',
-    when:'At project start — drafting, coordination, and project setup.' };
+    when:'Due at project start to begin design and engineering. Non-refundable once design and engineering work starts.' };
   var MOD_MATERIALS = { role:'materials', pct:30, title:'Materials Procurement', short:'Materials Procurement',
     when:'Due upon execution of this Agreement. Non-refundable.' };
   function modularRows(){
@@ -287,7 +287,7 @@
   function modularParagraph(b){
     var r = b.row, n = b.n, pct = pctText(r.pct), u = b.units;
     function head(t){ return P + '<b>Payment ' + n + ' — ' + t + '</b><br>'; }
-    if(r.role === 'design') return head('Design and Engineering Payment: ' + pct + ' of the Purchase Price') + 'Due at project start for drafting, coordination, and project setup.</p>';
+    if(r.role === 'design') return head('Design and Engineering Payment: ' + pct + ' of the Purchase Price') + 'Due at project start to begin design and engineering. Non-refundable once design and engineering work starts.</p>';
     if(r.role === 'materials') return head('Materials Procurement Payment: ' + pct + ' of the Purchase Price')
       + 'Due upon execution of this Agreement unless otherwise agreed in writing by both Parties. Payment ' + n + ' constitutes reimbursement for materials procured specifically for Buyer\'s Modular Home. Upon execution of this Agreement, Seller will immediately purchase lumber, structural components, hardware, and all other raw materials required to fabricate Buyer\'s Modular Home to Buyer\'s unique floor plan and specifications. These materials are custom-ordered and cut to specification and cannot be returned to suppliers, resold, or repurposed for another project.</p>'
       + P + 'Buyer expressly acknowledges and agrees that Payment ' + n + ' represents actual costs incurred by Seller on Buyer\'s behalf and is therefore non-refundable upon execution. This payment is not a penalty, earnest money, or speculative deposit — it reflects the direct cost of materials that Seller has procured exclusively for Buyer\'s project. In the event Buyer cancels or defaults after execution, Seller shall retain Payment ' + n + ' as reimbursement for those actual material costs. This payment is non-refundable except as expressly provided in the Seller default provisions of Section 11.</p>';

@@ -16,7 +16,10 @@
 -- delete as well; if one exists, tell the developer before running this.
 -- =============================================================================
 
--- Step 2: drop the usual names for the old "delete your own rows" policy.
+-- Step 2: drop the old "delete your own rows" policy. Kelsey's step 1 result
+-- (2026-10-21): one row, "delete own quotes", DELETE, (auth.uid() = created_by).
+drop policy if exists "delete own quotes"              on quotes;
+-- Other names it has had in other setups (harmless if missing):
 drop policy if exists "Users can delete own quotes"    on quotes;
 drop policy if exists "quotes_delete_own"              on quotes;
 drop policy if exists "own_quotes_delete"              on quotes;

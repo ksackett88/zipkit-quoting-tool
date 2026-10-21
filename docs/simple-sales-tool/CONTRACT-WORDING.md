@@ -1,4 +1,4 @@
-# Contract wording: before and after (approved by Kelsey 2026-10-21; A waits on Sven)
+# Contract wording: before and after (approved by Kelsey 2026-10-21; A final 2026-10-21)
 
 Branch `simple-sales-tool`. Nothing here is built yet. Prices and payment math don't change.
 
@@ -121,7 +121,7 @@ This applies to Kit and Custom Home, which includes garage, hangar and steel (Ke
 
 | Payment | Amount | When due |
 |---|---|---|
-| Payment 1 — Design & Engineering (5%) | 5% | Due upon execution of this Agreement, together with Payment 2. Non-refundable once design and engineering work starts. **WAITING ON SVEN** |
+| Payment 1 — Design & Engineering (5%) | 5% | Due at project start to begin design and engineering. Non-refundable once design and engineering work starts. |
 | Payment 2 — Materials Procurement (30%) | 30% | Due upon execution of this Agreement. Non-refundable. |
 | Payment 3 — Framing Completion (30%) | 30% | Within ten (10) calendar days of Seller's written invoice at framing completion. |
 | Payment 4 — Exterior Siding and Interior Paint Completion (30%) | 30% | Within ten (10) calendar days of Seller's written invoice. Units are not released for shipment until paid. |
@@ -132,7 +132,7 @@ This applies to Kit and Custom Home, which includes garage, hangar and steel (Ke
 - the final payment changes from 10% to 5%;
 - the final payment is due when the units are set (answer B).
 
-> **[NEW] Payment 1 — Design and Engineering Payment: 5% of the Purchase Price**<br>Due upon execution of this Agreement, together with Payment 2. Payment 1 is non-refundable once design and engineering work has started. **WAITING ON SVEN: Kelsey is confirming this with Sven. It won't be built until he confirms.**
+> **[NEW] Payment 1 — Design and Engineering Payment: 5% of the Purchase Price**<br>Due at project start to begin design and engineering. Non-refundable once design and engineering work starts. (Final, Kelsey 2026-10-21.)
 >
 > **Payment ~~1~~ 2 — Materials Procurement Payment: 30% of the Purchase Price**<br>Due upon execution of this Agreement unless otherwise agreed in writing by both Parties. Payment ~~1~~ 2 constitutes reimbursement for materials procured specifically for Buyer's Modular Home. Upon execution of this Agreement, Seller will immediately purchase lumber, structural components, hardware, and all other raw materials required to fabricate Buyer's Modular Home to Buyer's unique floor plan and specifications. These materials are custom-ordered and cut to specification and cannot be returned to suppliers, resold, or repurposed for another project.
 >
@@ -178,7 +178,7 @@ Units split into a first half and a last half. With an odd count, the first half
 
 | Payment | % | When due |
 |---|---|---|
-| Payment 1 — Design & Engineering | 5% | Due upon execution of this Agreement, together with Payment 2. Non-refundable once design and engineering work starts. **WAITING ON SVEN** |
+| Payment 1 — Design & Engineering | 5% | Due at project start to begin design and engineering. Non-refundable once design and engineering work starts. |
 | Payment 2 — Materials Procurement | 30% | Due upon execution of this Agreement. Non-refundable. |
 | Payment 3 — Framing Completion, Units 1–3 | 15% | Within 10 days of invoice at framing completion of Units 1–3. |
 | Payment 4 — Framing Completion, Units 4–5 | 15% | Within 10 days of invoice at framing completion of Units 4–5. |
@@ -198,8 +198,7 @@ Units split into a first half and a last half. With an odd count, the first half
 
 ## Decisions (Kelsey 2026-10-20)
 
-- **A. Modular 5% design and engineering:** due at signing, together with the 30%, so the buyer pays 35% at signing. It's non-refundable once design and engineering work starts.
-  - **WAITING ON SVEN:** Kelsey is confirming this with Sven. This paragraph and row won't be built until she says Sven agreed. Until then, the modular presets keep the 5% row with today's cover wording ("At project start").
+- **A. Modular 5% design and engineering (final, Kelsey 2026-10-21):** NOT due at signing. Due at project start to get design and engineering going; signing stays 30%. Wording (row and Section 4 paragraph): "Due at project start to begin design and engineering. Non-refundable once design and engineering work starts." (Replaces the earlier "due at signing, 35%" answer.)
 - **B. Modular final 5%:** due when the units are set on site.
 - **C. Multi-unit final row:** "5% plus any approved change orders or invoices not yet paid, after the units are set". The Change Orders rule (paid before the work starts) stays.
 - **D. Site access clause:** it uses "Seller", so it goes on MVP-branded contracts too.

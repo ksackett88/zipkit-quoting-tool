@@ -11,7 +11,7 @@
 
   var SCOPE = {
     'Shell Kit': {
-      included: ['Pre-framed wall, floor, and roof panels','Zip Wall sheathing with taped seams','All structural posts, beams, headers, and metal hardware','All windows and exterior entry doors (with selected window package)','Standard interior stairs','Labor to set and erect panels, framing, trusses, window/door install','Shipping to the job site'],
+      included: ['Pre-framed wall, floor, and roof panels','Zip Wall sheathing with taped seams','All structural posts, beams, headers, and metal hardware','All windows and exterior entry doors (with selected window package)','Framed decks and stairs, when shown in the design','Labor to set and erect panels, framing, trusses, window/door install','Shipping to the job site'],
       notIncluded: ['Foundation','Crane to set panels (scheduled by GC)','Roof sheathing dry-in (ice & water shield + labor)','Siding — materials and installation','Finished roofing (metal, shingles, etc.)','Mechanical, electrical, plumbing — materials and labor','Insulation, drywall, and interior finishes','General Contractor fee / profit','Sales tax']
     },
     'Modular': {
@@ -43,15 +43,9 @@
         notIncluded: ['Anything not specifically listed above','Site prep and foundation','Utility connections','Building permits and inspections','Sales tax'] };
     }
     var s = SCOPE[q.kind] || SCOPE['Shell Kit'];
-    // Stairs print only for kit models that have them (js/kit-scope.js), same as
-    // the contract. Set-and-erect labor is ours only when our crew is added.
-    if(s === SCOPE['Shell Kit']){
-      var stairs = !!(root.ZK.KitScope && root.ZK.KitScope.has(q.model, 'stairs')), crew = !!(q.assembly && q.assembly.mode === 'added');
-      s = { included: s.included.filter(function(t){
-          if(t === 'Standard interior stairs') return stairs;
-          if(t.indexOf('Labor to set and erect panels') === 0) return crew;
-          return true;
-        }), notIncluded: s.notIncluded };
+    // Set-and-erect labor is ours only when our crew is added.
+    if(s === SCOPE['Shell Kit'] && !(q.assembly && q.assembly.mode === 'added')){
+      s = { included: s.included.filter(function(t){ return t.indexOf('Labor to set and erect panels') !== 0; }), notIncluded: s.notIncluded };
     }
     if(q.dryin && DRYIN[q.kind]){
       return { included: s.included.concat(DRYIN[q.kind]),

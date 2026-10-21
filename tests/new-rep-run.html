@@ -139,8 +139,9 @@
       && !has(k.doc, 'framing and Zip Kit Homes scope') && has(k.doc, 'Payment and warranty obligations are independent of one another.'), 'kit wording');
     rec('Kit: site access clause ends paragraph a., kit scope table prints, windows not included (no package)',
       /requested or directed by Buyer\. Freight pricing assumes Seller's delivery truck/.test(k.doc) && has(k.doc, 'Kit scope') && /All windows &amp;amp; ext entry doors<\/td><td[^>]*>NOT INCLUDED|All windows &amp; ext entry doors<\/td><td[^>]*>NOT INCLUDED/.test(k.doc), 'site access / scope');
-    rec('Kit: Kolob\'s scope has no deck panels, covered rear deck or stairs lines until Kelsey marks the model (js/kit-scope.js)',
-      has(k.doc, 'Zip Wall Sheathing') && !has(k.doc, 'Covered Rear Deck') && !has(k.doc, 'Standard Stairs') && !has(k.doc, 'Framed Deck Panels') && !has(k.proposal, 'Standard interior stairs'), 'scope lines');
+    rec('Kit: one "Framed decks and stairs, when shown in the design" line on the contract and proposal; the old deck, covered deck and stairs lines are gone',
+      has(k.doc, 'Framed decks and stairs, when shown in the design') && !has(k.doc, 'Covered Rear Deck') && !has(k.doc, 'Standard Stairs') && !has(k.doc, 'Framed Deck Panels')
+      && has(k.proposal, 'Framed decks and stairs, when shown in the design') && !has(k.proposal, 'Standard interior stairs'), 'scope lines');
     rec('Kit: the proposal shows the contract\'s payment rows, wording and amounts (no old "Final set" schedule)',
       has(k.proposal, 'Payment 2 — Materials Procurement (45%)') && has(k.proposal, 'Final Payment — Load Confirmation (10%)') && has(k.proposal, 'Due upon Seller')
       && !has(k.proposal, 'Final set') && !has(k.proposal, 'Pre-ship (45%)')
@@ -164,7 +165,8 @@
     var m = await drive('modular');
     rec('Modular: contract made', !m.bad, m.status);
     rec('Modular: Section 4 is 5/30/30/30/5 with the approved wording, no leftover 10% or crew-last-day trigger',
-      has(m.doc, 'Payment 1 — Design and Engineering Payment: 5% of the Purchase Price') && has(m.doc, 'Payment 2 — Materials Procurement Payment: 30% of the Purchase Price')
+      has(m.doc, 'Payment 1 — Design and Engineering Payment: 5% of the Purchase Price') && has(m.doc, 'Due at project start to begin design and engineering. Non-refundable once design and engineering work starts.') && !has(m.doc, 'drafting, coordination')
+      && has(m.doc, 'Payment 2 — Materials Procurement Payment: 30% of the Purchase Price')
       && has(m.doc, 'Payment 4 — Exterior Siding and Interior Paint Completion Payment: 30% of the Purchase Price') && has(m.doc, 'Seller shall not release the Modular Units for shipment until Payment 4 is received in full.')
       && has(m.doc, 'Payment 5 — Final Payment: 5% of the Purchase Price') && has(m.doc, 'Due and payable on-site when the last Modular Unit is set on site.')
       && has(m.doc, 'on the day the last Modular Unit is set') && !has(m.doc, '10% of the Purchase Price') && !has(m.doc, 'on the final day Seller') && !has(m.doc, '{{'), 'modular wording');
