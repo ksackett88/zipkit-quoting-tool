@@ -291,8 +291,8 @@
   </header>
 
   <div class="actions-bar">
-    <a class="btn primary" href="ZipKit_Quoting_Tool.html">+ New quote</a>
-    <a class="btn info" href="ZipKit_Contract_Generator.html">+ New contract</a>
+    <a class="btn primary" href="quote.html">+ New quote</a>
+    <a class="btn info" id="admin-contract-editor" href="ZipKit_Contract_Generator.html" style="display:none;" title="Office only: change orders and saved contracts. Reps make contracts from a quote.">Contract editor</a>
     <button type="button" class="btn" onclick="zkOpenSpecialInvoice(null)" title="An invoice with your own lines and credits, not tied to a project">Special invoice</button>
     <div id="admin-view-toggle" style="display:none; margin-left:auto; align-items:center; gap:0; border:1px solid var(--line-strong); border-radius:var(--radius); overflow:hidden; height:38px; background:var(--surface);">
       <button type="button" id="view-mine" class="view-mode-btn active" onclick="zkSetViewMode('mine')" style="height:100%; padding:0 14px; border:none; background:var(--accent); color:#fff; font-size:13px; font-weight:500; cursor:pointer;">My projects</button>
@@ -414,8 +414,8 @@
 
 <div id="zk-toast"></div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="lib/supabase.js?v=9"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0"></script>
+<script src="lib/supabase.js?v=10"></script>
 <script>
 /* ============================================================================
    Sales Portal landing page. Renders all saved projects (quotes + contracts)
@@ -455,6 +455,8 @@ function zkToast(msg, isError){
   function setAdminUiVisible(visible){
     var tog = document.getElementById('admin-view-toggle');
     if(tog) tog.style.display = visible ? 'inline-flex' : 'none';
+    var ed = document.getElementById('admin-contract-editor');
+    if(ed) ed.style.display = visible ? '' : 'none';
     // If admin visibility flips off, snap the view mode back to "mine" so a
     // downgraded (or newly signed-in non-admin) user doesn't end up querying
     // listAll (RLS would filter it anyway, but the mode toggle should reflect
@@ -556,6 +558,22 @@ function projectKind(p){
   return (p.product_kind || '').indexOf('contract-') === 0 ? 'contract' : 'quote';
 }
 
+// Only signed contracts count as contracted money (Kelsey 2026-10-20). A
+// project that already has a payment or an invoice logged counts too: those
+// were signed before "Mark signed" existed.
+function isContracted(p){
+  if(projectKind(p) === 'contract' && p.config && p.config.signed_at) return true;
+  return (Array.isArray(p.payments) && p.payments.length > 0) || (Array.isArray(p.invoices) && p.invoices.length > 0);
+}
+function projectStage(p){
+  var bal = window.zkProjectBalance(p), cfg = p.config || {};
+  if(isContracted(p) && bal.contract > 0 && bal.remaining === 0) return { cls: 'paid', label: 'Paid' };
+  if(projectKind(p) !== 'contract') return isContracted(p) ? { cls: 'contract', label: 'Signed' } : { cls: 'quote', label: 'Quote' };
+  if(cfg.signed_at || isContracted(p)) return { cls: 'contract', label: 'Signed' };
+  if(cfg.sent_at) return { cls: 'contract', label: 'Sent' };
+  return { cls: 'contract', label: 'Contract, not sent' };
+}
+
 // Brand filter: Zip Kit includes Zip Kit Steel (same company).
 var _brandFilter = 'all';
 function projectBrand(p){ return p.brand === 'mvp' ? 'mvp' : 'zipkit'; }
@@ -569,11 +587,11 @@ function filterProjects(list){
     if(_filter === 'contracts' && kind !== 'contract') return false;
     if(_filter === 'outstanding'){
       var b = window.zkProjectBalance(p);
-      if(b.remaining <= 0) return false;
+      if(!isContracted(p) || b.remaining <= 0) return false;
     }
     if(_filter === 'paid'){
       var b = window.zkProjectBalance(p);
-      if(b.contract === 0 || b.remaining > 0) return false;
+      if(!isContracted(p) || b.contract === 0 || b.remaining > 0) return false;
     }
     if(q){
       var repBits = p._rep ? ' ' + (p._rep.email || '') + ' ' + (p._rep.full_name || '') : '';
@@ -587,22 +605,24 @@ function filterProjects(list){
 function renderStats(){
   var filtered = filterProjects(_projects);
   var contracted = 0, paid = 0;
+  var paidOnContracts = 0;
   filtered.forEach(function(p){
-    contracted += Number(p.contract_amount || p.total || 0);
-    paid += window.zkSumPayments(p.payments);
+    var got = window.zkSumPayments(p.payments);
+    paid += got;
+    if(isContracted(p)){ contracted += Number(p.contract_amount || p.total || 0); paidOnContracts += got; }
   });
   document.getElementById('stat-count').textContent = filtered.length;
   document.getElementById('stat-contracted').textContent = window.zkFmtMoney(contracted);
   document.getElementById('stat-paid').textContent = window.zkFmtMoney(paid);
-  document.getElementById('stat-outstanding').textContent = window.zkFmtMoney(Math.max(0, contracted - paid));
+  document.getElementById('stat-outstanding').textContent = window.zkFmtMoney(Math.max(0, contracted - paidOnContracts));
 }
 
 function renderCounts(){
   document.getElementById('f-count-all').textContent = _projects.length;
   document.getElementById('f-count-quotes').textContent    = _projects.filter(function(p){ return projectKind(p) === 'quote';    }).length;
   document.getElementById('f-count-contracts').textContent = _projects.filter(function(p){ return projectKind(p) === 'contract'; }).length;
-  document.getElementById('f-count-outstanding').textContent = _projects.filter(function(p){ var b = window.zkProjectBalance(p); return b.remaining > 0; }).length;
-  document.getElementById('f-count-paid').textContent       = _projects.filter(function(p){ var b = window.zkProjectBalance(p); return b.contract > 0 && b.remaining === 0; }).length;
+  document.getElementById('f-count-outstanding').textContent = _projects.filter(function(p){ var b = window.zkProjectBalance(p); return isContracted(p) && b.remaining > 0; }).length;
+  document.getElementById('f-count-paid').textContent       = _projects.filter(function(p){ var b = window.zkProjectBalance(p); return isContracted(p) && b.contract > 0 && b.remaining === 0; }).length;
   document.getElementById('b-count-zipkit').textContent = _projects.filter(function(p){ return projectBrand(p) === 'zipkit'; }).length;
   document.getElementById('b-count-mvp').textContent    = _projects.filter(function(p){ return projectBrand(p) === 'mvp'; }).length;
 }
@@ -614,7 +634,7 @@ function renderProjects(){
     listEl.innerHTML = ''
       +'<div class="empty-state">'
       +'  <h3>' + (_projects.length === 0 ? 'No projects yet' : 'No projects match') + '</h3>'
-      +'  <p>' + (_projects.length === 0 ? 'Start a new quote or contract using the buttons above.' : 'Try clearing the filter or search.') + '</p>'
+      +'  <p>' + (_projects.length === 0 ? 'Start with + New quote above. Contracts are made from a quote.' : 'Try clearing the filter or search.') + '</p>'
       +'</div>';
     return;
   }
@@ -628,8 +648,8 @@ function renderProjects(){
       : pk.replace(/^\w/, function(c){ return c.toUpperCase(); });
     var bal = window.zkProjectBalance(p);
     var pmts = Array.isArray(p.payments) ? p.payments.length : 0;
-    var stageClass = bal.contract > 0 && bal.remaining === 0 ? 'paid' : kind;
-    var stageLabel = bal.contract > 0 && bal.remaining === 0 ? 'Paid' : (isContract ? 'Contract' : 'Quote');
+    var stg = projectStage(p), stageClass = stg.cls, stageLabel = stg.label;
+    var canSign = isContract && !(p.config && p.config.signed_at);
     var updated = new Date(p.updated_at).toLocaleDateString('en-US');
     var buyer = _esc(p.buyer_name || '—');
     var project = p.project_name ? _esc(p.project_name) : '<span class="empty">(no project name)</span>';
@@ -653,15 +673,16 @@ function renderProjects(){
       +'  <div class="pc-project'+(p.project_name?'':' empty')+'">'+project+'</div>'
       +'  <div class="pc-meta">'+meta+'</div>'
       +'  <div class="pc-numbers">'
-      +'    <div><div class="pc-num-label">Contract</div><div class="pc-num-value">'+window.zkFmtMoney(bal.contract)+'</div></div>'
+      +'    <div><div class="pc-num-label">'+(isContracted(p) ? 'Contract' : (isContract ? 'Contract (unsigned)' : 'Quote'))+'</div><div class="pc-num-value">'+window.zkFmtMoney(bal.contract)+'</div></div>'
       +'    <div><div class="pc-num-label">Paid</div><div class="pc-num-value success">'+window.zkFmtMoney(bal.paid)+'</div>'+subLine+'</div>'
       +'    <div><div class="pc-num-label">Remaining</div><div class="pc-num-value '+(bal.remaining===0?'remaining-done':'')+'">'+window.zkFmtMoney(bal.remaining)+'</div></div>'
       +'  </div>'
       +'  <div class="pc-actions">'
       +'    <button class="primary" onclick="openInTool(\''+p.id+'\', \''+kind+'\')" title="Open in '+(isContract?'contract generator':'quoting tool')+'">Open</button>'
       +'    <button class="success" onclick="zkShowPayments(\''+p.id+'\')">$ Payments</button>'
-      +   (!isContract ? '<button onclick="continueToContract(\''+p.id+'\')" title="Open in contract generator with buyer + model pre-filled">→ Contract</button>' : '')
-      +'    <button class="danger" onclick="deleteProject(\''+p.id+'\', \''+_esc(p.quote_number||'')+'\')" title="Delete">×</button>'
+      +   (!isContract ? '<button onclick="continueToContract(\''+p.id+'\')" title="Write the contract from this quote">→ Contract</button>' : '')
+      +   (canSign ? '<button onclick="markSigned(\''+p.id+'\')" title="The buyer signed it. It counts as contracted money from now on.">Mark signed</button>' : '')
+      +   (window.ZK_IS_ADMIN ? '<button class="danger" onclick="deleteProject(\''+p.id+'\', \''+_esc(p.quote_number||'')+'\')" title="Delete (admins only)">×</button>' : '')
       +'  </div>'
       +'  <div class="pc-footer">Updated '+updated+'</div>'
       +'</div>';
@@ -709,11 +730,33 @@ function openInTool(id, kind){
 }
 
 function continueToContract(quoteId){
-  var url = 'ZipKit_Contract_Generator.html?fromQuote=' + encodeURIComponent(quoteId);
+  var p = (_projects || []).filter(function(x){ return x.id === quoteId; })[0];
+  var url = (p && p.brand === 'mvp')
+    ? 'ZipKit_Contract_Generator.html?fromQuote=' + encodeURIComponent(quoteId)
+    : 'quote.html?open=' + encodeURIComponent(quoteId) + '&step=contract';
   window.location.href = url;
 }
 
+// The buyer signed: the contract now counts as contracted money.
+async function markSigned(id){
+  var p = (_projects || []).filter(function(x){ return x.id === id; })[0];
+  if(!p) return;
+  var cfg = JSON.parse(JSON.stringify(p.config || {})), d = new Date();
+  var iso = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  cfg.signed_at = iso;
+  if(!cfg.sent_at) cfg.sent_at = iso;
+  try {
+    await zkQuotes.update(id, { config: cfg });
+    zkToast('Marked ' + (p.quote_number || '') + ' as signed.');
+    loadProjects();
+  } catch(e){
+    zkToast('Couldn\'t mark it signed: ' + (e.message || e), true);
+  }
+}
+
+// Only admins can delete projects (Kelsey 2026-10-20). Reps don't see the button.
 async function deleteProject(id, num){
+  if(!window.ZK_IS_ADMIN){ zkToast('Only an admin can delete a project. Ask Kelsey or Sven.', true); return; }
   if(!confirm('Delete project ' + num + '? This cannot be undone.')) return;
   try {
     await zkQuotes.remove(id);

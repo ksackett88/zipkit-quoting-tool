@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "updated": "2026-10-13",
+  "updated": "2026-10-21",
   "note": "Prices and brand facts for the quote tool. See data/README.md before editing.",
   "brands": {
     "zipkit": {
@@ -72,6 +72,10 @@
       ],
       "payment_account": "mvp"
     }
+  },
+  "rules": {
+    "note": "Kelsey 2026-10-20: wood kits (panelized kits, garages, custom homes) sell only in these states; steel kits and hangars sell everywhere but are DIY only outside them. The assembly crew states are under each brand.",
+    "wood_kit_states": ["UT", "ID", "MT", "WY", "CO", "AZ", "NV", "NM", "CA", "OR", "WA"]
   },
   "payment_schedules": {
     "zk_kit_standard": {
@@ -170,6 +174,8 @@
   "product_types": {
     "shell": {
       "label": "Panelized Kit",
+      "frame": "wood",
+      "service_states": ["UT", "ID", "MT", "WY", "CO", "AZ", "NV", "NM", "CA", "OR", "WA"],
       "max_discount_pct": 15,
       "brand": "zipkit",
       "schedule": "zk_kit_standard",
@@ -216,6 +222,8 @@
     },
     "garage": {
       "label": "Garage",
+      "frame": "wood",
+      "service_states": ["UT", "ID", "MT", "WY", "CO", "AZ", "NV", "NM", "CA", "OR", "WA"],
       "brand": "zipkit",
       "schedule": "zk_kit_standard",
       "ships_from": "Cedar City, UT",
@@ -231,6 +239,7 @@
     },
     "hangar": {
       "label": "Hangar",
+      "frame": "steel",
       "max_discount_pct": 15,
       "brand": "zksteel",
       "schedule": "zk_kit_standard",
@@ -240,6 +249,7 @@
     },
     "steel": {
       "label": "Steel Kit",
+      "frame": "steel",
       "brand": "zksteel",
       "schedule": "zk_kit_standard",
       "design_fee": 2500,
@@ -248,6 +258,8 @@
     },
     "custom": {
       "label": "Custom Home",
+      "frame": "wood",
+      "service_states": ["UT", "ID", "MT", "WY", "CO", "AZ", "NV", "NM", "CA", "OR", "WA"],
       "brand": "zipkit",
       "schedule": "zk_kit_standard",
       "design_tiers": {

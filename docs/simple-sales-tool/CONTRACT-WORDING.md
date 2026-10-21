@@ -1,4 +1,4 @@
-# Contract wording: before and after (final, except A waits on Sven)
+# Contract wording: before and after (approved by Kelsey 2026-10-21; A waits on Sven)
 
 Branch `simple-sales-tool`. Nothing here is built yet. Prices and payment math don't change.
 
@@ -111,7 +111,7 @@ This applies to Kit and Custom Home, which includes garage, hangar and steel (Ke
 | Payment 2 — Materials Procurement (30%) | $ |
 | Payment 3 — Framing Completion (30%) | $ |
 | Payment 4 — Siding & Paint Completion (30%) | $ |
-| Payment 5 — Final, units set (5%) | $ |
+| Payment 5 — Final, last unit set (5%) | $ |
 
 ### 2b. Section 4. Purchase Price and Payment Terms
 
@@ -125,7 +125,7 @@ This applies to Kit and Custom Home, which includes garage, hangar and steel (Ke
 | Payment 2 — Materials Procurement (30%) | 30% | Due upon execution of this Agreement. Non-refundable. |
 | Payment 3 — Framing Completion (30%) | 30% | Within ten (10) calendar days of Seller's written invoice at framing completion. |
 | Payment 4 — Exterior Siding and Interior Paint Completion (30%) | 30% | Within ten (10) calendar days of Seller's written invoice. Units are not released for shipment until paid. |
-| Payment 5 — Final Payment (5%) | 5% | Due when the Modular Units are set on site. |
+| Payment 5 — Final Payment (5%) | 5% | Due when the last Modular Unit is set on site. |
 
 **The paragraphs under the table.** They are today's paragraphs word for word, except for three changes:
 - the payment numbers move up one, because a 5% design payment now comes first;
@@ -142,7 +142,7 @@ This applies to Kit and Custom Home, which includes garage, hangar and steel (Ke
 >
 > **Payment ~~3~~ 4 — Exterior Siding and Interior Paint Completion Payment: 30% of the Purchase Price**<br>Due upon completion of exterior siding and interior paint on the Modular Units. Seller shall provide Buyer with written notice and invoice when this milestone is complete. Buyer agrees to make Payment ~~3~~ 4 within ten (10) calendar days of receiving Seller's written invoice. Seller shall not release the Modular Units for shipment until Payment ~~3~~ 4 is received in full.
 >
-> **Payment ~~4~~ 5 — Final Payment: ~~10%~~ 5% of the Purchase Price**<br>Due and payable on-site ~~on the final day Seller's crew is present at the project site, upon completion of Seller's On-Site Finish Work~~ **when the Modular Units are set on site**. Payment shall be made by wire transfer or check, payable to {Seller}, and delivered to Seller's crew leader ~~before the crew departs the project site~~ **on the day the Modular Units are set**. Before Seller's crew departs, Buyer or Buyer's general contractor shall conduct an on-site walkthrough with Seller's crew leader to confirm that Seller's scope of work has been completed. Buyer is required to schedule any required local jurisdictional inspections in a timely manner; failure to do so is solely the responsibility of Buyer. Final payment is not contingent upon the resolution of any outstanding warranty claims or punch list items. The existence of any warranty items or items requiring a return visit by Seller shall not delay, reduce, or offset Buyer's obligation to remit final payment in full. Seller acknowledges its warranty obligations and will schedule a return visit to address any valid warranty items submitted in writing by Buyer in accordance with Section 9. Payment and warranty obligations are independent of one another.
+> **Payment ~~4~~ 5 — Final Payment: ~~10%~~ 5% of the Purchase Price**<br>Due and payable on-site ~~on the final day Seller's crew is present at the project site, upon completion of Seller's On-Site Finish Work~~ **when the last Modular Unit is set on site**. Payment shall be made by wire transfer or check, payable to {Seller}, and delivered to Seller's crew leader ~~before the crew departs the project site~~ **on the day the last Modular Unit is set**. Before Seller's crew departs, Buyer or Buyer's general contractor shall conduct an on-site walkthrough with Seller's crew leader to confirm that Seller's scope of work has been completed. Buyer is required to schedule any required local jurisdictional inspections in a timely manner; failure to do so is solely the responsibility of Buyer. Final payment is not contingent upon the resolution of any outstanding warranty claims or punch list items. The existence of any warranty items or items requiring a return visit by Seller shall not delay, reduce, or offset Buyer's obligation to remit final payment in full. Seller acknowledges its warranty obligations and will schedule a return visit to address any valid warranty items submitted in writing by Buyer in accordance with Section 9. Payment and warranty obligations are independent of one another.
 >
 > *Notes on this paragraph:*
 > - *I also changed "before the crew departs the project site" to "on the day the Modular Units are set". Otherwise the payment would still wait for the crew's last day.*
@@ -184,12 +184,12 @@ Units split into a first half and a last half. With an odd count, the first half
 | Payment 4 — Framing Completion, Units 4–5 | 15% | Within 10 days of invoice at framing completion of Units 4–5. |
 | Payment 5 — Siding and Paint Completion, Units 1–3 | 15% | Within 10 days of invoice. Units 1–3 are not released for shipment until paid. |
 | Payment 6 — Siding and Paint Completion, Units 4–5 | 15% | Within 10 days of invoice. Units 4–5 are not released for shipment until paid. |
-| Payment 7 — Final Payment | 5% | 5% plus any approved change orders or invoices not yet paid, after the units are set. |
+| Payment 7 — Final Payment | 5% | 5% plus any approved change orders or invoices not yet paid, after the last Modular Unit is set on site. |
 
 **Paragraphs:** the same as the one-unit contract above. The milestone paragraphs repeat once for each half, with the half named.
 - Example: "**Payment 3 — Framing Completion Payment, Units 1–3: 15% of the Purchase Price**<br>Due upon completion of framing of Modular Units 1–3. Seller shall provide Buyer with written notice and invoice when framing is complete. Buyer agrees to make Payment 3 within ten (10) calendar days of receiving Seller's written invoice."
 - **[NEW] Final payment heading:** "**Payment 7 — Final Payment: 5% of the Purchase Price, plus any approved change orders or invoices not yet paid**".
-  - It is due when the Modular Units are set on site. The paragraph is the same as the one-unit final above.
+  - It is due when the last Modular Unit is set on site. The paragraph is the same as the one-unit final above.
   - Section 5's rule stands: change orders are paid in full before the work starts. The final row only catches anything still outstanding.
   - The contract shows the 5% amount; change orders aren't known at signing.
 - **[NEW]** The release sentence for each half reads: "Seller shall not release **Modular Units 1–3** for shipment until Payment 5 is received in full." Today's wording is "the Modular Units".
