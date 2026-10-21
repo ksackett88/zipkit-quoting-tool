@@ -85,7 +85,7 @@ window.ZK_FLOW_EXTRA = async function(cat, W, h){
   var prop = cap.contentDocument.documentElement.outerHTML;
   var rm = W.ZK.Flow.result();
   rec('Modular proposal: 5/30/30/30/5 with the contract wording, right total, no "engineering invoice"',
-    prop.indexOf('Payment 1 — Design &amp; Engineering (5%)') !== -1 && prop.indexOf('Payment 5 — Set &amp; Completion (5%)') !== -1
+    prop.indexOf('Payment 1 — Design &amp; Engineering (5%)') !== -1 && prop.indexOf('Payment 5 — Final Payment (5%)') !== -1 && prop.indexOf('Due when the last Modular Unit is set on site.') !== -1 && prop.indexOf('Set &amp; Completion') === -1
       && prop.indexOf(W.ZK.Pricing.fmt(rm.total)) !== -1 && prop.indexOf('engineering invoice') === -1 && prop.indexOf('Rep Test') !== -1,
     'proposal text check failed');
   await quoteFor({ type:'shell', productId:'zion', miles:200, promo:true });

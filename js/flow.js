@@ -296,9 +296,9 @@
   }
 
   function scheduleHTML(r){
-    var st = r.schedule, sum = st.reduce(function(a, s){ return a + s.amount; }, 0);
+    var st = buyerSchedule(r), sum = st.reduce(function(a, s){ return a + s.amount; }, 0);
     return '<table class="schedule"><tbody>' + st.map(function(s){
-      return '<tr><td>' + esc(s.name) + '<span class="sub">' + esc(s.desc) + '</span></td><td class="amt">' + fmt(s.amount) + '</td></tr>';
+      return '<tr><td>' + esc(s.name) + '<span class="sub">' + esc(s.desc) + '</span></td><td class="amt">' + (s.paid ? 'PAID' : fmt(s.amount)) + '</td></tr>';
     }).join('') + '<tr class="sum"><td>Total of all payments</td><td class="amt">' + fmt(sum) + '</td></tr></tbody></table>';
   }
 
@@ -385,6 +385,20 @@
     var ct = ensureContract();
     return ZK.Schedule.build({ rows: ct.schedule.rows, units: scheduleUnits() }, scheduleCtx(currentResult()));
   }
+  // What the buyer sees on the proposal and the Review step: the contract's own
+  // rows and wording (the rep's edited schedule once there is one), so a buyer
+  // never sees two schedules (Kelsey 2026-10-21). The design retainer is paid
+  // up front outside the contract, so it stays its own line.
+  function buyerSchedule(r){
+    var Sc = ZK.Schedule, cfg = state.cfg, units = scheduleUnits(), rows;
+    if(state.contract && state.contract.schedule && Sc.check(ensureContract().schedule.rows).ok) rows = state.contract.schedule.rows;
+    else rows = Sc.preset(Sc.defaultPreset(cfg.type, units));
+    var out = (r.schedule || []).filter(function(s){ return s.key === 'design'; });
+    Sc.printed(Sc.build({ rows: rows, units: units }, scheduleCtx(r))).forEach(function(b){
+      out.push({ key: Sc.stageKey(b), name: b.name, desc: b.when, amount: b.paid ? 0 : b.amount, paid: b.paid });
+    });
+    return out;
+  }
   // What the contract's total will be: kits bill engineering on top of the remainder.
   function contractTotal(r){
     if(state.cfg.type === 'modular') return r.contract;
@@ -409,7 +423,7 @@
     h += '<div class="field srow-title"><label for="zk-srow-title-' + i + '">Name</label><input type="text" id="zk-srow-title-' + i + '" data-srow="' + i + '" data-part="title" value="' + esc(b.title) + '"></div>'
       + '<div class="field full srow-when"><label for="zk-srow-when-' + i + '">When it\'s due (prints on the contract as written)</label><textarea rows="2" id="zk-srow-when-' + i + '" data-srow="' + i + '" data-part="when">' + esc(b.when) + '</textarea></div>'
       + '</div>';
-    if(r.fixed) h += '<div class="help">Kit contracts bill engineering first, so this row stays.</div>';
+    if(r.fixed) h += '<div class="help">' + (b.skip ? 'There\'s no engineering on this quote, so this row won\'t print on the contract.' : 'Kit contracts bill engineering first, so this row stays.') + '</div>';
     else if(state.ui.confirmRemove === i){
       var clause = ZK.Schedule.CLAUSE_ROLES[r.role];
       h += '<div class="notice warn srow-confirm">Removing this payment also takes ' + esc(clause) + ' off the contract. '
@@ -508,7 +522,7 @@
     }
     if(outOfArea()){ toast(serviceAreaText(), true); return; }
     var r = currentResult(), ct = state.contract;
-    ct.amounts = builtSchedule().map(function(b){ return b.paid ? 'PAID' : Math.round(b.amount); });
+    ct.amounts = ZK.Schedule.printed(builtSchedule()).map(function(b){ return b.paid ? 'PAID' : Math.round(b.amount); });
     ct.repName = (state.rep && state.rep.name) || '';
     ct.inputs = contractInputs(r);
     $$('#zk-contract-actions .btn').forEach(function(b){ b.disabled = true; });
@@ -530,7 +544,7 @@
   function saveNow(){
     var r = currentResult();
     // Promise.resolve().then(): an unexpected error becomes a message, not a stuck screen.
-    return Promise.resolve().then(function(){ return root.ZK.Store.save(cat, state, r, r.schedule); }).then(function(row){
+    return Promise.resolve().then(function(){ return root.ZK.Store.save(cat, state, r, buyerSchedule(r).filter(function(s){ return !s.paid; })); }).then(function(row){
       state.saved = { id: row.id, number: row.quote_number, hasInvoices: Array.isArray(row.invoices) && row.invoices.length > 0 };
       var sl = $('#zk-saved-line'); if(sl) sl.innerHTML = savedLine();
       return row;
@@ -544,7 +558,7 @@
   function docData(){
     var r = currentResult(), t = cat.type(state.cfg.type), p = product();
     return {
-      result: r, schedule: r.schedule, customer: state.customer, rep: state.rep || {},
+      result: r, schedule: buyerSchedule(r), customer: state.customer, rep: state.rep || {},
       brand: cat.brandFor(state.cfg.type), number: state.saved && state.saved.number,
       date: new Date().toLocaleDateString('en-US'), projectName: root.ZK.Store.projectName({ customer: state.customer, result: r }),
       photo: p && p.photo, shipsFrom: t.ships_from
@@ -980,6 +994,8 @@
     catalog: function(){ return cat; },
     openSaved: openSaved,
     result: currentResult,
+    // What the proposal is built from (tests compare it with the contract).
+    docData: docData,
     enabledTypes: ENABLED_TYPES,
     // Test helper: hide the sign-in screen on a local test server only.
     _unlockForTests: function(){ if(/^(localhost|127\.0\.0\.1)$/.test(location.hostname)){ $('#zk-signin').hidden = true; } }

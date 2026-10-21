@@ -110,12 +110,14 @@
     Object.keys(c.contract).forEach(function(k){ type(q('[data-ct="' + k + '"]'), c.contract[k]); });
     await wait(100);
     if(stop('contract')) return;
+    // The proposal the buyer would get from this quote (same rows as the contract?).
+    var proposal = W().ZK.Documents.proposal(F.docData());
     var made = await until(function(){ var b = q('[data-create-contract]'); return b && !b.disabled && b; });
     made.click();
     // 6 Send (the contract generator's Send page, same tab)
     await until(function(){ return /ZipKit_Contract_Generator/.test(W().location.href) && q('#mk-status') && !/Preparing/.test(q('#mk-status').textContent); }, 30000);
     await until(function(){ var f = q('#mk-frame'); return f && f.contentDocument && f.contentDocument.body && f.contentDocument.body.innerHTML.length > 1000; });
-    return { status: q('#mk-status').textContent, bad: q('#mk-status').classList.contains('bad'), doc: q('#mk-frame').srcdoc, row: W().ZK_MAKE && W().ZK_MAKE.row };
+    return { status: q('#mk-status').textContent, bad: q('#mk-status').classList.contains('bad'), doc: W().ZK_MAKE.docs.main, row: W().ZK_MAKE && W().ZK_MAKE.row, proposal: proposal };
   }
 
   function has(doc, s){ return doc.indexOf(s) !== -1; }
@@ -137,6 +139,12 @@
       && !has(k.doc, 'framing and Zip Kit Homes scope') && has(k.doc, 'Payment and warranty obligations are independent of one another.'), 'kit wording');
     rec('Kit: site access clause ends paragraph a., kit scope table prints, windows not included (no package)',
       /requested or directed by Buyer\. Freight pricing assumes Seller's delivery truck/.test(k.doc) && has(k.doc, 'Kit scope') && /All windows &amp;amp; ext entry doors<\/td><td[^>]*>NOT INCLUDED|All windows &amp; ext entry doors<\/td><td[^>]*>NOT INCLUDED/.test(k.doc), 'site access / scope');
+    rec('Kit: Kolob\'s scope has no deck panels, covered rear deck or stairs lines until Kelsey marks the model (js/kit-scope.js)',
+      has(k.doc, 'Zip Wall Sheathing') && !has(k.doc, 'Covered Rear Deck') && !has(k.doc, 'Standard Stairs') && !has(k.doc, 'Framed Deck Panels') && !has(k.proposal, 'Standard interior stairs'), 'scope lines');
+    rec('Kit: the proposal shows the contract\'s payment rows, wording and amounts (no old "Final set" schedule)',
+      has(k.proposal, 'Payment 2 — Materials Procurement (45%)') && has(k.proposal, 'Final Payment — Load Confirmation (10%)') && has(k.proposal, 'Due upon Seller')
+      && !has(k.proposal, 'Final set') && !has(k.proposal, 'Pre-ship (45%)')
+      && amounts.every(function(a){ return a === 'PAID' || has(k.proposal, '$' + a.toLocaleString('en-US')); }), 'proposal schedule');
     rec('Kit: assembly quote also makes the Set Services agreement', !!(built.docs.setServices && has(built.docs.setServices, 'Set Services Agreement')), 'no set services');
     // Mark as sent, then signed
     click('#mk-sent'); await until(function(){ return /Sent /.test(q('#mk-status').textContent); });
@@ -161,6 +169,9 @@
     rec('Modular: cover table uses the same payments (short names), and Section 8 has the site access paragraph',
       has(m.doc, 'Payment 3 — Framing Completion (30%)') && has(m.doc, 'Payment 4 — Siding &amp; Paint Completion (30%)') && !has(m.doc, 'Construction Begins') && has(m.doc, '<b>Site access.</b> Freight pricing assumes Seller'), 'modular cover');
     var mq = JSON.parse(localStorage.getItem('zk-test-rows')).filter(function(r){ return r.product_kind === 'modular'; })[0];
+    rec('Modular: the proposal shows the same five payments and wording, and the portal keys don\'t collide with the design retainer',
+      has(m.proposal, 'Payment 1 — Design &amp; Engineering (5%)') && has(m.proposal, 'Payment 5 — Final Payment (5%)') && has(m.proposal, 'Due when the last Modular Unit is set on site.')
+      && !has(m.proposal, 'Construction Begins') && mq.config.payment_schedule.every(function(s){ return s.key !== 'design'; }) && mq.config.payment_schedule[0].key === 'design-engineering', mq.config.payment_schedule.map(function(s){ return s.key; }));
     var mps = mq.config.payment_schedule.map(function(s){ return Math.round(s.amount); });
     rec('Modular: the five amounts equal the quote\'s 5/30/30/30/5 to the dollar', JSON.stringify(mq.config.contract.amounts) === JSON.stringify(mps), { contract: mq.config.contract.amounts, quote: mps });
 
@@ -179,6 +190,8 @@
     // ---- garage and steel use the Custom Home contract, to the dollar ----
     var g = await drive('garage');
     rec('Garage (UT): Custom Home contract made, amounts match the quote', !g.bad && has(g.doc, 'Custom Home Purchase Agreement'), g.status);
+    rec('Garage with $0 engineering: no Engineering row on the contract or proposal; materials is Payment 1',
+      !has(g.doc, '— Engineering') && !has(g.doc, 'Engineered plans') && has(g.doc, 'Payment 1 — Materials Procurement (45%)') && !has(g.proposal, '— Engineering') && has(g.proposal, 'Payment 1 — Materials Procurement (45%)'), 'engineering row');
     var s = await drive('steel');
     rec('Steel kit (TX, DIY): sold outside the wood-kit states, Custom Home contract made, amounts match', !s.bad && has(s.doc, 'Freight pricing assumes Seller'), s.status);
 

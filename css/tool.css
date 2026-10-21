@@ -92,6 +92,8 @@ body.admin-bar .zk-tool.zk-tool { --zk-top: 32px; }
 /* ---------- Layout ---------- */
 .zk-tool.zk-tool .page { max-width: 1120px; margin: 0 auto; padding: 28px 20px 96px; }
 .zk-tool.zk-tool .step-title { font-size: 24px; font-weight: 700; color: var(--ink); letter-spacing: -.02em; margin: 0 0 4px; }
+/* Focus moves to the heading on each step so screen readers announce it; no ring on headings. */
+.zk-tool.zk-tool .step-title:focus, .zk-tool.zk-tool .step-title:focus-visible { outline: none; box-shadow: none; }
 .zk-tool.zk-tool .step-lead { color: var(--muted); margin: 0 0 22px; }
 .zk-tool.zk-tool .card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg); box-shadow: var(--shadow-1); padding: 22px 24px; }
 .zk-tool.zk-tool .two-col { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 22px; align-items: start; }

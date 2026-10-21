@@ -105,9 +105,9 @@
   }
 
   // ------------------------------------------------------------------ text
-  function numberRows(rows){
+  function numberRows(rows, skip){
     var n = 0;
-    return rows.map(function(r){ n++; return n; });
+    return rows.map(function(r, i){ if(skip && skip[i]) return null; n++; return n; });
   }
   function fill(text, row, n, units){
     var h = row.half ? halves(units)[row.half] : null;
@@ -119,7 +119,7 @@
   // "Payment 2 — Materials Procurement (45%)"
   function rowName(row, n, units, useShort){
     var t = fill(useShort && row.short ? row.short : row.title, row, n, units);
-    var head = row.numbered === false ? t : 'Payment ' + n + ' — ' + t;
+    var head = (row.numbered === false || n == null) ? t : 'Payment ' + n + ' — ' + t;
     return row.fixed ? head : head + ' (' + pctText(row.pct) + ')';
   }
 
@@ -192,22 +192,41 @@
   // A finished schedule: rows with numbers, names, wording and amounts.
   // sched: { rows, units }, ctx: amounts() context.
   function build(sched, ctx){
-    var rows = normalize(sched.rows), units = sched.units || 1, nums = numberRows(rows), am = amounts(rows, ctx);
+    var rows = normalize(sched.rows), units = sched.units || 1, am = amounts(rows, ctx);
+    // No engineering on this quote ($0, not already paid): its row doesn't print
+    // and the payments after it move up a number (Kelsey 2026-10-21).
+    var skip = rows.map(function(r){ return !!(r.fixed && !ctx.engineeringPaid && num(ctx.engineering) === 0); });
+    var nums = numberRows(rows, skip);
     return rows.map(function(r, i){
       var a = am[i], n = nums[i];
-      return { row: r, n: n, title: fill(r.title, r, n, units), name: rowName(r, n, units, false), short: rowName(r, n, units, true),
+      return { row: r, n: n, skip: skip[i], title: fill(r.title, r, n, units), name: rowName(r, n, units, false), short: rowName(r, n, units, true),
         when: fill(r.when, r, n, units), amount: a.amount, paid: !!a.paid, was: a.was, promo: a.promo || 0, engBase: a.base || 0,
         units: r.half ? unitsLabel(halves(units)[r.half]) : '' };
     });
+  }
+  // The rows that print (a $0 engineering row doesn't).
+  function printed(built){
+    var out = built.filter(function(b){ return !b.skip; });
+    out.edited = built.edited || out.length !== built.length;
+    return out;
   }
   function numberOf(built, role){ for(var i = 0; i < built.length; i++) if(built[i].row.role === role) return built[i].n; return null; }
   function has(built, role){ return numberOf(built, role) != null; }
 
   // What the portal stores for invoices: one stage per row, same names and amounts.
   function stages(built){
-    return built.filter(function(b){ return !b.paid; }).map(function(b){
-      return { key: b.row.role === 'custom' ? 'custom-' + b.n : b.row.role + (b.row.half ? '-' + b.row.half : ''), name: b.name, desc: b.when, amount: b.amount };
+    return built.filter(function(b){ return !b.paid && !b.skip; }).map(function(b){
+      return { key: stageKey(b), name: b.name, desc: b.when, amount: b.amount };
     });
+  }
+  // The portal's invoice key for a row. "design" is the kit design retainer
+  // (paid outside the contract), so the modular Design & Engineering payment
+  // gets its own key.
+  function stageKey(b){
+    var r = b.row;
+    if(r.role === 'custom') return 'custom-' + b.n;
+    if(r.role === 'design') return 'design-engineering';
+    return r.role + (r.half ? '-' + r.half : '');
   }
 
   // Cover page: short names and amounts (Kelsey, answer E).
@@ -288,7 +307,7 @@
     PRESETS: PRESETS, CLAUSE_ROLES: CLAUSE_ROLES,
     contractFor: contractFor, presetsFor: presetsFor, defaultPreset: defaultPreset, preset: preset, presetLabel: presetLabel,
     isKitStyle: isKitStyle, blankRow: blankRow, halves: halves, unitsLabel: unitsLabel,
-    amounts: amounts, check: check, isPreset: isPreset, normalize: normalize, build: build, stages: stages,
+    amounts: amounts, check: check, isPreset: isPreset, normalize: normalize, build: build, printed: printed, stages: stages, stageKey: stageKey,
     numberOf: numberOf, coverTable: coverTable, kitTable: kitTable, kitParagraphs: kitParagraphs, modularSection: modularSection,
     pctText: pctText
   };

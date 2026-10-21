@@ -43,6 +43,10 @@
         notIncluded: ['Anything not specifically listed above','Site prep and foundation','Utility connections','Building permits and inspections','Sales tax'] };
     }
     var s = SCOPE[q.kind] || SCOPE['Shell Kit'];
+    // Stairs print only for kit models that have them (js/kit-scope.js), same as the contract.
+    if(s === SCOPE['Shell Kit'] && !(root.ZK.KitScope && root.ZK.KitScope.has(q.model, 'stairs'))){
+      s = { included: s.included.filter(function(t){ return t !== 'Standard interior stairs'; }), notIncluded: s.notIncluded };
+    }
     if(q.dryin && DRYIN[q.kind]){
       return { included: s.included.concat(DRYIN[q.kind]),
         notIncluded: s.notIncluded.filter(function(t){ var l = t.toLowerCase(); return l.indexOf('dry-in') === -1 && l.indexOf('dry in') === -1; }) };
@@ -152,9 +156,9 @@
       rows += '<tr><td style="padding:8px 0;border-bottom:1px solid #f0eee7;color:#0f6e56;font-size:13px;"><b>Promo: design retainer credited toward engineering</b><div style="font-size:11px;color:#0f6e56;">limited-time credit applied at proposal</div></td><td style="padding:8px 0;border-bottom:1px solid #f0eee7;text-align:right;color:#0f6e56;font-weight:600;font-size:13px;">-' + fmt(r.promoCredit) + '</td></tr>';
     }
     var displayedTotal = r.displayedTotal;
-    var sched = d.schedule, schedTotal = sched.reduce(function(a, s){ return a + s.amount; }, 0);
+    var sched = d.schedule, schedTotal = sched.reduce(function(a, s){ return a + (s.paid ? 0 : s.amount); }, 0);
     var schedRows = sched.map(function(s){
-      return '<tr><td style="padding:9px 12px; border-bottom:1px solid #eee;">' + esc(s.name) + '<div style="font-size:11px;color:#888;margin-top:2px;">' + esc(s.desc) + '</div></td><td style="padding:9px 12px; text-align:right; border-bottom:1px solid #eee; font-weight:500;">' + fmt(s.amount) + '</td></tr>';
+      return '<tr><td style="padding:9px 12px; border-bottom:1px solid #eee;">' + esc(s.name) + '<div style="font-size:11px;color:#888;margin-top:2px;">' + esc(s.desc) + '</div></td><td style="padding:9px 12px; text-align:right; border-bottom:1px solid #eee; font-weight:500;' + (s.paid ? ' color:#888;' : '') + '">' + (s.paid ? 'PAID' : fmt(s.amount)) + '</td></tr>';
     }).join('');
     var asmAdded = q.assembly && q.assembly.mode === 'added', asmRemoved = q.assembly && q.assembly.mode === 'removed';
     // Zip Kit modular has no separate engineering invoice: design and engineering are the 5% first payment.
