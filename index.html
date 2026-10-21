@@ -79,6 +79,13 @@
   .actions-bar .btn.info { background: var(--info); border-color: var(--info); color: #fff; }
   .actions-bar .btn.info:hover { background: #1f3f32; border-color: #1f3f32; }
   .actions-bar input[type="search"] { flex: 1; min-width: 200px; height: 38px; padding: 0 14px; font-family: inherit; font-size: 14px; color: var(--ink); border: 1px solid var(--line-strong); border-radius: var(--radius); background: var(--surface); }
+  .admin-tools { position: relative; font-size: 13px; }
+  .admin-tools summary { list-style: none; cursor: pointer; color: var(--muted); padding: 8px 4px; text-decoration: underline; text-underline-offset: 3px; white-space: nowrap; }
+  .admin-tools summary::-webkit-details-marker { display: none; }
+  .admin-tools summary:hover { color: var(--ink); }
+  .admin-tools-menu { position: absolute; right: 0; top: 100%; z-index: 20; background: var(--surface); border: 1px solid var(--line-strong); border-radius: var(--radius); box-shadow: var(--shadow-2); padding: 6px; min-width: 190px; }
+  .admin-tools-menu a { display: block; padding: 8px 10px; border-radius: 4px; color: var(--ink); text-decoration: none; white-space: nowrap; }
+  .admin-tools-menu a:hover { background: var(--surface-2); }
   .actions-bar input[type="search"]:focus { outline: none; border-color: var(--accent); box-shadow: var(--shadow-focus); }
 
   /* Stats row */
@@ -292,13 +299,19 @@
 
   <div class="actions-bar">
     <a class="btn primary" href="quote.html">+ New quote</a>
-    <a class="btn info" id="admin-contract-editor" href="ZipKit_Contract_Generator.html" style="display:none;" title="Office only: change orders and saved contracts. Reps make contracts from a quote.">Contract editor</a>
     <button type="button" class="btn" onclick="zkOpenSpecialInvoice(null)" title="An invoice with your own lines and credits, not tied to a project">Special invoice</button>
     <div id="admin-view-toggle" style="display:none; margin-left:auto; align-items:center; gap:0; border:1px solid var(--line-strong); border-radius:var(--radius); overflow:hidden; height:38px; background:var(--surface);">
       <button type="button" id="view-mine" class="view-mode-btn active" onclick="zkSetViewMode('mine')" style="height:100%; padding:0 14px; border:none; background:var(--accent); color:#fff; font-size:13px; font-weight:500; cursor:pointer;">My projects</button>
       <button type="button" id="view-all"  class="view-mode-btn"        onclick="zkSetViewMode('all')"  style="height:100%; padding:0 14px; border:none; background:transparent; color:var(--muted); font-size:13px; font-weight:500; cursor:pointer;">All projects <span style="opacity:0.7; font-weight:400;">(admin)</span></button>
     </div>
     <input type="search" id="project-search" placeholder="Search by buyer, project, model, or number...">
+    <!-- Admins only, out of the main row: "+ New quote" is the way to start a contract (Kelsey 2026-10-21). -->
+    <details class="admin-tools" id="admin-tools" style="display:none;">
+      <summary>Admin tools</summary>
+      <div class="admin-tools-menu">
+        <a id="admin-contract-editor" href="ZipKit_Contract_Generator.html" title="Change orders and contracts saved before the new quote tool. Reps make contracts from + New quote.">Old contract editor</a>
+      </div>
+    </details>
   </div>
 
   <div class="stat-row">
@@ -455,8 +468,8 @@ function zkToast(msg, isError){
   function setAdminUiVisible(visible){
     var tog = document.getElementById('admin-view-toggle');
     if(tog) tog.style.display = visible ? 'inline-flex' : 'none';
-    var ed = document.getElementById('admin-contract-editor');
-    if(ed) ed.style.display = visible ? '' : 'none';
+    var at = document.getElementById('admin-tools');
+    if(at){ at.style.display = visible ? '' : 'none'; if(!visible) at.open = false; }
     // If admin visibility flips off, snap the view mode back to "mine" so a
     // downgraded (or newly signed-in non-admin) user doesn't end up querying
     // listAll (RLS would filter it anyway, but the mode toggle should reflect

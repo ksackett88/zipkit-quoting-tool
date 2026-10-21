@@ -261,6 +261,9 @@
     rec('Portal: Mark signed counts it as contracted, to the dollar', q('#stat-contracted').textContent === '$' + Math.round(ct.contract_amount).toLocaleString('en-US'), { shown: q('#stat-contracted').textContent, contract: ct.contract_amount });
     var newQuote = q('a.btn.primary');
     rec('Portal: "+ New quote" opens the new quote tool; the old tool isn\'t on the menu', /quote\.html$/.test(newQuote.getAttribute('href')) && !D().querySelector('a[href*="ZipKit_Quoting_Tool"]'), newQuote.getAttribute('href'));
+    var at = q('#admin-tools'), rowLinks = Array.prototype.map.call(D().querySelectorAll('.actions-bar > a, .actions-bar > button'), function(e){ return e.textContent.trim(); });
+    rec('Portal: "+ New quote" is the only start button; "Old contract editor" is in the admin-only "Admin tools" menu, hidden from reps',
+      at && at.style.display === 'none' && /Old contract editor/.test(at.textContent) && !D().querySelector('.actions-bar > a[href*="ZipKit_Contract_Generator"]') && rowLinks[0] === '+ New quote', rowLinks);
 
     var failed = results.filter(function(r){ return !r.pass; });
     document.title = (failed.length ? 'FAIL ' : 'PASS ') + (results.length - failed.length) + '/' + results.length;
