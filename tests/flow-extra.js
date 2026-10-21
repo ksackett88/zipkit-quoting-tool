@@ -85,7 +85,7 @@ window.ZK_FLOW_EXTRA = async function(cat, W, h){
   var prop = cap.contentDocument.documentElement.outerHTML;
   var rm = W.ZK.Flow.result();
   rec('Modular proposal: 5/30/30/30/5 with the contract wording, right total, no "engineering invoice"',
-    prop.indexOf('Payment 1 — Design &amp; Engineering (5%)') !== -1 && prop.indexOf('Payment 5 — Set &amp; Completion (5%)') !== -1
+    prop.indexOf('Payment 1 — Design &amp; Engineering (5%)') !== -1 && prop.indexOf('Payment 5 — Final Payment (5%)') !== -1 && prop.indexOf('Due when the last Modular Unit is set on site.') !== -1 && prop.indexOf('Set &amp; Completion') === -1
       && prop.indexOf(W.ZK.Pricing.fmt(rm.total)) !== -1 && prop.indexOf('engineering invoice') === -1 && prop.indexOf('Rep Test') !== -1,
     'proposal text check failed');
   await quoteFor({ type:'shell', productId:'zion', miles:200, promo:true });
@@ -248,16 +248,29 @@ window.ZK_FLOW_EXTRA = async function(cat, W, h){
   rec('Out-of-area modular: "Make the contract" is blocked; in-area it works',
     cOut.disabled && /only ships to UT, ID, MT and WY/.test(cOut.title) && !cIn.disabled, { cOut: cOut, cIn: cIn });
 
-  // Assembly outside the 7 assembly states: a warning, never a block.
-  async function asmWarn(st){
-    await h.fill(W, { type:'shell', productId:'alpine', miles:300, assembly:'add' }); W.ZK.Flow.state.customer.state = st;
-    W.ZK.Flow.go('review'); await h.sleep(0);
-    var el = W.document.getElementById('zk-assembly-warning');
-    return { text: el ? el.textContent : null, proposal: (W.document.querySelector('[data-doc]') || {}).disabled === false };
+  // Assembly outside the 7 crew states is blocked; the office can override it
+  // under Advanced with a reason (Kelsey 2026-10-20). Steel outside the
+  // wood-kit states is DIY only, with no override.
+  async function asm(type, productId, st, override){
+    var cfg = { type:type, productId:productId, miles:300 };
+    if(type === "steel"){ cfg = { type:"steel", projectName:"Shop", buildCost:150000, engineering:6000, miles:100 }; }
+    await h.fill(W, cfg); W.ZK.Flow.state.customer.state = st; W.ZK.Flow.go("options"); await h.sleep(0);
+    W.ZK.Flow.state.cfg.assembly = "add";
+    if(override){ W.ZK.Flow.state.cfg.assemblyOverride = true; W.ZK.Flow.state.cfg.assemblyOverrideReason = override; }
+    W.ZK.Flow.go("options"); await h.sleep(0);
+    var tile = W.document.querySelector("[data-key=assembly][value=add]");
+    W.ZK.Flow.go("review"); await h.sleep(0);
+    var el = W.document.getElementById("zk-assembly-warning");
+    return { step: W.ZK.Flow.state.step, err: (W.document.querySelector("[data-err=assembly]") || {}).textContent || "", tileDisabled: !!(tile && tile.disabled), notice: el ? el.textContent : "", override: (function(o){ return !!(o && !o.closest("[data-ctl]").hidden); })(W.document.querySelector("[data-key=assemblyOverride]")) };
   }
-  var aTX = await asmWarn('TX'), aUT = await asmWarn('UT');
-  rec('Assembly for a Texas buyer warns (not blocked); Utah has no warning',
-    /assembly crew works in UT, ID, WY, MT, CO, AZ and NV/.test(aTX.text) && aTX.proposal && aUT.text === '', { aTX: aTX, aUT: aUT });
+  var aTX = await asm("shell", "alpine", "TX"), aUT = await asm("shell", "alpine", "UT"), aOK = await asm("shell", "alpine", "TX", "Sven approved");
+  rec("Assembly crew in TX is blocked (stays on Options with the reason); UT goes through",
+    aTX.step === "options" && /assembly crew works in UT, ID, WY, MT, CO, AZ and NV only/.test(aTX.err) && aUT.step === "review" && aUT.notice === "", { aTX: aTX, aUT: aUT });
+  rec("Assembly override with a reason lets TX through and shows the reason (office use)",
+    aOK.step === "review" && /Assembly override/.test(aOK.notice) && /Sven approved/.test(aOK.notice), aOK);
+  var sTX = await asm("steel", null, "TX", "try anyway"), sNM = await asm("steel", null, "NM");
+  rec("Steel in TX is DIY only (no override); steel in NM can be overridden",
+    sTX.step === "options" && /DIY only/.test(sTX.err) && !sTX.override && sNM.step === "options" && sNM.override, { sTX: sTX, sNM: sNM });
 
   oldFrame.remove();
   W.open = realOpen;

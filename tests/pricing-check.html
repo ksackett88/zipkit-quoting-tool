@@ -105,6 +105,8 @@
         var df = diff(quoteFacts(oq), quoteFacts(nq)); if(df) problems.quote = df;
         var ol = oldLines(w, t), nl = newLines(nr);
         if(p && p.aliases) ol.forEach(function(l){ p.aliases.forEach(function(a){ l.sub = l.sub.replace(a, p.name); }); });
+        // Wording only (Kelsey 2026-10-21): the assembly line no longer names a company. Dollars still compared.
+        ol.forEach(function(l){ l.sub = l.sub.replace(/billed via separate Zip Kit Assembly LLC contract/, 'billed on a separate assembly contract'); });
         var dl = diff(ol, nl); if(dl) problems.lines = dl;
         var newStages = stagesFacts(window.ZK.Pricing.schedule(cat, nr));
         var expected = nq.kind === 'Modular' ? stagesFacts(contractModularStages(nq.contract)) : stagesFacts(w.invoiceStages(oq));

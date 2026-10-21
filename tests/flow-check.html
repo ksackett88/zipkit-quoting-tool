@@ -54,7 +54,10 @@
     if(!els.length) return false;
     var kind = els[0].getAttribute('data-kind');
     if(kind === 'choice'){
-      var r = els.filter(function(e){ return e.value === String(v); })[0]; if(!r) return false;
+      var r = els.filter(function(e){ return e.value === String(v); })[0];
+      // The curb credit is only on quotes saved with it (Kelsey 2026-10-21): load it the way a saved quote does.
+      if(!r && key === 'assembly' && v === 'remove'){ W.ZK.Flow.state.cfg.assembly = 'remove'; W.ZK.Flow.go('options'); r = qa(W, '[data-key="assembly"]').filter(function(e){ return e.value === 'remove'; })[0]; }
+      if(!r) return false;
       r.checked = true; fire(r, 'change'); return true;
     }
     if(kind === 'bool'){ els[0].checked = !!v; fire(els[0], 'change'); return true; }
@@ -66,6 +69,8 @@
     var F = W.ZK.Flow;
     F.newQuote();
     setVal(q(W, '[data-cust="name"]'), 'Screen Check');
+    // State is required (Kelsey 2026-10-20). Utah is in every sales and crew area.
+    setVal(q(W, '[data-cust="state"]'), 'UT');
     F.go('product'); await sleep(0);
     if(F.state.step !== 'product') return { skipped:'customer step blocked' };
     var tab = q(W, '[data-type="' + cfg.type + '"]');
@@ -89,13 +94,10 @@
       setVal(q(W, '[data-line="' + i + '"][data-part="desc"]'), l.desc);
       setVal(q(W, '[data-line="' + i + '"][data-part="amount"]'), l.amount);
     });
+    // The Custom Home schedule editor moved to the Contract step (2026-10-21);
+    // older saved quotes still carry customSchedule, so set it as they would.
     if(cfg.customSchedule && cfg.customSchedule.length){
-      cfg.customSchedule.forEach(function(s, i){
-        q(W, '[data-sched-add]').click();
-        setVal(q(W, '[data-sched="' + i + '"][data-part="name"]'), s.name);
-        setVal(q(W, '[data-sched="' + i + '"][data-part="pct"]'), s.pct);
-        setVal(q(W, '[data-sched="' + i + '"][data-part="desc"]'), s.desc);
-      });
+      F.state.cfg.customSchedule = JSON.parse(JSON.stringify(cfg.customSchedule));
     }
     var adj = cfg.adjustments || {};
     var keys = Object.keys(adj);

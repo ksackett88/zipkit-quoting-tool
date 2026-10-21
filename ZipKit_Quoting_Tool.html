@@ -770,14 +770,14 @@ function rowRate(l,val,o){o=o||{};var s=o.sub?'<div class="sub">'+o.sub+'</div>'
 
 var QUOTE = null;
 
-// ---------- Site assembly (Zip Kit Assembly LLC — separate legal entity) ----------
+// ---------- Site assembly (separate assembly contract) ----------
 // Assembly = 10% of the base shell / kit / build price per unit. Two mutually
 // exclusive toggles per mode (`<prefix>-no-assembly`, `<prefix>-add-assembly`):
 //   • Remove assembly (−10%): customer takes curb delivery, arranges own set.
 //     Contract AND total drop by the assembly amount.
 //   • Add site assembly (+10%): our assembly crew handles site set.
 //     Total goes up by the assembly amount, but it's billed via a SEPARATE
-//     contract (Zip Kit Assembly LLC) — so the manufacturing contract amount
+//     assembly contract — so the manufacturing contract amount
 //     stays unchanged, keeping the invoice/payment schedule clean.
 function zkAssembly(prefix, shellPerUnit, units){
   // Radio group named `<prefix>-assembly` — three IDs preserved for backward
@@ -859,7 +859,7 @@ function zkDryinToggleHTML(prefix, calcFnName){
 function zkAssemblyToggleHTML(prefix, calcFnName){
   var name = prefix + '-assembly';
   return ''
-    +'<label style="margin-top:12px;">Site assembly <span class="sub" style="font-weight:400;">(Zip Kit Assembly LLC · separate contract)</span></label>'
+    +'<label style="margin-top:12px;">Site assembly <span class="sub" style="font-weight:400;">(separate assembly contract)</span></label>'
     +'<div style="background:#fff7e6; border-left:3px solid #d85a30; padding:10px 12px; border-radius:4px; margin-bottom:8px; font-size:13px;">'
     +'<div class="checkrow" style="margin:0 0 6px;">'
     +  '<input type="radio" name="'+name+'" id="'+prefix+'-assembly-none" value="none" checked onchange="'+calcFnName+'();">'
@@ -871,7 +871,7 @@ function zkAssemblyToggleHTML(prefix, calcFnName){
     +'</div>'
     +'<div class="checkrow" style="margin:0;">'
     +  '<input type="radio" name="'+name+'" id="'+prefix+'-add-assembly" value="add" onchange="'+calcFnName+'();">'
-    +  '<label for="'+prefix+'-add-assembly" style="margin:0; color:var(--ink); line-height:1.4;"><b>Add site assembly (+10% of shell)</b> &mdash; billed via separate Zip Kit Assembly LLC contract</label>'
+    +  '<label for="'+prefix+'-add-assembly" style="margin:0; color:var(--ink); line-height:1.4;"><b>Add site assembly (+10% of shell)</b> &mdash; billed on a separate assembly contract</label>'
     +'</div>'
     +'</div>';
 }
@@ -1495,11 +1495,11 @@ function generatePreliminaryEstimate(){
   // ---- Assembly note (respects the current assembly radio) ----
   var asmNote = '';
   if(QUOTE.assembly && QUOTE.assembly.mode === 'added'){
-    asmNote = 'Site assembly is included in this estimate range and will be billed via a separate Zip Kit Assembly LLC contract.';
+    asmNote = 'Site assembly is included in this estimate range and will be billed on a separate assembly contract.';
   } else if(QUOTE.assembly && QUOTE.assembly.mode === 'removed'){
     asmNote = 'Site assembly is NOT included — customer takes curb delivery and arranges own site set.';
   } else {
-    asmNote = 'Site assembly is optional and quoted separately by Zip Kit Assembly LLC. Ask your sales rep for the assembly range.';
+    asmNote = 'Site assembly is optional and quoted on a separate assembly contract. Ask your sales rep for the assembly range.';
   }
 
   var brandColor     = QUOTE.company === 'mvp' ? '#2f5d4a' : '#d85a30';
@@ -1763,7 +1763,7 @@ function generateProposal(){
     +(QUOTE.assembly && QUOTE.assembly.mode === 'added'
         ? '<div style="border-top:2px solid #1c1c1a; padding-top:12px; margin-bottom:30px; font-size:13px;">'
           +'<div style="display:flex; justify-content:space-between; padding:2px 0; color:#5f5e5a;"><span>Manufacturing subtotal <span style="font-size:11px; color:#888;">(billed by '+co.name+')</span></span><span style="font-family:menlo,consolas,monospace;">'+fmt(displayedTotal - QUOTE.assembly.amount)+'</span></div>'
-          +'<div style="display:flex; justify-content:space-between; padding:2px 0; color:#5f5e5a;"><span>Site assembly <span style="font-size:11px; color:#888;">(billed separately by Zip Kit Assembly LLC)</span></span><span style="font-family:menlo,consolas,monospace;">'+fmt(QUOTE.assembly.amount)+'</span></div>'
+          +'<div style="display:flex; justify-content:space-between; padding:2px 0; color:#5f5e5a;"><span>Site assembly <span style="font-size:11px; color:#888;">(billed on a separate assembly contract)</span></span><span style="font-family:menlo,consolas,monospace;">'+fmt(QUOTE.assembly.amount)+'</span></div>'
           +'<div style="display:flex; justify-content:space-between; padding:8px 0 0; margin-top:6px; border-top:1px solid #1c1c1a; font-size:15px; font-weight:700;"><span>Combined total <span style="font-size:11px; font-weight:400; color:#888;">(two contracts)</span></span><span style="color:'+brandColor+'; font-size:22px;">'+fmt(displayedTotal)+'</span></div>'
           +'</div>'
         : '<div style="display:flex; justify-content:flex-end; border-top:2px solid #1c1c1a; padding-top:12px; margin-bottom:30px;">'
@@ -1789,7 +1789,7 @@ function generateProposal(){
     +'</tbody></table>'
     +(QUOTE.assembly && QUOTE.assembly.mode === 'added'
       ? '<div style="margin-top:14px; padding:12px 16px; background:#fff7e6; border-left:3px solid #d85a30; border-radius:4px; font-size:12px; color:#5f5e5a; line-height:1.6;">'
-        +'<b style="color:#993c1d;">Site assembly ('+fmt(QUOTE.assembly.amount)+') is billed via a separate contract</b> from Zip Kit Assembly LLC and is <b>not included</b> in the schedule above. The manufacturing contract and payment schedule shown here cover our scope through curb delivery. Site set and assembly are covered by a separate assembly contract with its own scope, deliverables, and payment terms — you\'ll receive that contract alongside this one.'
+        +'<b style="color:#993c1d;">Site assembly ('+fmt(QUOTE.assembly.amount)+') is billed on a separate assembly contract</b> and is <b>not included</b> in the schedule above. The manufacturing contract and payment schedule shown here cover our scope through curb delivery. Site set and assembly are covered by a separate assembly contract with its own scope, deliverables, and payment terms — you\'ll receive that contract alongside this one.'
         +'</div>'
       : (QUOTE.assembly && QUOTE.assembly.mode === 'removed'
         ? '<div style="margin-top:14px; padding:12px 16px; background:#f5f3ec; border-left:3px solid #888; border-radius:4px; font-size:12px; color:#5f5e5a; line-height:1.6;">'
@@ -2066,10 +2066,10 @@ function calcShell(){
   var customTotal = customs.reduce(function(a,c){return a+c.amt;}, 0);
   customs.forEach(function(c){ rows += row(c.desc, c.amt, {sub:'add-on'}); });
 
-  // Site assembly toggle (Zip Kit Assembly LLC — separate legal entity)
+  // Site assembly toggle (separate assembly contract)
   var asm = zkAssembly('s', shell, units);
   if(asm.no)  rows += row('Assembly credit (curb delivery)', asm.total, {d:true, sub:'10% of shell · customer takes curb delivery, arranges own site set'});
-  if(asm.add) rows += row('Site assembly',                    asm.total,           {sub:'10% of shell · billed via separate Zip Kit Assembly LLC contract'});
+  if(asm.add) rows += row('Site assembly',                    asm.total,           {sub:'10% of shell · billed on a separate assembly contract'});
 
   document.getElementById('s-lines').innerHTML=rows;
   document.getElementById('s-summary-model').textContent = m[0] + (units>1?' × '+units:'');
@@ -2228,7 +2228,7 @@ function calcModular(){
   var MODULAR_SHELL_FRACTION = 0.85;
   var asm = zkAssembly('m', base * MODULAR_SHELL_FRACTION, units);
   if(asm.no)  rows += rowM('Assembly credit (curb delivery)', asm.total, {d:true, sub:'10% of shell portion (≈85% of base) · customer arranges own site set'});
-  if(asm.add) rows += rowM('Site assembly',                   asm.total,           {sub:'10% of shell portion (≈85% of base) · billed via separate Zip Kit Assembly LLC contract'});
+  if(asm.add) rows += rowM('Site assembly',                   asm.total,           {sub:'10% of shell portion (≈85% of base) · billed on a separate assembly contract'});
 
   document.getElementById('m-lines').innerHTML=rows;
   document.getElementById('m-summary-model').textContent = m[0] + (units>1?(m[13]==='per-module'?' × '+units+' modules':' × '+units+' units'):'');
@@ -2324,7 +2324,7 @@ function calcGarage(){
   // Site assembly toggle (10% of the garage shell)
   var asm = zkAssembly('g', g[2], units);
   if(asm.no)  rows += rowG('Assembly credit (curb delivery)', asm.total, {sub:'−'+fmt(asm.total)+' · 10% of shell · customer arranges own site set'});
-  if(asm.add) rows += rowG('Site assembly',                    asm.total, {sub:'10% of shell · billed via separate Zip Kit Assembly LLC contract'});
+  if(asm.add) rows += rowG('Site assembly',                    asm.total, {sub:'10% of shell · billed on a separate assembly contract'});
 
   document.getElementById('g-lines').innerHTML=rows;
   document.getElementById('g-summary-model').textContent = g[0] + ' garage' + (units>1?' × '+units:'');
@@ -2446,7 +2446,7 @@ function calcHangar(){
   // Site assembly toggle (10% of the hangar shell)
   var asm = zkAssembly('h', base, units);
   if(asm.no)  rows += rowH('Assembly credit (curb delivery)', asm.total, {d:true, sub:'10% of shell · customer arranges own site set'});
-  if(asm.add) rows += rowH('Site assembly',                    asm.total,           {sub:'10% of shell · billed via separate Zip Kit Assembly LLC contract'});
+  if(asm.add) rows += rowH('Site assembly',                    asm.total,           {sub:'10% of shell · billed on a separate assembly contract'});
 
   document.getElementById('h-lines').innerHTML = rows;
   document.getElementById('h-summary-model').textContent = h[0] + ' hangar' + (units>1?' × '+units:'');
@@ -2610,7 +2610,7 @@ function calcCustom(){
   // Site assembly toggle (10% of the negotiated build cost)
   var asm = zkAssembly('c', build, 1);
   if(asm.no)  rows += row('Assembly credit (curb delivery)', asm.total, {d:true, sub:'10% of build · customer arranges own site set'});
-  if(asm.add) rows += row('Site assembly',                    asm.total,           {sub:'10% of build · billed via separate Zip Kit Assembly LLC contract'});
+  if(asm.add) rows += row('Site assembly',                    asm.total,           {sub:'10% of build · billed on a separate assembly contract'});
 
   document.getElementById('c-lines').innerHTML = rows;
   document.getElementById('c-summary-model').textContent = name || 'Custom Home';
@@ -2721,7 +2721,7 @@ function calcSteel(){
   // Site assembly toggle (10% of the frame package cost)
   var asm = zkAssembly('st', build, 1);
   if(asm.no)  rows += row('Assembly credit (curb delivery)', asm.total, {d:true, sub:'10% of frame package · customer arranges own site set'});
-  if(asm.add) rows += row('Site assembly',                    asm.total,           {sub:'10% of frame package · billed via separate Zip Kit Assembly LLC contract'});
+  if(asm.add) rows += row('Site assembly',                    asm.total,           {sub:'10% of frame package · billed on a separate assembly contract'});
 
   document.getElementById('st-lines').innerHTML = rows;
   document.getElementById('st-summary-model').textContent = name || 'Light-gauge steel frame';
@@ -2819,8 +2819,8 @@ function calcSteel(){
 <!-- ============ TOAST ============ -->
 <div id="zk-toast" style="display:none;position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:10000;background:#1c1c1a;color:#fff;padding:12px 20px;border-radius:8px;font-size:13px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;box-shadow:0 6px 20px rgba(0,0,0,0.3);"></div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="lib/supabase.js?v=9"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0"></script>
+<script src="lib/supabase.js?v=10"></script>
 <script>
 /* ============================================================================
    AUTH WIRING + SAVE/LOAD QUOTES

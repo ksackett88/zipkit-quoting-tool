@@ -1,0 +1,11 @@
+Type,Model,Tool sq ft (quote tool and contract),zipkithomes.com sq ft,What the website lists,Note
+Panelized kit,Apache,"2,170","1,030","1,030 Sq Ft | 1 Bed | 1 Bath | 2 Car Garage: 1,140 Sq Ft",Tool number = living + garage (1030 + 1140)
+Panelized kit,Bluebell,"1,536","2,125","2,125 Sq Ft | 3 Bedrooms | 2 Baths | 2 Car Garage",
+Panelized kit,Bozeman,"1,403","1,400","1,400 Sq Ft | 2, 3, or 4 Bedrooms | 3 Baths | 2 Car Garage",
+Panelized kit,Hayden,"1,959","1,383","1,383 Sq Ft | 3 Bed | 2 Bath | 2 Car Garage: 413 Sq Ft",
+Panelized kit,Mesa,"1,823","1,408","1,408 Sq Ft | 2 or 3 Bedrooms | 3 Baths | + ADU – 415 Sq Ft",Tool number = living + ADU (1408 + 415)
+Panelized kit,Tahoe,"1,000",672,"672 Sq Ft | 2 Bed | 1 Bath | + Loft 178 Sq Ft",Living + loft = 850
+Panelized kit,Willow,"1,290–1,536","1,290","1,290 Sq Ft | 2 Bedrooms | 2 Baths",Tool shows a range
+Panelized kit,Zion,"2,226","1,566","1,566 Sq Ft | 3 Bedrooms | 3 Baths | + ADU – 660 Sq Ft",Tool number = living + ADU (1566 + 660)
+Modular,Gallatin,497,496,496 Sq Ft,
+Modular,Teton,340,385,"385 Sq Ft | Studio Unit | 1 Bath | + Loft",

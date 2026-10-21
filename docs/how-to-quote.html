@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>How to Quote</title>
+<style>
+  :root { --ink:#17150f; --muted:#5f5a4f; --line:#e6e2d6; --accent:#d85a30; --tint:#fbe8dc; --bg:#ffffff; --card:#faf8f0; }
+  @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) { --ink:#f2efe6; --muted:#b9b3a5; --line:#3a362d; --tint:#3b2418; --bg:#17150f; --card:#211e17; } }
+  :root[data-theme="dark"] { --ink:#f2efe6; --muted:#b9b3a5; --line:#3a362d; --tint:#3b2418; --bg:#17150f; --card:#211e17; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; }
+  main { max-width:860px; margin:0 auto; padding:28px 16px 40px; }
+  h1 { font-size:26px; margin:0 0 4px; }
+  .lead { color:var(--muted); margin:0 0 18px; }
+  ol.steps { list-style:none; padding:0; margin:0; display:grid; gap:10px; }
+  ol.steps li { display:grid; grid-template-columns:34px 1fr; gap:12px; background:var(--card); border:1px solid var(--line); border-radius:10px; padding:12px 14px; }
+  .n { width:30px; height:30px; border-radius:50%; background:var(--accent); color:#fff; font-weight:700; display:flex; align-items:center; justify-content:center; }
+  h2 { font-size:16px; margin:3px 0 2px; }
+  p { margin:0 0 4px; }
+  .rules { margin-top:18px; border:1px solid var(--line); border-radius:10px; padding:12px 16px; }
+  .rules h2 { margin:0 0 6px; }
+  .rules ul { margin:0; padding-left:18px; }
+  .rules li { margin:3px 0; }
+  .note { margin-top:14px; padding:10px 14px; background:var(--tint); border-radius:10px; }
+  b.k { white-space:nowrap; }
+  @media print { body { font-size:12px; } main { padding:0; } ol.steps li { padding:7px 10px; } h1 { font-size:20px; } .rules, .note { break-inside:avoid; } }
+</style>
+</head>
+<body>
+<main>
+  <h1>How to quote</h1>
+  <p class="lead">From the first call to a signed contract, in the quote tool. Open the <b>Sales Portal</b> and click <b class="k">+ New quote</b>. The step bar at the top shows where you are, and <b>Back</b> never loses your work.</p>
+
+  <ol class="steps">
+    <li><span class="n">1</span><div><h2>Customer</h2><p>Buyer's name and the <b>state it will be built in</b> (required: it decides what you can sell there). Email, phone and city if you have them.</p></div></li>
+    <li><span class="n">2</span><div><h2>Model</h2><p>Pick the tab (panelized kit, modular, garage, hangar, steel kit, custom home), then the model. For steel kits and custom homes, type the numbers from the estimator.</p></div></li>
+    <li><span class="n">3</span><div><h2>Options</h2><p>The defaults make a complete quote. Change only what the buyer asked for: how many, miles to the site, snow load, who puts it together, windows and doors (optional). Rare things (discounts, promo, already paid, add-ons and credits) are under <b>Advanced</b>. Every price change needs a reason.</p></div></li>
+    <li><span class="n">4</span><div><h2>Review</h2><p>Check the buyer, the price and the payment schedule. <b>Send a proposal</b> makes the PDF for the buyer (a ballpark range is in the same box). When they say yes, click <b>Write the contract</b>.</p></div></li>
+    <li><span class="n">5</span><div><h2>Contract</h2><p>Type only what the quote doesn't have: the buyer's <b>full legal name</b> (everyone who signs), mailing address and building site address. Check the <b>payment schedule</b>: it's filled in for you and prints on the contract exactly as shown. Change it only if the buyer agreed, and it must add up to 100% before <b>Create the contract</b> turns on.</p></div></li>
+    <li><span class="n">6</span><div><h2>Send</h2><p>The contract appears. Click <b>Download PDF</b> and choose <b>Save as PDF</b> (with our assembly crew, the <b>Set Services agreement</b> is there too). <b>Have Sven approve it</b>, email it or send it for e-signature as usual, then click <b>Mark as sent</b>. When it comes back signed, click <b>Mark as signed</b> here or in the portal. It only counts as contracted money once it's signed.</p></div></li>
+  </ol>
+
+  <div class="rules">
+    <h2>What the tool won't let you do (and what to do instead)</h2>
+    <ul>
+      <li><b>Complete modular</b> ships to UT, ID, MT and WY only. Elsewhere, quote a panelized kit.</li>
+      <li><b>Wood kits</b> (panelized kits, garages, custom homes) ship to UT, ID, MT, WY, CO, AZ, NV, NM, CA, OR and WA only. Elsewhere, quote a steel kit. A ballpark is still allowed.</li>
+      <li><b>Our assembly crew</b> works in UT, ID, WY, MT, CO, AZ and NV. Listed prices never include assembly: pick <b>Kit only</b>, or <b>Add our assembly crew</b> (+10%, on a separate assembly contract). Outside those states it's Kit only. Only the office can override it, with a reason.</li>
+      <li><b>Steel kits</b> sell everywhere, but outside the wood-kit states they're DIY only.</li>
+      <li><b>Windows and doors</b> are optional on kits. Offer them only if the buyer asks.</li>
+    </ul>
+  </div>
+  <p class="note"><b>Changing a contract:</b> open the quote from the portal (<b>Open</b> or <b>→ Contract</b>), fix it, and create the contract again: it updates the same contract until it's signed. After it's signed, changes go on a change order. Ask the office.</p>
+</main>
+</body>
+</html>
