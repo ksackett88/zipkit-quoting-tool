@@ -23,8 +23,9 @@ add_action(
 	function () {
 		register_rest_route( 'zipkit/v1', '/estimate', array( 'methods' => 'POST', 'permission_callback' => '__return_true', 'callback' => 'zkst_estimate_endpoint' ) );
 		register_rest_route( 'zipkit/v1', '/lead', array( 'methods' => 'POST', 'permission_callback' => '__return_true', 'callback' => 'zkst_lead_endpoint' ) );
-		// The public catalog for this site's brand (models, sizes, photos and
-		// starting prices; placeholder test prices only on test sites).
+		// The public catalog for this site's brand (models, sizes, photos;
+		// starting prices only for a signed-in customer, and placeholder test
+		// prices only on test sites).
 		register_rest_route( 'zipkit/v1', '/public-catalog', array( 'methods' => 'GET', 'permission_callback' => '__return_true', 'callback' => 'zkst_public_catalog_endpoint' ) );
 	}
 );
@@ -57,13 +58,19 @@ function zkst_show_test_prices() {
 	return in_array( $env, array( 'local', 'development', 'staging' ), true );
 }
 
-function zkst_public_catalog_endpoint() {
+function zkst_public_catalog_endpoint( WP_REST_Request $req ) {
 	$data = zkst_public_catalog( zkst_public_brand() );
 	if ( ! $data ) {
 		return new WP_Error( 'zkst_catalog', 'Catalog not found.', array( 'status' => 500 ) );
 	}
+	// Pricing stays behind the account (Kelsey 2026-10-20): starting prices
+	// go only to a signed-in customer with a confirmed email.
+	if ( is_wp_error( zkst_customer( $req ) ) ) {
+		$data = zkst_public_hide_prices( $data );
+	}
 	$res = new WP_REST_Response( $data );
 	$res->header( 'Cache-Control', 'no-store' );
+	$res->header( 'Vary', 'Authorization' );
 	return $res;
 }
 

@@ -226,24 +226,25 @@
       var list = cat.products.filter(function(p){ return p.type === t.id; });
       if(t.id === 'shell') list = list.slice().sort(function(a, b){ return (a.sqft || 0) - (b.sqft || 0); });
       h += '<div class="zp-grid">' + list.map(function(p){
-        return '<button type="button" class="zp-model' + (p.photo ? '' : ' nophoto') + '" data-product="' + esc(p.id) + '">'
-          + (p.photo ? '<span class="zp-ph"><img src="' + esc(ZK.url(p.photo)) + '" alt="" loading="lazy"' + focusStyle(p) + '>' + (p.photo_label ? '<span class="zp-plabel">' + esc(p.photo_label) + '</span>' : '') + '</span>' : '')
+        var im = picture(p);
+        return '<button type="button" class="zp-model' + (im ? '' : ' nophoto') + '" data-product="' + esc(p.id) + '">'
+          + (im ? '<span class="zp-ph' + (im.plan ? ' zp-fp' : '') + '"><img src="' + esc(ZK.url(im.src)) + '" alt="" loading="lazy"' + (im.plan ? '' : focusStyle(p)) + '>' + (im.label ? '<span class="zp-plabel">' + esc(im.label) + '</span>' : '') + '</span>' : '')
           + '<span class="zp-mb"><span class="zp-mname">' + esc(p.name) + (p.tag ? ' <span class="zp-tag">' + esc(p.tag) + '</span>' : '') + '</span>'
           + '<span class="zp-msize">' + esc(p.size || '') + '</span>'
-          + '<span class="zp-mprice">' + (p.start_price != null ? 'Starting at ' + money(p.start_price) + testTag(p.placeholder) : 'Price coming soon') + '</span></span></button>';
+          + '<span class="zp-mprice">' + cardPrice(p) + '</span></span></button>';
       }).join('') + '</div>';
     }
     return h;
   }
 
   function renderChoose(){
-    var p = product(), t = type();
+    var p = product(), t = type(), im = p ? picture(p) : null;
     if(!t || (!p && !t.lead_only)){ state.step = 'pick'; return renderPick(); }
     var h = '<h1 class="zp-title" tabindex="-1">' + esc(p ? p.name : t.label) + '</h1>'
       + '<p class="zp-lead">' + (p && p.size ? esc(p.size) + ' · ' : '') + esc(t.label) + ' · ' + esc(stateName(state.st)) + (state.zip ? ' ' + esc(state.zip) : '')
       + ' <button type="button" class="zp-link" data-go="pick">Pick a different model</button></p>'
       + '<div class="zp-split"><div class="zp-card zp-form">'
-      + (p && p.photo ? '<div class="zp-herowrap"><img class="zp-hero" src="' + esc(ZK.url(p.photo)) + '" alt="' + esc(p.name) + '"' + focusStyle(p) + '>' + (p.photo_label ? '<span class="zp-plabel">' + esc(p.photo_label) + '</span>' : '') + '</div>' : '');
+      + (im ? '<div class="zp-herowrap"><img class="zp-hero' + (im.plan ? ' zp-fp' : '') + '" src="' + esc(ZK.url(im.src)) + '" alt="' + esc(im.plan ? p.name + ' floor plan' : p.name) + '"' + (im.plan ? '' : focusStyle(p)) + '>' + (im.label ? '<span class="zp-plabel">' + esc(im.label) + '</span>' : '') + '</div>' : '');
     var homes = [], blds = [], s = sizes();
     for(var i = 1; i <= cat.max_homes; i++){ homes.push([i, plural(i, unitWord(t, 1))]); blds.push([i, plural(i, 'building')]); }
     questions().forEach(function(k){
@@ -268,6 +269,7 @@
   function estimateHTML(){
     var t = type(), e = state.est;
     var send = sendHTML();
+    if(!accounts) return needAccountHTML(t);   // no customer accounts yet: call us, at every step
     if(t.lead_only && !state.user) return needAccountHTML(t);
     if(t.lead_only) return '<div class="zp-est-k">Your price</div><div class="zp-est-s">Priced for your project. We\'ll put it together for you.</div>' + send;
     if(!t.lead_only && !answered()) return '<div class="zp-est-k">Your estimate</div><div class="zp-est-s">Answer the questions to see your estimate.</div>';
@@ -284,8 +286,9 @@
 
   // Not signed in: the estimate and sending need a free account.
   function needAccountHTML(t){
-    if(!accounts) return '<div class="zp-est-k">' + (t.lead_only ? 'Your price' : 'Your estimate') + '</div><div class="zp-est-s">Pricing online is coming soon. Give us a call at '
-      + esc(cat.brand.phone) + ' or email ' + esc(cat.brand.email) + '.</div>';
+    // Kelsey 2026-10-20: with no customer accounts yet, nothing mentions an account.
+    if(!accounts) return '<div class="zp-est-k">' + (t.lead_only ? 'Your price' : 'Your estimate') + '</div><div class="zp-est-v small">' + callHTML() + '</div>'
+      + '<div class="zp-est-s">Or email ' + esc(cat.brand.email) + '. We\'re happy to help.</div>';
     return '<div class="zp-est-k">' + (t.lead_only ? 'Your price' : 'Your estimate') + '</div>'
       + '<div class="zp-est-s">' + (t.lead_only ? 'Make a free account to send this to our team.' : 'Make a free account to see your estimate and send it to our team.') + '</div>'
       + '<button type="button" class="zp-btn primary wide" data-need-account="1">' + (t.lead_only ? 'Make my free account' : 'See my estimate') + '</button>'
@@ -294,9 +297,27 @@
   // Placeholder prices (test sites only) always wear a tag.
   function testTag(on){ return on ? ' <span class="zp-testprice">TEST PRICE</span>' : ''; }
   function focusStyle(p){ return p.photo_focus ? ' style="object-position:' + esc(p.photo_focus) + '"' : ''; }
+  // A model's picture: its photo, or else its floor plan (Kelsey 2026-10-20), or none.
+  function picture(p){
+    if(p.photo) return { src: p.photo, label: p.photo_label, plan: false };
+    if(p.floor_plan) return { src: p.floor_plan, label: 'Floor plan', plan: true };
+    return null;
+  }
+
+  // Pricing stays behind the account (Kelsey 2026-10-20). With no customer
+  // accounts set up yet, every pricing spot says to call instead.
+  function callText(){ return 'Call ' + cat.brand.phone + ' for pricing'; }
+  function callHTML(){ return 'Call <a href="tel:' + esc(cat.brand.phone.replace(/\D/g, '')) + '">' + esc(cat.brand.phone) + '</a> for pricing'; }
+  function cardPrice(p){
+    if(!accounts) return esc(callText());
+    if(!state.user) return 'Free account to see pricing';
+    if(cat.prices_hidden) return 'Getting your prices…';
+    return p.start_price != null ? 'Starting at ' + money(p.start_price) + testTag(p.placeholder) : 'Price coming soon';
+  }
 
   function barHTML(){
     var e = state.est, t = type();
+    if(!accounts) return '<span class="zp-bar-v">' + esc(callText()) + '</span><a class="zp-btn primary" href="tel:' + esc(cat.brand.phone.replace(/\D/g, '')) + '">Call</a>';
     var v = (!state.user && (t.lead_only || answered())) ? 'Make a free account to see your estimate' : t.lead_only ? 'Priced for your project' : (!answered() ? 'Answer the questions' : (!e || state.estFor !== choiceKey() ? 'Figuring your price…' : (e.needs_price ? 'Price coming soon' : 'Starting at <b>' + money(e.start) + '</b>' + testTag(e.placeholder))));
     return '<span class="zp-bar-v">' + v + '</span><button type="button" class="zp-btn primary" data-to-est="1">' + (t.lead_only ? 'Send' : 'See estimate') + '</button>';
   }
@@ -446,7 +467,7 @@
     if(!u) return;
     var first = !state.user;
     state.user = u;
-    if(first){ accounts.saveProfile(u); if(!state.zip) state.zip = u.zip || ''; }
+    if(first){ accounts.saveProfile(u); if(!state.zip) state.zip = u.zip || ''; reloadCatalog(); }
     // Back to where they were: this tab, or a new one opened from the email link.
     var d = takeDraft();
     if(d && first && state.step === 'where' && !state.productId) DRAFT_FIELDS.forEach(function(k){ if(d[k] != null) state[k] = d[k]; });
@@ -460,14 +481,14 @@
   function signedOut(){
     var keep = {}; DRAFT_FIELDS.forEach(function(k){ keep[k] = state[k]; }); keep.step = state.step === 'done' || state.step === 'account' ? 'pick' : state.step;
     state = freshState(); Object.keys(keep).forEach(function(k){ state[k] = keep[k]; }); if(!state.st) state.step = 'where';
-    render(true);
+    render(true); reloadCatalog();
   }
 
   // A printable page the customer can save as a PDF.
   function pdf(){
     var w = root.open('', '_blank');
     if(!w){ state.errors = { send: 'Your browser blocked the new window. Allow pop-ups for this site, then try again.' }; return; }
-    var p = product(), e = state.result.estimate, b = cat.brand, abs = function(u){ return new URL(ZK.url(u), root.location.href).href; };
+    var p = product(), im = picture(p), e = state.result.estimate, b = cat.brand, abs = function(u){ return new URL(ZK.url(u), root.location.href).href; };
     var rows = e.lines.map(function(l){ return '<tr><td>' + esc(l[0]) + '</td><td style="text-align:right">' + esc(l[1]) + '</td></tr>'; }).join('');
     var html = '<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>' + esc(p.name) + ' estimate · ' + esc(b.name) + '</title>'
       + '<style>body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;color:#2d2a22;max-width:720px;margin:32px auto;padding:0 20px;line-height:1.5}'
@@ -476,8 +497,9 @@
       + '.p{text-align:center;margin:24px 0}.p button{padding:10px 28px;font-size:15px;background:' + esc(b.colors.main) + ';color:#fff;border:0;border-radius:8px;cursor:pointer}@media print{.p{display:none}}</style></head><body>'
       + '<img src="' + esc(abs(b.logo)) + '" alt="' + esc(b.name) + '" style="height:40px">'
       + '<h1>Your ' + esc(p.name) + ' estimate</h1><div class="s">For ' + esc(state.user.name || state.user.email) + ' · Building in ' + esc(stateName(state.st)) + (state.zip ? ' ' + esc(state.zip) : '') + ' · ' + esc(new Date().toLocaleDateString('en-US')) + '</div>'
-      + (p.photo ? '<img class="h" src="' + esc(abs(p.photo)) + '" alt="">' + (p.photo_label ? '<div class="s">' + esc(p.photo_label) + '</div>' : '') : '')
-      + '<table>' + rows + (e.start != null ? '<tr class="t"><td>Starting at</td><td style="text-align:right">' + money(e.start) + (e.placeholder ? ' <span style="font-size:11px;border:1px solid #a63f27;color:#a63f27;padding:1px 5px;vertical-align:middle">TEST PRICE</span>' : '') + '</td></tr>' : '') + '</table>'
+      + (im ? '<img class="h" src="' + esc(abs(im.src)) + '" alt="">' + (im.label ? '<div class="s">' + esc(im.label) + '</div>' : '') : '')
+      // The TEST PRICE tag never breaks across lines (Kelsey 2026-10-20).
+      + '<table>' + rows + (e.start != null ? '<tr class="t"><td>Starting at</td><td style="text-align:right">' + money(e.start) + (e.placeholder ? ' <span style="display:inline-block;white-space:nowrap;font-size:11px;line-height:1.4;border:1px solid #a63f27;color:#a63f27;padding:1px 5px;vertical-align:middle">TEST PRICE</span>' : '') + '</td></tr>' : '') + '</table>'
       + '<ul class="s">' + e.notes.map(function(n){ return '<li>' + esc(n) + '</li>'; }).join('') + '</ul>'
       + '<p class="s">' + esc(scopeNote()) + '</p><ul class="s">' + FINE.map(function(f){ return '<li>' + esc(f) + '</li>'; }).join('') + '</ul>'
       + '<p class="s">Questions? ' + esc(b.phone) + ' · ' + esc(b.email) + '</p>'
@@ -524,6 +546,21 @@
     if(ev.target.id === 'zp-send-form') send(ev.target);
   }
 
+  // The catalog. The server sends starting prices only with a signed-in
+  // customer's token, so it's asked again when someone signs in or out.
+  function loadCatalog(){
+    var h = state.user && state.user.token ? { 'Authorization': 'Bearer ' + state.user.token } : {};
+    return fetch(C.publicCatalogUrl || ZK.url('data/catalog-public-' + (C.brand || 'zipkit') + '.json'), { cache: 'no-cache', credentials: 'omit', headers: h })
+      .then(function(r){ if(!r.ok) throw new Error('catalog ' + r.status); return r.json(); });
+  }
+  function reloadCatalog(){
+    var who = state.user ? state.user.id : '';
+    loadCatalog().then(function(d){
+      if(who !== (state.user ? state.user.id : '')) return;   // signed in or out again meanwhile
+      cat = d; if(state.step === 'pick') render();
+    }).catch(function(e){ console.error(e); });
+  }
+
   function init(){
     app = document.querySelector(C.publicMount || '[data-zk-app="public"]');
     if(!app) return;
@@ -534,8 +571,7 @@
     app.addEventListener('submit', onSubmit);
     captureUtm();
     accounts = makeAccounts();
-    fetch(C.publicCatalogUrl || ZK.url('data/catalog-public-' + (C.brand || 'zipkit') + '.json'), { cache: 'no-cache', credentials: 'omit' })
-      .then(function(r){ if(!r.ok) throw new Error('catalog ' + r.status); return r.json(); })
+    loadCatalog()
       .then(function(d){
         cat = d;
         // The brand's own colors.

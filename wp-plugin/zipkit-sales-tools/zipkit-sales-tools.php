@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       Zip Kit Sales Tools
  * Description:       The Zip Kit quote tool for sales reps, as a shortcode: [zipkit_quote]. Customer quoter: [zipkit_quote_public] (not live until approved). Reps sign in to WordPress, then to the Zip Kit sales account (Supabase), where saved projects and payments live.
- * Version:           0.2.2
+ * Version:           0.2.3
  * Requires at least: 6.0
  * Requires PHP:      7.4
  * Author:            Zip Kit Homes
@@ -16,7 +16,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'ZKST_VERSION', '0.2.2' );
+define( 'ZKST_VERSION', '0.2.3' );
 define( 'ZKST_FILE', __FILE__ );
 define( 'ZKST_DIR', plugin_dir_path( __FILE__ ) );
 define( 'ZKST_URL', plugin_dir_url( __FILE__ ) );

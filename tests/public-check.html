@@ -52,14 +52,15 @@
     var list = pb.models ? pb.models.map(function(m){
         var s = m.from_product ? Cat.product(m.from_product) : null;
         return { id: m.id, type: s ? s.type : pb.types[0], name: m.name || s.name, sqft: s && !m.size ? s.sqft : null, sqft_label: m.size ? null : (s ? s.sqft_label : null),
-          dimensions: m.size || (s ? s.dimensions : null), photo: m.photo || (s ? s.photo : null), photo_focus: m.photo_focus || null, multifamily: !!m.multifamily_only, building_units: m.building_units || null, price: m.price, placeholder: !!m.placeholder, src: s };
+          dimensions: m.size || (s ? s.dimensions : null), photo: m.photo || (s ? s.photo : null), photo_focus: m.photo_focus || null, floor_plan: m.floor_plan || null, multifamily: !!m.multifamily_only, building_units: m.building_units || null, price: m.price, placeholder: !!m.placeholder, src: s };
       })
       : full.products.filter(function(p){ return p.status === 'active' && p.brands.some(function(x){ return pb.catalog_brands.indexOf(x) !== -1; }); });
     var products = list.filter(function(p){ return priced.indexOf(p.type) !== -1; }).map(function(p){
       var size = p.sqft_label ? (/ \/ /.test(p.sqft_label) ? p.sqft_label.replace(/^(.+?) \/ (\w+)$/, '$1 sq ft per $2') : p.sqft_label + ' sq ft') : String(p.dimensions || '');
       return { id: p.id, type: p.type, name: p.name, sqft: p.sqft || null, size: size.replace(/\s*[–—]\s*/g, ' to '), tag: p.multifamily ? 'Multifamily only' : (p.barndominium ? 'Barndominium' : null),
         photo: p.photo ? 'photos/cards/' + p.photo.replace(/^.*\//, '').replace(/\.[^.]+$/, '') + '.jpg' : null,
-        photo_label: pb.photo_labels && pb.photo_labels[p.id] || null, photo_focus: p.photo_focus || null, building_units: p.building_units || null,
+        photo_label: pb.photo_labels && pb.photo_labels[p.id] || null, photo_focus: p.photo_focus || null,
+        floor_plan: p.floor_plan && !p.photo ? 'photos/cards/' + p.floor_plan.replace(/^.*\//, '').replace(/\.[^.]+$/, '') + '.jpg' : null, building_units: p.building_units || null,
         start_price: testp ? (p.price || null) : (needs ? null : Cat.startingPrice(p.src || p)), placeholder: testp && p.price > 0 ? !!p.placeholder : false };
     });
     var expect = { catalog_updated: full.updated, brand: { key: key, name: b.name, phone: b.phone.replace(/·/g, '-'), email: b.email, logo: pb.logo || b.logo, unit_word: pb.unit_word || null, colors: { main: b.colors.main, dark: b.colors.dark } },
@@ -69,7 +70,7 @@
 
     // 2. Only public fields; no internal amounts.
     var TOP = ['generated', 'catalog_updated', 'brand', 'scope', 'needs_price', 'availability', 'types', 'snow_choices', 'timelines', 'max_homes', 'products'];
-    var PK = ['id', 'type', 'name', 'sqft', 'size', 'tag', 'photo', 'photo_label', 'photo_focus', 'building_units', 'start_price', 'placeholder'];
+    var PK = ['id', 'type', 'name', 'sqft', 'size', 'tag', 'photo', 'photo_label', 'photo_focus', 'floor_plan', 'building_units', 'start_price', 'placeholder'];
     var s = JSON.stringify(pubs[key]);
     var extra = Object.keys(pubs[key]).filter(function(k){ return TOP.indexOf(k) === -1; }).concat([].concat.apply([], pubs[key].products.map(function(p){ return Object.keys(p).filter(function(k){ return PK.indexOf(k) === -1; }); })));
     var bad = s.match(/"(pricing|rate|rates|override\w*|discount\w*|note|notes|confirm\w*|source|engineering|windows?|ship\w*|legacy_index|brands|status|addons|zones?|adjust|road_factor|factory_zip|location|state_overrides|legal_name|address|payment\w*)":/g);
@@ -93,14 +94,17 @@
 
   // 3. Walk public.html as a customer.
   var f = document.createElement('iframe'); document.body.appendChild(f);
-  var W, calls = [], texts = [], estimateReply = null;
+  var W, calls = [], gets = [], texts = [], estimateReply = null;
   async function open(brand, extraQs){
     await new Promise(function(r){ f.onload = r; f.src = '../public.html?brand=' + brand + (extraQs || '') + '&t=' + Date.now(); });
     W = f.contentWindow;
     for(var i = 0; i < 5000 && !(W.ZK && W.ZK.Public && W.ZK.Public.catalog()); i++) await tick();
     W.ZK.config.estimateUrl = '/stand-in/estimate'; W.ZK.config.leadUrl = '/stand-in/lead';
-    calls = [];
+    calls = []; gets = [];
+    var real = W.fetch.bind(W);
     W.fetch = function(u, o){
+      // The catalog (a GET) still loads for real; its sign-in header is recorded.
+      if(!o || !o.body){ gets.push({ url: String(u), auth: o && o.headers && o.headers.Authorization || '' }); return real(u, o); }
       var body = JSON.parse(o.body); calls.push({ url: u, auth: o.headers.Authorization, body: body });
       var reply = /estimate/.test(u) ? estimateReply(body) : { ok: true, emailed_you: true, estimate: body.product_id ? estimateReply(body) : null };
       return Promise.resolve(new W.Response(JSON.stringify(reply), { status: 200 }));
@@ -127,6 +131,8 @@
   rec('State and build-site ZIP are required', qa('.zp-field.invalid').length === 2, qa('.zp-err').map(function(e){ return e.textContent; }));
   setVal(q('#zp-zip'), '84101'); setVal(q('#zp-st'), 'UT'); q('[data-go="pick"]').click(); grab();
   rec('Utah sees panelized kits, modular, garages, hangars, steel', same(tabs(), ['shell', 'modular', 'garage', 'hangar', 'steel']), tabs());
+  var pr = qa('.zp-mprice').map(function(e){ return e.textContent.trim(); });
+  rec('Pricing stays behind the account: before sign-in every card reads "Free account to see pricing", with no price', pr.length > 0 && pr.every(function(t){ return t === 'Free account to see pricing'; }) && !/\$\d/.test(q('.zp-grid').innerText), pr.slice(0, 5));
   where('CO', '80202'); rec('Colorado: no complete modular', same(tabs(), ['shell', 'garage', 'hangar', 'steel']), tabs());
   where('TX', '75201'); rec('Texas: steel only (hangars, steel kits)', same(tabs(), ['hangar', 'steel']), tabs());
   where('UT', '84101'); q('[data-type="shell"]').click(); q('[data-product="alpine"]').click(); grab();
@@ -146,6 +152,8 @@
   rec('Their choices are saved for the email link (in case it opens in a new tab)', draft && draft.productId === 'alpine' && draft.homes === '2' && draft.st === 'UT' && draft.back === 'choose', draft);
   W.ZK.Public.accounts()._verify(); await settle(); grab();
   rec('Clicking the email link signs in and goes straight back to the Alpine with every answer kept', W.ZK.Public.state().step === 'choose' && q('#zp-homes').value === '2' && q('#zp-snow').value === 'tier1' && q('#zp-assembly').value === 'crew', { step: W.ZK.Public.state().step });
+  rec('After sign-in the page asks for the catalog again, with the customer\'s token (the server sends prices only then)',
+    gets.some(function(g){ return /catalog-public-zipkit/.test(g.url) && /^Bearer zkst-test\./.test(g.auth); }), gets);
   var c0 = calls[calls.length - 1];
   rec('Then the estimate comes from the server, as the signed-in customer, with state and ZIP', c0 && c0.url === '/stand-in/estimate' && /^Bearer zkst-test\.[A-Za-z0-9_-]+$/.test(c0.auth) && JSON.parse(atob(c0.auth.slice(17).replace(/-/g, '+').replace(/_/g, '/'))).email === 'pat@example.test' && c0.body.product_id === 'alpine' && c0.body.homes === 2 && c0.body.zip === '84101' && c0.body.state === 'UT' && c0.body.assembly === 'crew', c0);
   rec('Estimate shows "Starting at" and the server\'s lines and notes', /Starting at \$398,760/.test(q('#zp-est').innerText) && /Design starts at \$2,500/.test(q('#zp-est').innerText) && /Final pricing is set after design/.test(q('#zp-est').innerText), q('#zp-est').innerText);
@@ -155,7 +163,10 @@
   var lead = calls.filter(function(c){ return /lead/.test(c.url); })[0];
   rec('Sending posts the choices, timeline and UTM tags (90-day cookie) and the first landing page', lead && lead.auth === c0.auth && lead.body.timeline === 'In the next 6 months' && lead.body.utm_source === 'test' && lead.body.utm_medium === 'cpc' && lead.body.utm_campaign === 'pilot' && /public\.html/.test(lead.body.landing_page) && /public\.html/.test(lead.body.page), lead);
   rec('Breakdown screen: "We emailed you a copy", Starting at, fine print', /Here's your breakdown/.test(q('.zp-title').textContent) && /We emailed you a copy/.test(q('.zp-main').innerText) && /Starting at/.test(q('.zp-total').textContent) && /local building department/.test(q('.zp-main').innerText), q('.zp-main').innerText.slice(0, 400));
-  q('[data-restart]').click(); q('[data-type="garage"]').click(); q('.zp-model').click();
+  q('[data-restart]').click();
+  var pr2 = qa('.zp-mprice').map(function(e){ return e.textContent.trim(); });
+  rec('Signed in: the cards show "Starting at $…"', pr2.some(function(t){ return /^Starting at \$[\d,]+$/.test(t); }) && !pr2.some(function(t){ return /account/i.test(t); }), pr2.slice(0, 5));
+  q('[data-type="garage"]').click(); q('.zp-model').click();
   rec('Garages in Utah ask about assembly too (no homes, no snow)', !!q('#zp-assembly') && !q('#zp-homes') && !q('#zp-snow'), 'questions');
   where('TX', '75201'); q('[data-type="hangar"]').click(); q('.zp-model').click();
   rec('Texas hangar: no questions (DIY only)', !q('#zp-assembly') && !q('#zp-homes'), 'questions');
@@ -182,9 +193,12 @@
     ['ridgeline', 'dakota'].every(function(id){ var c = q('[data-product="' + id + '"]'); return /westgroup-phase4/.test(c.querySelector('img').src) && /Photo: Westgroup Phase 4, Victor, Idaho/.test(c.innerText) && !/Rendering/.test(c.innerText); })
     && ['gallatin', 'gallatin-ii', 'sierra'].every(function(id){ return /Rendering/.test(q('[data-product="' + id + '"]').innerText); }), 'labels');
   rec('Westgroup photos keep the building in frame (the MVP site\'s focus points)', /82%/.test(q('[data-product="ridgeline"] img').style.objectPosition) && /85%/.test(q('[data-product="dakota"] img').style.objectPosition), 'focus');
-  rec('No empty photo tiles: McKinley and Westley cards have no photo box', !q('[data-product="mckinley"] .zp-ph') && !q('[data-product="westley"] .zp-ph') && q('[data-product="mckinley"]').classList.contains('nophoto'), 'tiles');
+  rec('McKinley and Westley (no photo) show their floor plan, labeled "Floor plan" and shown whole (not cropped)',
+    ['mckinley', 'westley'].every(function(id){ var c = q('[data-product="' + id + '"]'), im = c.querySelector('.zp-ph.zp-fp img');
+      return im && new RegExp(id + '-lower-floorplan\\.jpg$').test(im.src) && /^Floor plan$/.test(c.querySelector('.zp-plabel').textContent) && W.getComputedStyle(im).objectFit === 'contain' && !/Rendering|Photo:/.test(c.innerText); }), 'floor plans');
   rec('The tool adds no <main> of its own (the theme has one)', !W.document.querySelector('[data-zk-app] main'), 'main');
   q('[data-product="mckinley"]').click();
+  rec('The McKinley page shows its floor plan whole too', !!q('.zp-hero.zp-fp') && /mckinley-lower-floorplan/.test(q('.zp-hero').src) && /floor plan/.test(q('.zp-hero').alt), q('.zp-hero') && q('.zp-hero').outerHTML);
   rec('McKinley asks "How many buildings?" (4 live/work units each), not homes', !q('#zp-homes') && !q('#zp-bunits') && !!q('#zp-buildings') && /comes as a building of 4 units/.test(q('.zp-main').innerText), q('.zp-main').innerText);
   setVal(q('#zp-buildings'), '2'); await settle();
   rec('McKinley shows "2 buildings × 4 units = 8 units."', q('#zp-bsum').textContent === '2 buildings × 4 units = 8 units.', q('#zp-bsum').textContent);
@@ -217,6 +231,25 @@
   rec('MVP outside its states: "We don\'t offer units in Texas yet" with the MVP phone', /don't offer units in Texas yet/.test(q('.zp-main').innerText) && /208-970-6904/.test(q('.zp-main').innerText), q('.zp-main').innerText);
   q('[data-signout]').click(); await settle();
   rec('Sign out keeps them browsing (not sent to an account form)', !W.ZK.Public.state().user && W.ZK.Public.state().step !== 'account' && !!q('[data-signin]'), W.ZK.Public.state().step);
+  where('ID', '83401'); await settle(); grab();
+  var pr3 = qa('.zp-mprice').map(function(e){ return e.textContent.trim(); });
+  rec('Signed out again: every MVP card reads "Free account to see pricing" (no price, no TEST PRICE tag)', pr3.length === 7 && pr3.every(function(t){ return t === 'Free account to see pricing'; }) && !/\$\d|TEST PRICE/.test(q('.zp-grid').innerText), pr3);
+  // A model with no photo and no floor plan: a compact card, not a tall empty one.
+  W.ZK.Public.catalog().products.forEach(function(p){ if(p.id === 'westley') p.floor_plan = null; }); W.ZK.Public.render();
+  var wc2 = q('[data-product="westley"]');
+  rec('A card with no picture has no empty photo box and stays compact (not stretched to its row)', wc2.classList.contains('nophoto') && !wc2.querySelector('.zp-ph') && W.getComputedStyle(wc2).alignSelf === 'start', W.getComputedStyle(wc2).alignSelf);
+
+  // A live site before the customer accounts project exists: nothing mentions an account.
+  await open('mvp', '&accounts=none'); where('ID', '83401'); await settle(); grab();
+  var pr4 = qa('.zp-mprice').map(function(e){ return e.textContent.trim(); });
+  rec('No customer accounts yet: every card reads "Call 208-970-6904 for pricing"', pr4.length === 7 && pr4.every(function(t){ return t === 'Call 208-970-6904 for pricing'; }), pr4);
+  rec('No customer accounts yet: no "Sign in" and no mention of an account', !q('[data-signin]') && !/account|sign in/i.test(q('[data-zk-app]').innerText), q('[data-zk-app]').innerText.slice(0, 300));
+  q('[data-product="sierra"]').click(); grab();
+  rec('No customer accounts yet: the estimate box and the phone bar say "Call 208-970-6904 for pricing" before any answer', /Call 208-970-6904 for pricing/.test(q('#zp-est').innerText) && q('#zp-bar .zp-bar-v').textContent === 'Call 208-970-6904 for pricing', { est: q('#zp-est').innerText, bar: q('#zp-bar').innerText });
+  calls = []; setVal(q('#zp-homes'), '2'); setVal(q('#zp-snow'), 'standard'); await settle(); grab();
+  rec('...and after answering: still "Call 208-970-6904 for pricing", a tap-to-call button, no account, no estimate call',
+    /Call 208-970-6904 for pricing/.test(q('#zp-est').innerText) && q('#zp-bar .zp-bar-v').textContent === 'Call 208-970-6904 for pricing' && q('#zp-bar a.zp-btn').getAttribute('href') === 'tel:2089706904'
+    && q('#zp-est a[href="tel:2089706904"]') && !/account/i.test(q('[data-zk-app]').innerText) && calls.length === 0, { est: q('#zp-est').innerText, bar: q('#zp-bar').innerHTML, calls: calls });
 
   // 4. Copy rules across every screen.
   var all = texts.join('\n');

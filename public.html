@@ -6,23 +6,26 @@
 <meta name="robots" content="noindex, nofollow">
 <title>Quote your own project</title>
 <link rel="stylesheet" href="css/tool.css?v=8">
-<link rel="stylesheet" href="css/public.css?v=2">
+<link rel="stylesheet" href="css/public.css?v=3">
 </head>
 <body class="zk-standalone">
 <!-- Test page for the customer quoter. In WordPress it is the
      [zipkit_quote_public] shortcode. NOT LIVE: Kelsey approves first.
      ?brand=mvp or ?brand=zipkit picks the brand (default mvp, the pilot).
      On a local test server, accounts use a test stub; estimates and leads
-     need the WordPress plugin, so here they say they aren't connected. -->
+     need the WordPress plugin, so here they say they aren't connected.
+     ?accounts=none acts like a live site before the customer accounts
+     project exists. -->
 <div class="zk-tool zk-public" data-zk-app="public"></div>
 <script>
   (function(){
-    var brand = (new URLSearchParams(location.search).get('brand') || 'mvp').replace(/[^a-z0-9_-]/g, '');
-    var local = /^(localhost|127\.0\.0\.1)$/.test(location.hostname);
+    var qs = new URLSearchParams(location.search);
+    var brand = (qs.get('brand') || 'mvp').replace(/[^a-z0-9_-]/g, '');
+    var local = /^(localhost|127\.0\.0\.1)$/.test(location.hostname) && qs.get('accounts') !== 'none';
     window.ZK_CONFIG = { brand: brand, publicCatalogUrl: 'data/catalog-public-' + brand + '.json', accounts: local ? 'stub' : '', estimateUrl: '', leadUrl: '' };
   })();
 </script>
 <script src="js/config.js?v=9"></script>
-<script src="js/public.js?v=2"></script>
+<script src="js/public.js?v=3"></script>
 </body>
 </html>

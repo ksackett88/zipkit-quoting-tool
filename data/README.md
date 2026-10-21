@@ -72,10 +72,15 @@ The WordPress build (`wp-plugin/build.ps1`) runs it automatically, and `tests/pu
 
 What goes into the public file:
 - model names, sizes and photos;
+- a floor plan picture for a model with no photo (`"floor_plan"` in the brand's `models`, for example `"photos/westley-lower-floorplan.png"`). The card shows it whole, labeled "Floor plan". Its card copy goes in `photos/cards/` with the same name, as a `.jpg`;
 - the starting price, which is the same "Kit from / Complete from / Starting at" number reps see on the cards;
 - where each product is sold.
 
 Nothing else is copied: no rates, snow or window prices, discounts, overrides or notes.
+
+**Who sees a price (Kelsey 2026-10-20):**
+- **Pricing stays behind the account.** In WordPress, starting prices are sent only to a signed-in customer. Before sign-in, every card reads "Free account to see pricing".
+- **Before the customer accounts project exists,** nobody can sign in. So every pricing spot (the cards, the estimate box and the phone price bar) reads "Call 208-970-6904 for pricing" (the brand's phone), and nothing mentions an account.
 
 What you can change in the `"public"` section:
 - **`availability`**: which states get wood kits, steel kits and assembly. Complete modular uses `product_types.modular.service_states`, the same list as the rep tool.

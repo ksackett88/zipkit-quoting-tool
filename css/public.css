@@ -51,6 +51,12 @@
 .zk-tool.zk-tool .zp-ph { display: block; aspect-ratio: 16 / 9; background: var(--surface-3); overflow: hidden; }
 .zk-tool.zk-tool .zp-ph img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .zk-tool.zk-tool .zp-mb { display: block; padding: 12px 14px 14px; }
+/* A card with no picture stays compact instead of stretching to its row's
+   height; a floor plan shows whole, on white (Kelsey 2026-10-20). */
+.zk-tool.zk-tool .zp-model.nophoto { align-self: start; }
+.zk-tool.zk-tool .zp-ph.zp-fp { background: #fff; border-bottom: 1px solid var(--line-soft); }
+.zk-tool.zk-tool .zp-ph.zp-fp img, .zk-tool.zk-tool .zp-hero.zp-fp { object-fit: contain; background: #fff; }
+.zk-tool.zk-tool .zp-ph.zp-fp img { padding: 8px 8px 30px; box-sizing: border-box; }
 .zk-tool.zk-tool .zp-mname { display: block; font-size: 18px; font-weight: 700; color: var(--ink); }
 .zk-tool.zk-tool .zp-msize { display: block; font-size: 14px; color: var(--muted); }
 .zk-tool.zk-tool .zp-mprice { display: block; font-size: 16px; font-weight: 600; color: var(--ink-2); margin-top: 6px; }
@@ -123,6 +129,9 @@
 .zk-tool.zk-tool .zp-herowrap .zp-plabel { bottom: 16px; }
 .zk-tool.zk-tool .zp-link.small { font-size: 13px; margin-left: 8px; }
 .zk-tool.zk-tool .zp-est-v.small { font-size: 22px; }
+/* "Call 208-970-6904 for pricing": the number keeps the text color (a site's
+   link color can be too light on white), underlined so it reads as tap-to-call. */
+.zk-tool.zk-tool .zp-est-v a { color: inherit; text-decoration: underline; text-underline-offset: 3px; }
 .zk-tool.zk-tool #zp-send-form { margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--line-soft); }
 .zk-tool.zk-tool .zp-snowlist { margin: -6px 0 0; padding: 0 0 0 16px; list-style: disc; }
 .zk-tool.zk-tool .zp-snowlist li { margin: 2px 0; }

@@ -115,6 +115,11 @@ $tr = zkst_estimate( $cat, $mvp_test, 'mvp', array( 'product_id' => 'ridgeline',
 rec( 'MVP says "units", never "homes": 2 Ridgelines read "2 units × $130,000"', '2 units × $130,000' === $tr['lines'][0][1] && ! preg_match( '/\bhomes?\b/i', json_encode( $tr ) ), $tr['lines'] );
 rec( 'Zip Kit has no placeholder prices', ! array_filter( $zk['products'], function ( $p ) { return ! empty( $p['placeholder'] ); } ), null );
 
+$hid = zkst_public_hide_prices( $mvp_test );
+rec( 'Not signed in: the catalog has no starting price, no TEST PRICE flag, and says prices_hidden (Kelsey 2026-10-20)',
+	true === $hid['prices_hidden'] && ! array_filter( $hid['products'], function ( $p ) { return null !== $p['start_price'] || ! empty( $p['placeholder'] ); } ) && ! preg_match( '/1[0-6]0000/', json_encode( $hid ) ), null );
+rec( 'Signed in on a test site: the catalog keeps the placeholder prices', 130000 === $mvp_test['products'][0]['start_price'] && empty( $mvp_test['prices_hidden'] ), $mvp_test['products'][0] );
+
 rec( 'A model from another brand is refused', false === zkst_estimate( $cat, $zk, 'zipkit', array( 'product_id' => 'sierra' ) )['ok'], null );
 
 $fail = 0;

@@ -139,6 +139,7 @@
                          "photo":  "photos/cards/bigsky.jpg",
                          "photo_label":  null,
                          "photo_focus":  null,
+                         "floor_plan":  null,
                          "building_units":  null,
                          "start_price":  51875,
                          "placeholder":  false
@@ -153,6 +154,7 @@
                          "photo":  "photos/cards/bridger.jpg",
                          "photo_label":  null,
                          "photo_focus":  null,
+                         "floor_plan":  null,
                          "building_units":  null,
                          "start_price":  71288,
                          "placeholder":  false
@@ -167,6 +169,7 @@
                          "photo":  "photos/cards/tahoe.jpg",
                          "photo_label":  null,
                          "photo_focus":  null,
+                         "floor_plan":  null,
                          "building_units":  null,
                          "start_price":  67145,
                          "placeholder":  false
@@ -181,6 +184,7 @@
                          "photo":  "photos/cards/sequoia.jpg",
                          "photo_label":  null,
                          "photo_focus":  null,
+                         "floor_plan":  null,
                          "building_units":  null,
                          "start_price":  87100,
                          "placeholder":  false
@@ -195,6 +199,7 @@
                          "photo":  "photos/cards/frontier.jpg",
                          "photo_label":  null,
                          "photo_focus":  null,
+                         "floor_plan":  null,
                          "building_units":  null,
                          "start_price":  74225,
                          "placeholder":  false
@@ -209,6 +214,7 @@
                          "photo":  "photos/cards/clyde1.jpg",
                          "photo_label":  null,
                          "photo_focus":  null,
+                         "floor_plan":  null,
                          "building_units":  null,
                          "start_price":  82260,
                          "placeholder":  false
@@ -223,6 +229,7 @@
                          "photo":  "photos/cards/birch1.jpg",
                          "photo_label":  null,
                          "photo_focus":  null,
+                         "floor_plan":  null,
                          "building_units":  null,
                          "start_price":  102595,
                          "placeholder":  false
@@ -237,6 +244,7 @@
                          "photo":  "photos/cards/willow3.jpg",
                          "photo_label":  null,
                          "photo_focus":  null,
+                         "floor_plan":  null,
                          "building_units":  null,
                          "start_price":  72850,
                          "placeholder":  false
@@ -251,6 +259,7 @@
                          "photo":  "photos/cards/bozeman1.jpg",
                          "photo_label":  null,
                          "photo_focus":  null,
+                         "floor_plan":  null,
                          "building_units":  null,
                          "start_price":  103600,
                          "placeholder":  false
@@ -265,6 +274,7 @@
                          "photo":  "photos/cards/sunstone1.jpg",
                          "photo_label":  null,
                          "photo_focus":  null,
+                         "floor_plan":  null,
                          "building_units":  null,
                          "start_price":  89550,
                          "placeholder":  false
@@ -279,6 +289,7 @@
                          "photo":  "photos/cards/bluebell2.jpg",
                          "photo_label":  null,
                          "photo_focus":  null,
+                         "floor_plan":  null,
                          "building_units":  null,
                          "start_price":  134120,
                          "placeholder":  false
@@ -293,6 +304,7 @@
                          "photo":  "photos/cards/shasta.jpg",
                          "photo_label":  null,
                          "photo_focus":  null,
+                         "floor_plan":  null,
                          "building_units":  null,
                          "start_price":  96225,
                          "placeholder":  false
@@ -307,6 +319,7 @@
                          "photo":  "photos/cards/summit.jpg",
                          "photo_label":  null,
                          "photo_focus":  null,
+                         "floor_plan":  null,
                          "building_units":  null,
                          "start_price":  102900,
                          "placeholder":  false
@@ -321,6 +334,7 @@
                          "photo":  "photos/cards/jasper.jpg",
                          "photo_label":  null,
                          "photo_focus":  null,
+                         "floor_plan":  null,
                          "building_units":  null,
                          "start_price":  124765,
                          "placeholder":  false
@@ -335,6 +349,7 @@
                          "photo":  "photos/cards/mesa.jpg",
                          "photo_label":  null,
                          "photo_focus":  null,
+                         "floor_plan":  null,
                          "building_units":  null,
                          "start_price":  127435,
                          "placeholder":  false
@@ -349,6 +364,7 @@
                          "photo":  "photos/cards/koda.jpg",
                          "photo_label":  null,
                          "photo_focus":  null,
+                         "floor_plan":  null,
                          "building_units":  null,
                          "start_price":  131475,
                          "placeholder":  false
@@ -363,6 +379,7 @@
                          "photo":  "photos/cards/hayden.jpg",
                          "photo_label":  null,
                          "photo_focus":  null,
+                         "floor_plan":  null,
                          "building_units":  null,
                          "start_price":  127435,
                          "placeholder":  false
@@ -377,6 +394,7 @@
                          "photo":  "photos/cards/cedar1.jpg",
                          "photo_label":  null,
                          "photo_focus":  null,
+                         "floor_plan":  null,
                          "building_units":  null,
                          "start_price":  152157,
                          "placeholder":  false
@@ -391,6 +409,7 @@
                          "photo":  "photos/cards/timberline1.jpg",
                          "photo_label":  null,
                          "photo_focus":  null,
+                         "floor_plan":  null,
                          "building_units":  null,
                          "start_price":  134120,
                          "placeholder":  false
@@ -405,6 +424,7 @@
                          "photo":  "photos/cards/apache4.jpg",
                          "photo_label":  null,
                          "photo_focus":  null,
+                         "floor_plan":  null,
                          "building_units":  null,
                          "start_price":  108475,
                          "placeholder":  false
@@ -419,6 +439,7 @@
                          "photo":  "photos/cards/juniper.jpg",
                          "photo_label":  null,
                          "photo_focus":  null,
+                         "floor_plan":  null,
                          "building_units":  null,
                          "start_price":  235850,
                          "placeholder":  false
@@ -433,6 +454,7 @@
                          "photo":  "photos/cards/zion.jpg",
                          "photo_label":  null,
                          "photo_focus":  null,
+                         "floor_plan":  null,
                          "building_units":  null,
                          "start_price":  115225,
                          "placeholder":  false
@@ -447,6 +469,7 @@
                          "photo":  "photos/cards/columbia.jpg",
                          "photo_label":  null,
                          "photo_focus":  null,
+                         "floor_plan":  null,
                          "building_units":  null,
                          "start_price":  163540,
                          "placeholder":  false
@@ -461,6 +484,7 @@
                          "photo":  "photos/cards/alpine.jpg",
                          "photo_label":  null,
                          "photo_focus":  null,
+                         "floor_plan":  null,
                          "building_units":  null,
                          "start_price":  199380,
                          "placeholder":  false
@@ -475,6 +499,7 @@
                          "photo":  "photos/cards/moab1.jpg",
                          "photo_label":  null,
                          "photo_focus":  null,
+                         "floor_plan":  null,
                          "building_units":  null,
                          "start_price":  166280,
                          "placeholder":  false
@@ -489,6 +514,7 @@
                          "photo":  "photos/cards/meadow.1.jpg",
                          "photo_label":  null,
                          "photo_focus":  null,
+                         "floor_plan":  null,
                          "building_units":  null,
                          "start_price":  185580,
                          "placeholder":  false
@@ -503,6 +529,7 @@
                          "photo":  "photos/cards/solitude.jpg",
                          "photo_label":  null,
                          "photo_focus":  null,
+                         "floor_plan":  null,
                          "building_units":  null,
                          "start_price":  179550,
                          "placeholder":  false
@@ -517,6 +544,7 @@
                          "photo":  "photos/cards/olympic.jpg",
                          "photo_label":  null,
                          "photo_focus":  null,
+                         "floor_plan":  null,
                          "building_units":  null,
                          "start_price":  209850,
                          "placeholder":  false
@@ -531,6 +559,7 @@
                          "photo":  "photos/cards/teton.jpg",
                          "photo_label":  null,
                          "photo_focus":  null,
+                         "floor_plan":  null,
                          "building_units":  null,
                          "start_price":  119600,
                          "placeholder":  false
@@ -545,6 +574,7 @@
                          "photo":  "photos/cards/xl470.jpg",
                          "photo_label":  null,
                          "photo_focus":  null,
+                         "floor_plan":  null,
                          "building_units":  null,
                          "start_price":  126500,
                          "placeholder":  false
@@ -559,6 +589,7 @@
                          "photo":  "photos/cards/yellowstone.jpg",
                          "photo_label":  null,
                          "photo_focus":  null,
+                         "floor_plan":  null,
                          "building_units":  null,
                          "start_price":  176900,
                          "placeholder":  false
@@ -573,6 +604,7 @@
                          "photo":  "photos/cards/gallatin.jpg",
                          "photo_label":  null,
                          "photo_focus":  null,
+                         "floor_plan":  null,
                          "building_units":  null,
                          "start_price":  123790,
                          "placeholder":  false
@@ -587,6 +619,7 @@
                          "photo":  "photos/cards/gallatin-ii.jpg",
                          "photo_label":  null,
                          "photo_focus":  null,
+                         "floor_plan":  null,
                          "building_units":  null,
                          "start_price":  153740,
                          "placeholder":  false
@@ -601,6 +634,7 @@
                          "photo":  "photos/cards/1car-garage.jpg",
                          "photo_label":  null,
                          "photo_focus":  null,
+                         "floor_plan":  null,
                          "building_units":  null,
                          "start_price":  14520,
                          "placeholder":  false
@@ -615,6 +649,7 @@
                          "photo":  "photos/cards/2car-garage.jpg",
                          "photo_label":  null,
                          "photo_focus":  null,
+                         "floor_plan":  null,
                          "building_units":  null,
                          "start_price":  19640,
                          "placeholder":  false
@@ -629,6 +664,7 @@
                          "photo":  "photos/cards/3car-garage.jpg",
                          "photo_label":  null,
                          "photo_focus":  null,
+                         "floor_plan":  null,
                          "building_units":  null,
                          "start_price":  23720,
                          "placeholder":  false
@@ -643,6 +679,7 @@
                          "photo":  "photos/cards/4car-garage.jpg",
                          "photo_label":  null,
                          "photo_focus":  null,
+                         "floor_plan":  null,
                          "building_units":  null,
                          "start_price":  27440,
                          "placeholder":  false
@@ -657,6 +694,7 @@
                          "photo":  "photos/cards/6450hangar.jpg",
                          "photo_label":  null,
                          "photo_focus":  null,
+                         "floor_plan":  null,
                          "building_units":  null,
                          "start_price":  158700,
                          "placeholder":  false
@@ -671,6 +709,7 @@
                          "photo":  "photos/cards/8060hangar.jpg",
                          "photo_label":  null,
                          "photo_focus":  null,
+                         "floor_plan":  null,
                          "building_units":  null,
                          "start_price":  179400,
                          "placeholder":  false

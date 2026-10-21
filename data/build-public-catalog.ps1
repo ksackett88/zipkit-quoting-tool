@@ -101,7 +101,7 @@ foreach ($bp in $pub.brands.PSObject.Properties) {
       [pscustomobject]@{
         id = $m.id; type = $(if ($src) { $src.type } else { $pb.types[0] }); name = $(if ($m.name) { $m.name } else { $src.name })
         sqft = $(if ($src -and -not $m.size) { $src.sqft } else { $null }); sqft_label = $(if ($m.size) { $null } elseif ($src) { $src.sqft_label } else { $null })
-        dimensions = $(if ($m.size) { $m.size } elseif ($src) { $src.dimensions } else { $null }); photo = $(if ($m.photo) { $m.photo } elseif ($src) { $src.photo } else { $null }); photo_focus = $m.photo_focus
+        dimensions = $(if ($m.size) { $m.size } elseif ($src) { $src.dimensions } else { $null }); photo = $(if ($m.photo) { $m.photo } elseif ($src) { $src.photo } else { $null }); photo_focus = $m.photo_focus; floor_plan = $m.floor_plan
         barndominium = $false; multifamily = [bool]$m.multifamily_only; building_units = $m.building_units; price = $m.price; placeholder = [bool]$m.placeholder; brands = $(if ($src) { $src.brands } else { @() }); pricing = $(if ($src) { $src.pricing } else { $null })
       }
     })
@@ -128,6 +128,9 @@ foreach ($bp in $pub.brands.PSObject.Properties) {
     }
     $photo = $null
     if ($p.photo) { $photo = 'photos/cards/' + [IO.Path]::GetFileNameWithoutExtension($p.photo) + '.jpg' }
+    # A model with no photo can show its floor plan instead (Kelsey 2026-10-20).
+    $plan = $null
+    if ($p.floor_plan -and -not $p.photo) { $plan = 'photos/cards/' + [IO.Path]::GetFileNameWithoutExtension($p.floor_plan) + '.jpg' }
     # (Set outside the table so a one-item list stays a list in the JSON.)
     $bu = $null
     if ($p.building_units) { $bu = [object[]]@($p.building_units | ForEach-Object { [int]$_ }) }
@@ -144,6 +147,7 @@ foreach ($bp in $pub.brands.PSObject.Properties) {
       photo       = $photo
       photo_label = $label
       photo_focus = $(if ($p.photo_focus) { $p.photo_focus } else { $null })
+      floor_plan  = $plan
       # Multifamily buildings: the units per building the customer picks from
       # (Dakota 2 or 3, Westley 5). The tool asks how many buildings.
       building_units = $bu

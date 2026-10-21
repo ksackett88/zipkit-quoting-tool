@@ -97,6 +97,7 @@
                          "photo":  "photos/cards/westgroup-phase4-stacked.jpg",
                          "photo_label":  "Photo: Westgroup Phase 4, Victor, Idaho",
                          "photo_focus":  "50% 82%",
+                         "floor_plan":  null,
                          "building_units":  null,
                          "start_price":  130000,
                          "placeholder":  true
@@ -111,6 +112,7 @@
                          "photo":  "photos/cards/westgroup-phase4-main-level.jpg",
                          "photo_label":  "Photo: Westgroup Phase 4, Victor, Idaho",
                          "photo_focus":  "50% 85%",
+                         "floor_plan":  null,
                          "building_units":  [
                                                 2,
                                                 3
@@ -128,6 +130,7 @@
                          "photo":  "photos/cards/gallatin.jpg",
                          "photo_label":  "Rendering",
                          "photo_focus":  null,
+                         "floor_plan":  null,
                          "building_units":  null,
                          "start_price":  110000,
                          "placeholder":  true
@@ -142,6 +145,7 @@
                          "photo":  "photos/cards/gallatin-ii.jpg",
                          "photo_label":  "Rendering",
                          "photo_focus":  null,
+                         "floor_plan":  null,
                          "building_units":  null,
                          "start_price":  120000,
                          "placeholder":  true
@@ -156,6 +160,7 @@
                          "photo":  null,
                          "photo_label":  null,
                          "photo_focus":  null,
+                         "floor_plan":  "photos/cards/mckinley-lower-floorplan.jpg",
                          "building_units":  [
                                                 4
                                             ],
@@ -172,6 +177,7 @@
                          "photo":  null,
                          "photo_label":  null,
                          "photo_focus":  null,
+                         "floor_plan":  "photos/cards/westley-lower-floorplan.jpg",
                          "building_units":  [
                                                 5
                                             ],
@@ -188,6 +194,7 @@
                          "photo":  "photos/cards/sierra.jpg",
                          "photo_label":  "Rendering",
                          "photo_focus":  null,
+                         "floor_plan":  null,
                          "building_units":  null,
                          "start_price":  100000,
                          "placeholder":  true

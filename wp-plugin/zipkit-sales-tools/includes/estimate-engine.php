@@ -53,6 +53,20 @@ function zkst_public_test_prices( $data, $show ) {
 	return $data;
 }
 
+/**
+ * A public catalog with every starting price removed, for a visitor who isn't
+ * signed in (Kelsey 2026-10-20: pricing stays behind the account). The page
+ * reads "prices_hidden" and asks again once the customer signs in.
+ */
+function zkst_public_hide_prices( $data ) {
+	foreach ( (array) $data['products'] as $i => $p ) {
+		$data['products'][ $i ]['start_price'] = null;
+		$data['products'][ $i ]['placeholder'] = false;
+	}
+	$data['prices_hidden'] = true;
+	return $data;
+}
+
 /** "2 buildings × 3 units = 6 units" (the public quoter shows the same). */
 function zkst_est_buildings( $buildings, $per ) {
 	$n = $buildings * $per;
