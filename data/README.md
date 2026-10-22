@@ -83,7 +83,7 @@ Nothing else is copied: no rates, snow or window prices, discounts, overrides or
 - **Before the customer accounts project exists,** nobody can sign in. So every pricing spot (the cards, the estimate box and the phone price bar) reads "Call 208-970-6904 for pricing" (the brand's phone), and nothing mentions an account.
 
 What you can change in the `"public"` section:
-- **`availability`**: which states get wood kits, steel kits and assembly. Complete modular uses `product_types.modular.service_states`, the same list as the rep tool.
+- **`availability`**: which states get wood kits, steel kits and assembly. Complete modular uses `product_types.modular.service_states` and wood kits use `rules.wood_kit_states`, the same lists as the rep tool. Change those lists there; the public catalog has no copy of its own.
 - **`types`**: which product types customers can pick, and which questions each one asks: homes, snow, assembly. Set `"show": false` to hide a type.
 - **`snow_choices`**: the wording of the snow-load choices. There are no prices here; snow never changes the customer's number.
 - **`brands`**: which product types and models each brand offers, its factory ZIP for shipping, and `"prices": "needs_price"` to show no prices at all.

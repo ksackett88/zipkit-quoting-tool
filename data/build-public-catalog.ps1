@@ -31,7 +31,11 @@ function Resolve-Ref([string]$ref) {
 function Is-Number($v) { return ($v -is [int] -or $v -is [long] -or $v -is [double] -or $v -is [decimal]) }
 function Money($n) { return '$' + ([long]$n).ToString('N0', [Globalization.CultureInfo]::InvariantCulture) }
 function States($a) {
-  if ($a.states_from) { return [object[]]@(Resolve-Ref $a.states_from) }
+  if ($a.states_from) {
+    $s = Resolve-Ref $a.states_from
+    if (-not $s) { throw "states_from '$($a.states_from)' points at nothing in catalog.json. Fix the path before building." }
+    return [object[]]@($s)
+  }
   if ($a.states -eq 'all') { return 'all' }
   return [object[]]@($a.states)
 }

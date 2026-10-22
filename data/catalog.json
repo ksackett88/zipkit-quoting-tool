@@ -276,7 +276,7 @@
     "note": "Rules for the customer quoter ([zipkit_quote_public]). The build makes data/catalog-public-<brand>.json from this file: public fields only. Zone adjustments, shipping rates and road factors stay server-side (WordPress plugin). Nothing here changes a rep-tool price.",
     "status": "Rules marked confirm:true still need Kelsey's OK. needs_price means the number isn't in yet: no price shows where it applies.",
     "availability": {
-      "wood_kits": { "label": "Wood panelized kits", "states": ["UT", "ID", "MT", "WY", "CO", "AZ", "NV", "NM", "CA", "OR", "WA"], "confirm": false, "source": "Approved by Kelsey 2026-10-13." },
+      "wood_kits": { "label": "Wood panelized kits", "states_from": "rules.wood_kit_states", "confirm": false, "source": "Approved by Kelsey 2026-10-13. One list with the rep tool (Kelsey 2026-10-21)." },
       "steel_kits": { "label": "Steel kits", "states": "all", "diy_only": true, "confirm": false, "source": "Approved by Kelsey 2026-10-13." },
       "complete_modular": { "label": "Complete modular", "states_from": "product_types.modular.service_states", "confirm": false, "source": "Same list as the rep tool." },
       "assembly": { "label": "Assembly by our crew", "states_from": "brands.zipkit.assembly.states", "confirm": false, "source": "Approved by Kelsey 2026-10-13. Garages follow it too." }

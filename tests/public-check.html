@@ -83,6 +83,12 @@
     var nums = (s.match(/\d{3,}/g) || []).map(Number).filter(function(n){ return internal[n] && !allowed[n]; });
     rec(key + ': no internal amounts (snow, windows, engineering, shipping)', !nums.length, nums);
   });
+  // One wood-kit state list (Kelsey 2026-10-21): the public catalog reads the rep tool's rules.wood_kit_states.
+  var wk = full.rules && full.rules.wood_kit_states;
+  rec('Wood kits: the public catalog uses the rep tool\'s state list (rules.wood_kit_states), not its own copy', full.public.availability.wood_kits.states_from === 'rules.wood_kit_states' && Array.isArray(wk) && wk.length > 0
+    && Object.keys(pubs).every(function(k){ return same(pubs[k].availability.wood_kits, wk); }), { rule: wk, zipkit: pubs.zipkit.availability.wood_kits, mvp: pubs.mvp.availability.wood_kits });
+  rec('Every states_from in the public section points at a real state list', Object.keys(full.public.availability).every(function(l){ var a = full.public.availability[l]; return !a.states_from || (Array.isArray(ref(a.states_from)) && ref(a.states_from).length > 0); }), 'empty');
+  rec('MVP complete modular is still UT, ID, MT, WY', same(pubs.mvp.availability.complete_modular, ['UT', 'ID', 'MT', 'WY']), pubs.mvp.availability.complete_modular);
   rec('Zip Kit starting prices match the rep tool\'s card prices', pubs.zipkit.products.every(function(p){ return p.start_price === Cat.startingPrice(Cat.product(p.id)); }), 'mismatch');
   var tp = { sierra: 100000, gallatin: 110000, 'gallatin-ii': 120000, ridgeline: 130000, dakota: 140000, westley: 150000, mckinley: 160000 };
   rec('MVP pilot: only Kelsey\'s 7 placeholder test prices, every one marked placeholder; no design line', pubs.mvp.products.every(function(p){ return p.start_price === tp[p.id] && p.placeholder === true; })
