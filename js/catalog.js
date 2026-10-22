@@ -29,12 +29,24 @@
     return a.by || '';
   };
 
-  // Models a rep can pick: active, sold by an active brand.
+  // Models a rep can pick: active, sold by an active brand. Products marked
+  // "temporary" (MVP Ridgeline and Dakota, Kelsey 2026-10-22) show too while
+  // rules.show_temporary_models is on.
   Catalog.prototype.products = function(t){
-    var brands = this.data.brands;
+    var brands = this.data.brands, temp = !!(this.data.rules && this.data.rules.show_temporary_models);
     return this.data.products.filter(function(p){
-      return p.type === t && p.status === 'active' && p.brands.some(function(b){ return brands[b] && brands[b].active; });
+      if(p.type !== t) return false;
+      if(p.temporary) return temp;
+      return p.status === 'active' && p.brands.some(function(b){ return brands[b] && brands[b].active; });
     });
+  };
+
+  // The brand on a model's documents: the model's own brand (Ridgeline and
+  // Dakota are Mountain Valley Prefab), else the product type's brand.
+  Catalog.prototype.brandForProduct = function(p, t){
+    var key = p && p.brands && p.brands[0];
+    if(key && this.data.brands[key] && key !== ((this.data.product_types[t] || {}).brand || 'zipkit') && p.temporary) return Object.assign({ key: key }, this.data.brands[key]);
+    return this.brandFor(t);
   };
 
   Catalog.prototype.product = function(id){

@@ -75,7 +75,9 @@
   },
   "rules": {
     "note": "Kelsey 2026-10-20: wood kits (panelized kits, garages, custom homes) sell only in these states; steel kits and hangars sell everywhere but are DIY only outside them. The assembly crew states are under each brand.",
-    "wood_kit_states": ["UT", "ID", "MT", "WY", "CO", "AZ", "NV", "NM", "CA", "OR", "WA"]
+    "wood_kit_states": ["UT", "ID", "MT", "WY", "CO", "AZ", "NV", "NM", "CA", "OR", "WA"],
+    "show_temporary_models": true,
+    "show_temporary_models_note": "Kelsey 2026-10-22: the sales team quotes the MVP Ridgeline and Dakota in the Zip Kit sales tool until the MVP quoter is live. They're the products marked \"temporary\": true. Set this to false to hide them again; nothing is deleted."
   },
   "payment_schedules": {
     "zk_kit_standard": {
@@ -1464,6 +1466,7 @@
         "mvp"
       ],
       "status": "parked",
+      "temporary": true,
       "sqft": 840,
       "sqft_label": "840",
       "photo": "photos/ridgeline.jpg",
@@ -1503,6 +1506,7 @@
         "mvp"
       ],
       "status": "parked",
+      "temporary": true,
       "sqft": 840,
       "sqft_label": "840 / module",
       "photo": "photos/dakota1.jpg",

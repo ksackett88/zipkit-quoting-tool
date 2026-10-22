@@ -158,7 +158,7 @@
   function stepIndex(id){ for(var i = 0; i < STEPS.length; i++) if(STEPS[i].id === id) return i; return 0; }
 
   function renderBrand(){
-    var b = cat.brandFor(state.cfg ? state.cfg.type : state.type);
+    var t = state.cfg ? state.cfg.type : state.type, b = cat.brandForProduct(state.cfg && state.cfg.productId ? cat.product(state.cfg.productId) : null, t);
     $('#zk-brand-logo').src = ZK.url(b.logo);
     $('#zk-brand-logo').alt = b.name;
     $('#zk-brand-name').textContent = 'Quoting as ' + b.name;
@@ -222,7 +222,7 @@
       var lead = state.type === 'modular' ? 'Complete from ' : (state.type === 'hangar' ? 'Starting at ' : 'Kit from ');
       return '<button type="button" class="pcard' + (p.id === sel ? ' on' : '') + '" data-product="' + p.id + '">'
         + '<div class="ph">' + (p.photo ? '<img src="' + esc(ZK.photo(p.photo, 'card')) + '" data-full="' + esc(ZK.photo(p.photo, 'doc')) + '" alt="" loading="lazy" onerror="if(this.dataset.full){this.src=this.dataset.full;this.removeAttribute(\x27data-full\x27);}">' : '') + '</div>'
-        + '<div class="pc-body"><div class="pc-name">' + esc(p.name) + (p.barndominium ? '<span class="tag">Barndominium</span>' : '') + '</div>'
+        + '<div class="pc-body"><div class="pc-name">' + esc(p.name) + (p.barndominium ? '<span class="tag">Barndominium</span>' : '') + (p.temporary ? '<span class="tag">Mountain Valley Prefab</span>' : '') + '</div>'
         + '<div class="pc-meta">' + esc(meta) + '</div>'
         + (start != null ? '<div class="pc-price">' + lead + fmt(start) + '</div>' : '')
         + '</div></button>';
@@ -266,11 +266,19 @@
   }
   function assemblyWarning(){ return '<div id="zk-assembly-warning">' + assemblyWarningHTML() + '</div>'; }
 
+  // MVP models quoted here for now (Kelsey 2026-10-22). Same reminders as the old tool.
+  function temporaryNotice(p){
+    if(!p || !p.temporary) return '';
+    var z = pricingOf(p), perModule = z && z.price_basis === 'per_module';
+    return '<div class="notice info"><b>Mountain Valley Prefab model.</b> Quoted here until the MVP quoter is live. The proposal and contract carry the Mountain Valley Prefab name.'
+      + (perModule ? ' <b>Priced per module:</b> each module is 2 or 3 separate 1-bed units, and they stack up to 4 high. Count modules, not units.' : '') + '</div>';
+  }
   function renderOptions(){
     var p = product(), ctx = optionCtx();
     var title = ctx.result ? ctx.result.quote.model : (p ? p.name : cat.typeLabel(state.cfg.type));
     return '<h1 class="step-title">' + esc(title) + '</h1>'
       + '<p class="step-lead">The defaults make a complete quote. Change only what the buyer asked for.</p>'
+      + temporaryNotice(p)
       + loadNotice() + serviceAreaWarning() + assemblyWarning()
       + '<div class="two-col"><div class="card" id="zk-options-form">' + O.renderOptions(ctx) + '</div>'
       + '<aside class="card summary sticky" id="zk-summary" aria-live="polite">' + summaryHTML(ctx.result) + '</aside></div>'
@@ -559,7 +567,7 @@
     var r = currentResult(), t = cat.type(state.cfg.type), p = product();
     return {
       result: r, schedule: buyerSchedule(r), customer: state.customer, rep: state.rep || {},
-      brand: cat.brandFor(state.cfg.type), number: state.saved && state.saved.number,
+      brand: cat.brandForProduct(p, state.cfg.type), number: state.saved && state.saved.number,
       date: new Date().toLocaleDateString('en-US'), projectName: root.ZK.Store.projectName({ customer: state.customer, result: r }),
       photo: p && p.photo, shipsFrom: t.ships_from
     };
@@ -933,9 +941,11 @@
       if(!row) throw new Error('not found');
       var kind = row.product_kind || '';
       if(kind.indexOf('contract-') === 0){ location.replace(ZK.config.contractUrl + '?open=' + encodeURIComponent(id)); return; }
-      // MVP is parked: its quotes open in the old tool, kept at legacy/mvp-quote.html.
-      if(row.brand === 'mvp'){ location.replace(ZK.config.legacyMvpUrl + '?open=' + encodeURIComponent(id)); return; }
       var cfg = row.config || {}, loaded, notes = [];
+      // MVP is parked: its old-tool quotes open in the old tool, kept at
+      // legacy/mvp-quote.html. Ridgeline and Dakota quotes made here (Kelsey
+      // 2026-10-22) open here.
+      if(row.brand === 'mvp' && !(cfg.schema_version >= 2 && cfg.quote)){ location.replace(ZK.config.legacyMvpUrl + '?open=' + encodeURIComponent(id)); return; }
       if(cfg.schema_version >= 2 && cfg.quote){
         loaded = { customer: cfg.quote.customer, cfg: cfg.quote.cfg };
       } else {

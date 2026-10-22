@@ -65,7 +65,15 @@
     steel: { label:"Steel kit, Texas, DIY (Custom Home contract)", type:"steel", project:{ projectName:"Shop building", buildCost:"148500", engineering:"5200", sqft:"2400" },
       customer:{ name:"Taylor Steel Test", email:"", phone:"", city:"Amarillo", state:"TX" },
       options:{ miles:"900" },
-      contract:{ legalName:"Taylor Steel Test", mailing:"9 Sample Rd, Amarillo, TX 79101", site:"9 Sample Rd, Amarillo, TX 79101" } }
+      contract:{ legalName:"Taylor Steel Test", mailing:"9 Sample Rd, Amarillo, TX 79101", site:"9 Sample Rd, Amarillo, TX 79101" } },
+    ridgeline: { label:'MVP Ridgeline, two units, Utah (temporary)', type:'modular', product:'ridgeline', units:2,
+      customer:{ name:'Morgan Ridge Test', email:'', phone:'', city:'Heber City', state:'UT' },
+      options:{ miles:'250' },
+      contract:{ legalName:'Morgan Ridge Test', mailing:'5 Example Ct, Heber City, UT 84032', site:'5 Example Ct, Heber City, UT 84032' } },
+    dakota: { label:'MVP Dakota, three modules, Idaho (temporary)', type:'modular', product:'dakota', units:3,
+      customer:{ name:'Dakota Housing Test LLC', email:'', phone:'', city:'Rexburg', state:'ID' },
+      options:{ miles:'90' },
+      contract:{ legalName:'Dakota Housing Test LLC', mailing:'PO Box 7, Rexburg, ID 83440', site:'Sample Lots 1–3, Rexburg, ID 83440' } }
   };
   var ORDER = ['customer', 'product', 'options', 'review', 'contract', 'send'];
   function stop(at){ return SHOT && ORDER.indexOf(at) >= ORDER.indexOf(AT); }
@@ -199,6 +207,21 @@
     var s = await drive('steel');
     rec('Steel kit (TX, DIY): sold outside the wood-kit states, Custom Home contract made, amounts match', !s.bad && has(s.doc, 'Freight pricing assumes Seller'), s.status);
 
+    // ---- MVP Ridgeline and Dakota, back for now (Kelsey 2026-10-22) ----
+    var mvpRows = function(){ return JSON.parse(localStorage.getItem('zk-test-rows')); };
+    var rg = await drive('ridgeline');
+    var rq = mvpRows().filter(function(r){ return r.product_kind === 'modular' && r.model === 'Ridgeline'; })[0];
+    rec('MVP Ridgeline: quoted and contracted as Mountain Valley Prefab, amounts match the quote, modular wording, MVP phone',
+      !rg.bad && rq && rq.brand === 'mvp' && has(rg.doc, 'Mountain Valley Prefab, LLC') && has(rg.doc, '208-970-6904') && has(rg.doc, 'Due at project start to begin design and engineering.')
+      && has(rg.proposal, 'Mountain Valley Prefab') && JSON.stringify(rq.config.contract.amounts) === JSON.stringify(rq.config.payment_schedule.map(function(s){ return Math.round(s.amount); })),
+      { status: rg.status, brand: rq && rq.brand });
+    var dk = await drive('dakota');
+    var dq = mvpRows().filter(function(r){ return r.product_kind === 'modular' && r.model === 'Dakota'; })[0];
+    rec('MVP Dakota: priced per module (3 modules), contracted as Mountain Valley Prefab, amounts match the quote',
+      !dk.bad && dq && dq.brand === 'mvp' && dq.units === 3 && has(dk.doc, 'Mountain Valley Prefab, LLC') && /modules/.test(dk.proposal)
+      && JSON.stringify(dq.config.contract.amounts) === JSON.stringify(dq.config.payment_schedule.map(function(s){ return Math.round(s.amount); })),
+      { status: dk.status, units: dq && dq.units });
+
     // ---- sales rules on the screens ----
     await load('../quote.html');
     await until(function(){ return W().ZK && W().ZK.Flow && q('[data-cust="name"]'); });
@@ -212,6 +235,24 @@
     var asmTip = (D().querySelector('[data-field="assembly"]') || D()).textContent;
     click('[data-next="review"]'); await until(function(){ return W().ZK.Flow.state.step === 'review'; });
     var wc = q('[data-contract]');
+    // Dakota outside UT, ID, MT and WY: the modular block applies.
+    W().ZK.Flow.state.customer.state = 'CO'; W().ZK.Flow.go('product'); await until(function(){ return W().ZK.Flow.state.step === 'product'; });
+    click('[data-type="modular"]'); await until(function(){ return q('[data-product="dakota"]'); });
+    var cardsMod = Array.prototype.map.call(D().querySelectorAll('[data-product]'), function(e){ return e.getAttribute('data-product'); });
+    click('[data-product="dakota"]'); await until(function(){ return W().ZK.Flow.state.step === 'options'; });
+    click('[data-next="review"]'); await until(function(){ return W().ZK.Flow.state.step === 'review'; });
+    var dkCO = q('[data-contract]');
+    rec('MVP models: Ridgeline and Dakota are on the modular cards; Dakota in CO gets the modular out-of-area block',
+      cardsMod.indexOf('ridgeline') !== -1 && cardsMod.indexOf('dakota') !== -1 && dkCO.disabled, { cards: cardsMod, disabled: dkCO.disabled });
+    var catT = W().ZK.Flow.catalog(); catT.data.rules.show_temporary_models = false;
+    var hidden = catT.products('modular').map(function(p){ return p.id; });
+    catT.data.rules.show_temporary_models = true;
+    rec('MVP models: turning off rules.show_temporary_models hides both (nothing deleted)', hidden.indexOf('ridgeline') === -1 && hidden.indexOf('dakota') === -1 && !!catT.product('dakota'), hidden);
+    W().ZK.Flow.state.customer.state = 'TX'; W().ZK.Flow.go('product'); await until(function(){ return W().ZK.Flow.state.step === 'product'; });
+    click('[data-type="shell"]'); await until(function(){ return q('[data-product="alpine"]'); });
+    click('[data-product="alpine"]'); await until(function(){ return W().ZK.Flow.state.step === 'options'; });
+    click('[data-next="review"]'); await until(function(){ return W().ZK.Flow.state.step === 'review'; });
+    wc = q('[data-contract]');
     var kitOnly = W().ZK.Documents.proposal(W().ZK.Flow.docData());
     rec('Kit only: the proposal doesn\'t list set-and-erect labor', !has(kitOnly, 'Labor to set and erect') && has(kitOnly, 'Zip Wall sheathing'), 'labor line');
     rec('Wood kit in TX: "Write the contract" is off and says to quote a steel kit', wc.disabled && /Wood kits only ship to UT, ID, MT, WY, CO, AZ, NV, NM, CA, OR and WA\. Quote a steel kit instead\./.test(wc.title), wc.title);

@@ -736,17 +736,20 @@ document.getElementById('project-search').addEventListener('input', function(e){
 // Saved quotes open in the new quote tool (quote.html), which converts quotes
 // saved by the old tool. MVP quotes open in the parked copy of the old tool
 // (legacy/mvp-quote.html) until the MVP sector is built.
+// MVP quotes made in the new tool (Ridgeline and Dakota, Kelsey 2026-10-22)
+// open in the new tool like any other quote.
+function oldMvpQuote(p){ var c = (p && p.config) || {}; return !!(p && p.brand === 'mvp' && !(c.schema_version >= 2 && c.quote)); }
 function openInTool(id, kind){
   var p = (_projects || []).filter(function(x){ return x.id === id; })[0];
   var url = kind === 'contract'
     ? 'ZipKit_Contract_Generator.html?open=' + encodeURIComponent(id)
-    : ((p && p.brand === 'mvp') ? 'legacy/mvp-quote.html?open=' : 'quote.html?open=') + encodeURIComponent(id);
+    : (oldMvpQuote(p) ? 'legacy/mvp-quote.html?open=' : 'quote.html?open=') + encodeURIComponent(id);
   window.location.href = url;
 }
 
 function continueToContract(quoteId){
   var p = (_projects || []).filter(function(x){ return x.id === quoteId; })[0];
-  var url = (p && p.brand === 'mvp')
+  var url = oldMvpQuote(p)
     ? 'ZipKit_Contract_Generator.html?fromQuote=' + encodeURIComponent(quoteId)
     : 'quote.html?open=' + encodeURIComponent(quoteId) + '&step=contract';
   window.location.href = url;

@@ -69,6 +69,11 @@ window.ZK_PRICING_CASES = function(cat){
   add('Modular: Yellowstone deck, assembly remove, Andersen', { type:'modular', productId:'yellowstone', addons:['rooftop_deck_w_spiral_staircase'], assembly:'remove', windows:'andersen_100_series' });
   add('Modular: Gallatin II negotiated price', { type:'modular', productId:'gallatin-ii', adjustments:{ base:{ amount:149000, reason:'t' } }, units:2, discountPct:5 });
   add('Modular: Gallatin, odd contract (rounding)', { type:'modular', productId:'gallatin', miles:333, units:3, customLines:[{ desc:'x', amount:0.5 }] });
+  // MVP Ridgeline and Dakota, back in the sales tool for now (Kelsey 2026-10-22).
+  add('Modular: MVP Ridgeline defaults', { type:'modular', productId:'ridgeline' });
+  add('Modular: MVP Ridgeline, 2 units, snow tier 2, 420 mi, 5% off', { type:'modular', productId:'ridgeline', units:2, snow:'tier2', miles:420, discountPct:5 });
+  add('Modular: MVP Dakota defaults (per module)', { type:'modular', productId:'dakota' });
+  add('Modular: MVP Dakota, 3 modules, snow tier 1, 260 mi, add-on line', { type:'modular', productId:'dakota', units:3, snow:'tier1', miles:260, customLines:[{ desc:'Stair tower', amount:18500 }] });
 
   // ---------- Garages
   ofType('garage').forEach(function(p){

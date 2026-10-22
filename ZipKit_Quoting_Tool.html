@@ -986,7 +986,7 @@ async function generateInvoice(){
   var repPhone = (document.getElementById('rep-phone').value || '').trim();
 
   var co = (QUOTE.company==='mvp')
-    ? {name:'Mountain Valley Prefab', addr:'3791 East 49th North, Idaho Falls ID 83401', tel:'(435) 592·3596', email:'sales@mountainvalleyprefab.com', logo:MVP_LOGO}
+    ? {name:'Mountain Valley Prefab', addr:'3791 East 49th North, Idaho Falls ID 83401', tel:'208·970·6904', email:'sales@mountainvalleyprefab.com', logo:MVP_LOGO}
     : (QUOTE.company==='zksteel')
       ? {name:'Zip Kit Steel', addr:'3665 West 2700 South, Cedar City UT 84720', tel:'(435) 340·1171', email:'sales@zipkitsteel.com', logo:zkImageUrl('zksteel-logo.png')}
       : {name:'Zip Kit Homes', addr:'3665 West 2700 South, Cedar City UT 84720', tel:'(435) 340·1171', email:'sales@zipkithomes.com', logo:ZIPKIT_LOGO};
@@ -1158,7 +1158,7 @@ async function generateGenericInvoice(){
   var total = items.reduce(function(a,c){ return a + c.amt; }, 0);
 
   var co = (company==='mvp')
-    ? {name:'Mountain Valley Prefab', addr:'3791 East 49th North, Idaho Falls ID 83401', tel:'(435) 592·3596', email:'sales@mountainvalleyprefab.com', logo:MVP_LOGO}
+    ? {name:'Mountain Valley Prefab', addr:'3791 East 49th North, Idaho Falls ID 83401', tel:'208·970·6904', email:'sales@mountainvalleyprefab.com', logo:MVP_LOGO}
     : (company==='zksteel')
       ? {name:'Zip Kit Steel', addr:'3665 West 2700 South, Cedar City UT 84720', tel:'(435) 340·1171', email:'sales@zipkitsteel.com', logo:zkImageUrl('zksteel-logo.png')}
       : {name:'Zip Kit Homes', addr:'3665 West 2700 South, Cedar City UT 84720', tel:'(435) 340·1171', email:'sales@zipkithomes.com', logo:ZIPKIT_LOGO};
@@ -1440,7 +1440,7 @@ function generatePreliminaryEstimate(){
 
   // ---- Brand + manufacturing location per company ----
   var co = (QUOTE.company === 'mvp')
-    ? { name:'Mountain Valley Prefab', addr:'3791 East 49th North, Idaho Falls ID 83401', tel:'(435) 592·3596', email:'sales@mountainvalleyprefab.com', logo:MVP_LOGO, mfrgCity:'Idaho Falls, Idaho' }
+    ? { name:'Mountain Valley Prefab', addr:'3791 East 49th North, Idaho Falls ID 83401', tel:'208·970·6904', email:'sales@mountainvalleyprefab.com', logo:MVP_LOGO, mfrgCity:'Idaho Falls, Idaho' }
     : (QUOTE.company === 'zksteel')
       ? { name:'Zip Kit Steel', addr:'3665 West 2700 South, Cedar City UT 84720', tel:'(435) 340·1171', email:'sales@zipkitsteel.com', logo:zkImageUrl('zksteel-logo.png'), mfrgCity:'Cedar City, Utah' }
       : { name:'Zip Kit Homes', addr:'3665 West 2700 South, Cedar City UT 84720', tel:'(435) 340·1171', email:'sales@zipkithomes.com', logo:ZIPKIT_LOGO, mfrgCity:'Cedar City, Utah' };
@@ -1623,7 +1623,7 @@ function generateProposal(){
   var repPhone=g('rep-phone')||'';
 
   var co = (QUOTE.company==='mvp')
-    ? {name:'Mountain Valley Prefab', addr:'3791 East 49th North, Idaho Falls ID 83401', tel:'(435) 592·3596', email:'sales@mountainvalleyprefab.com', logo:MVP_LOGO}
+    ? {name:'Mountain Valley Prefab', addr:'3791 East 49th North, Idaho Falls ID 83401', tel:'208·970·6904', email:'sales@mountainvalleyprefab.com', logo:MVP_LOGO}
     : (QUOTE.company==='zksteel')
       ? {name:'Zip Kit Steel', addr:'3665 West 2700 South, Cedar City UT 84720', tel:'(435) 340·1171', email:'sales@zipkitsteel.com', logo:zkImageUrl('zksteel-logo.png')}
       : {name:'Zip Kit Homes', addr:'3665 West 2700 South, Cedar City UT 84720', tel:'(435) 340·1171', email:'sales@zipkithomes.com', logo:ZIPKIT_LOGO};
@@ -1878,7 +1878,7 @@ var GARAGES = [
 var ZIPKIT_LOGO = zkImageUrl('zk-logo.png');
 var ZIPKIT_CONTACT = '3665 West 2700 South, Cedar City UT 84720<br>(435) 340·1171 &nbsp;|&nbsp; sales@zipkithomes.com';
 var MVP_LOGO = zkImageUrl('mvp-logo.png');
-var MVP_CONTACT = '3791 East 49th North, Idaho Falls ID 83401<br>(435) 592·3596 &nbsp;|&nbsp; sales@mountainvalleyprefab.com';
+var MVP_CONTACT = '3791 East 49th North, Idaho Falls ID 83401<br>208·970·6904 &nbsp;|&nbsp; sales@mountainvalleyprefab.com';
 
 function setMode(mode){
   document.querySelectorAll('.tab').forEach(function(t){ t.classList.toggle('active', t.dataset.mode===mode); });
