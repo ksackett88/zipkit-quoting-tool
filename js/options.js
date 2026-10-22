@@ -20,6 +20,7 @@
 
   var RENDER = {
     stepper: function(c, ctx){
+      if(typeof c.label === 'function') c = Object.assign({}, c, { label: c.label(ctx) });
       var v = get(ctx, c.key) || 1;
       return '<div class="field" data-field="' + c.key + '">' + label(c)
         + '<div class="stepper"><button type="button" data-step="' + c.key + '" data-delta="-1" aria-label="One fewer">−</button>'
@@ -150,7 +151,10 @@
     var r = assemblyRule(ctx);
     return r.ok || (r.overridable && !!ctx.cfg.assemblyOverride && String(ctx.cfg.assemblyOverrideReason || '').trim() !== '');
   }
-  function overrideOffered(ctx){ var r = assemblyRule(ctx); return !r.ok && r.overridable; }
+  // MVP sets its own units with its own crew (Kelsey 2026-10-22): no Zip Kit
+  // assembly choice on MVP models (Ridgeline, Dakota).
+  function mvpModel(ctx){ return !!(ctx.product && ctx.product.brands && ctx.product.brands[0] === 'mvp'); }
+  function overrideOffered(ctx){ if(mvpModel(ctx)) return false; var r = assemblyRule(ctx); return !r.ok && r.overridable; }
   var overrideCtls = [
     { key:'assemblyOverride', type:'check', section:'more', label:'Override: send our assembly crew outside its states',
       sub:'Only with the office\'s OK. Managers see the reason; nothing extra prints on the contract.', showIf: overrideOffered },
@@ -160,7 +164,7 @@
 
   // ---------- per-type definitions ----------
   function assemblyChoice(shareText){
-    return { key:'assembly', type:'choices', label:'Site assembly',
+    return { key:'assembly', type:'choices', label:'Site assembly', showIf: function(ctx){ return !mvpModel(ctx); },
       tip:'Listed prices never include assembly. Our crew is billed on a separate assembly contract, so it isn\'t in the payment schedule.',
       options: function(ctx){
         var r = ctx.result, a = r && r.assemblyEach, blocked = !assemblyAllowed(ctx);
@@ -235,7 +239,7 @@
 
     modular: {
       controls: [
-        { key:'units', type:'stepper', label:'How many units?' },
+        { key:'units', type:'stepper', label: function(ctx){ return ctx.pricing && ctx.pricing.price_basis === 'per_module' ? 'How many modules?' : 'How many units?'; } },
         milesCtl(null),
         snowChoice(),
         assemblyChoice(' per unit'),

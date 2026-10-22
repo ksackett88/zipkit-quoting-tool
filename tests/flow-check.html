@@ -77,6 +77,9 @@
     if(F.state.type !== cfg.type){ if(!tab) return { skipped:'type not switched on' }; tab.click(); }
     if(cfg.productId){
       var card = q(W, '[data-product="' + cfg.productId + '"]'); if(!card) return { skipped:'model not offered' };
+      // MVP sets its own units (Kelsey 2026-10-22): no Zip Kit assembly choice on MVP models.
+      var mp = F.catalog().product(cfg.productId);
+      if(mp && mp.brands[0] === 'mvp' && cfg.assembly && cfg.assembly !== 'none') return { skipped:'no assembly choice on MVP models' };
       card.click();
     } else {
       PROJECT.forEach(function(k){ if(cfg[k] !== undefined) setKey(W, k, cfg[k]); });

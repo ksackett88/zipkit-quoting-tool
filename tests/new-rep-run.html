@@ -240,6 +240,9 @@
     click('[data-type="modular"]'); await until(function(){ return q('[data-product="dakota"]'); });
     var cardsMod = Array.prototype.map.call(D().querySelectorAll('[data-product]'), function(e){ return e.getAttribute('data-product'); });
     click('[data-product="dakota"]'); await until(function(){ return W().ZK.Flow.state.step === 'options'; });
+    var unitsLabel = (q('[data-field="units"] .group-label') || {}).textContent || '';
+    rec('MVP models: Dakota asks "How many modules?", and MVP models have no Zip Kit assembly choice',
+      /How many modules\?/.test(unitsLabel) && q('[data-ctl="assembly"]').hidden && q('[data-ctl="assemblyOverride"]').hidden, { label: unitsLabel, assemblyHidden: q('[data-ctl="assembly"]').hidden });
     click('[data-next="review"]'); await until(function(){ return W().ZK.Flow.state.step === 'review'; });
     var dkCO = q('[data-contract]');
     rec('MVP models: Ridgeline and Dakota are on the modular cards; Dakota in CO gets the modular out-of-area block',
